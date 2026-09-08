@@ -20,7 +20,7 @@
                         <tr>
                             <td class="font-medium text-white">{{ $req->client->business_name }}</td>
                             <td>{{ $req->milestone_description }}</td>
-                            <td class="font-semibold text-white">${{ number_format($req->amount, 2) }}</td>
+                            <td class="font-semibold text-white">{{ \App\Support\Currency::format($req->amount, 'INR') }}</td>
                             <td>{{ $req->creator->name }}</td>
                             <td><x-status-pill :status="$req->status" /></td>
                             <td class="text-right">
@@ -45,13 +45,16 @@
             <form wire:submit="createInvoice" class="space-y-4">
                 <div class="glass-inset p-3 text-sm">
                     <p class="text-white/70">{{ $converting->client->business_name }} &middot; {{ $converting->milestone_description }}</p>
-                    <p class="mt-1 text-lg font-bold text-white">${{ number_format($converting->amount, 2) }}</p>
+                    <p class="mt-1 text-lg font-bold text-white">{{ \App\Support\Currency::format($converting->amount, $currency) }}</p>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <x-input-label for="tax_percent" value="Tax %" />
-                        <x-text-input wire:model="tax_percent" id="tax_percent" type="number" step="0.01" class="mt-0" />
-                        <x-input-error :messages="$errors->get('tax_percent')" class="mt-1" />
+                        <x-input-label for="currency" value="Currency" />
+                        <select wire:model.live="currency" id="currency" class="input-glass">
+                            <option value="INR">INR (₹)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                        </select>
                     </div>
                     <div>
                         <x-input-label for="due_date" value="Due Date" />
@@ -59,6 +62,33 @@
                         <x-input-error :messages="$errors->get('due_date')" class="mt-1" />
                     </div>
                 </div>
+
+                @if ($currency === 'INR')
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <x-input-label for="tax_percent" value="GST %" />
+                            <x-text-input wire:model="tax_percent" id="tax_percent" type="number" step="0.01" class="mt-0" />
+                            <x-input-error :messages="$errors->get('tax_percent')" class="mt-1" />
+                            <p class="mt-1 text-xs text-white/40">Set 0% if this client is GST-exempt.</p>
+                        </div>
+                        <div>
+                            <x-input-label for="client_tax_id" value="Client GSTIN (optional)" />
+                            <x-text-input wire:model="client_tax_id" id="client_tax_id" type="text" class="mt-0" placeholder="e.g. 32ABBCS6427Q1ZY" />
+                        </div>
+                    </div>
+                @else
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="glass-inset p-3 text-xs text-white/50">
+                            <p class="font-semibold text-white/70">GST: 0%</p>
+                            <p class="mt-1">Export of IT services is treated as zero-rated supply (Section 16, IGST Act).</p>
+                        </div>
+                        <div>
+                            <x-input-label for="client_tax_id" value="Client VAT / Tax ID (optional)" />
+                            <x-text-input wire:model="client_tax_id" id="client_tax_id" type="text" class="mt-0" placeholder="e.g. DE337512877" />
+                        </div>
+                    </div>
+                @endif
+
                 <div class="flex justify-end gap-3 pt-2">
                     <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
                     <x-primary-button>Create Invoice</x-primary-button>

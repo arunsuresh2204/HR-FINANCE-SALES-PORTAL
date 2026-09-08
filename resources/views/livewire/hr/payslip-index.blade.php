@@ -14,9 +14,9 @@
                     @forelse ($payrolls as $p)
                         <tr>
                             <td class="font-medium text-white">{{ \Carbon\Carbon::create($p->year, $p->month, 1)->format('F Y') }}</td>
-                            <td>${{ number_format($p->gross_salary, 2) }}</td>
-                            <td>${{ number_format($p->deductions, 2) }}</td>
-                            <td class="font-semibold text-white">${{ number_format($p->net_salary, 2) }}</td>
+                            <td>{{ \App\Support\Currency::format($p->gross_salary, 'INR') }}</td>
+                            <td>{{ \App\Support\Currency::format($p->deductions, 'INR') }}</td>
+                            <td class="font-semibold text-white">{{ \App\Support\Currency::format($p->net_salary, 'INR') }}</td>
                             <td><x-status-pill :status="$p->status" /></td>
                         </tr>
                     @empty

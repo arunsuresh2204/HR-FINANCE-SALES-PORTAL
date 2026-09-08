@@ -7,6 +7,10 @@
 
         <title>{{ config('app.name', 'Nexstarc Portal') }}</title>
 
+        <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+        <link rel="icon" type="image/png" href="{{ asset('images/favicon-192.png') }}" sizes="192x192">
+        <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
+
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&amp;display=swap" rel="stylesheet" />
 

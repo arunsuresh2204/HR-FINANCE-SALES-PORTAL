@@ -15,6 +15,7 @@ return new class extends Migration
             $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
             $table->string('invoice_number')->unique();
             $table->json('line_items')->nullable();
+            $table->string('currency', 3)->default('INR');
             $table->decimal('amount', 12, 2);
             $table->decimal('tax_percent', 5, 2)->default(0);
             $table->decimal('total_amount', 12, 2);

@@ -199,7 +199,7 @@ class DemoDataSeeder extends Seeder
 
         Invoice::create([
             'billing_request_id' => $billing1->id, 'client_id' => $client1->id, 'created_by' => $owner3->id,
-            'invoice_number' => 'INV-2026-0001', 'amount' => 4000, 'tax_percent' => 0, 'total_amount' => 4000,
+            'invoice_number' => 'INV-2026-0001', 'currency' => 'USD', 'amount' => 4000, 'tax_percent' => 0, 'total_amount' => 4000,
             'amount_paid' => 4000, 'due_date' => now()->addDays(15), 'status' => 'paid',
         ]);
 

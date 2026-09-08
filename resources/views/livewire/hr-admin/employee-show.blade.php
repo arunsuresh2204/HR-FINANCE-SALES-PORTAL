@@ -42,7 +42,7 @@
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <x-input-label for="monthly_salary" value="Monthly Salary ($)" />
+                            <x-input-label for="monthly_salary" value="Monthly Salary (₹)" />
                             <x-text-input wire:model="monthly_salary" id="monthly_salary" type="number" step="0.01" class="mt-0" />
                         </div>
                     </div>

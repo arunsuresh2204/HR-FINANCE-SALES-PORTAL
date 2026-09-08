@@ -24,15 +24,15 @@
                     @forelse ($payrolls as $p)
                         <tr id="payslip-{{ $p->id }}">
                             <td class="font-medium text-white">{{ $p->user->name }}</td>
-                            <td>${{ number_format($p->gross_salary, 2) }}</td>
+                            <td>{{ \App\Support\Currency::format($p->gross_salary, 'INR') }}</td>
                             <td>
                                 @if ($p->status === 'draft')
                                     <input type="number" step="0.01" value="{{ $p->deductions }}" wire:change="updateDeduction({{ $p->id }}, $event.target.value)" class="input-glass w-28 py-1">
                                 @else
-                                    ${{ number_format($p->deductions, 2) }}
+                                    {{ \App\Support\Currency::format($p->deductions, 'INR') }}
                                 @endif
                             </td>
-                            <td class="font-semibold text-white">${{ number_format($p->net_salary, 2) }}</td>
+                            <td class="font-semibold text-white">{{ \App\Support\Currency::format($p->net_salary, 'INR') }}</td>
                             <td><x-status-pill :status="$p->status" /></td>
                             <td class="text-right">
                                 @if ($p->status === 'draft')

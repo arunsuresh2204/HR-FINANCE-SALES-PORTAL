@@ -3,69 +3,162 @@
 <head>
     <meta charset="utf-8">
     <style>
-        body { font-family: Helvetica, Arial, sans-serif; color: #1a1a1a; font-size: 12px; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #111; padding-bottom: 16px; margin-bottom: 24px; }
-        .brand { font-size: 20px; font-weight: bold; }
-        .brand .accent { color: #f0bb0b; }
+        body { font-family: 'DejaVu Sans', sans-serif; color: #1a1a1a; font-size: 11px; line-height: 1.5; }
         .muted { color: #666; }
-        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
-        th { background: #111; color: #fff; font-size: 11px; text-transform: uppercase; }
-        .totals { width: 300px; margin-left: auto; margin-top: 16px; }
-        .totals td { border: none; padding: 4px 8px; }
-        .totals .grand { font-size: 15px; font-weight: bold; border-top: 2px solid #111; }
-        .status { display: inline-block; padding: 4px 10px; border-radius: 12px; background: #111; color: #f0bb0b; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; }
+        .no-border, .no-border td { border: none; padding: 0; }
+
+        .letterhead td { vertical-align: top; }
+        .logo-badge { width: 40px; height: 40px; }
+        .company-name { font-size: 13px; font-weight: bold; margin-top: 6px; }
+        .invoice-title { font-size: 22px; font-weight: bold; text-align: right; }
+
+        .meta-row td { padding-top: 2px; }
+        .meta-label { color: #666; }
+        .meta-value { text-align: right; font-weight: bold; }
+
+        .amount-due-box { margin-top: 10px; border: 1px solid #ccc; border-radius: 4px; padding: 10px 14px; text-align: right; }
+        .amount-due-label { color: #666; font-size: 10px; }
+        .amount-due-value { font-size: 17px; font-weight: bold; }
+
+        .divider { border-bottom: 1px solid #ccc; margin: 18px 0; }
+
+        .bill-to-label { color: #666; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+        .bill-to-name { font-weight: bold; font-size: 12px; margin-top: 4px; }
+
+        .items-table { margin-top: 20px; }
+        .items-table th { text-align: left; padding: 6px 8px; border-bottom: 1px solid #999; font-size: 10px; text-transform: uppercase; color: #444; }
+        .items-table th.amount, .items-table td.amount { text-align: right; }
+        .items-table td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+        .item-desc-sub { color: #777; font-size: 10px; margin-top: 2px; }
+
+        .totals-table { width: 260px; margin-left: auto; margin-top: 4px; }
+        .totals-table td { padding: 4px 8px; border: none; }
+        .totals-table .label { color: #555; }
+        .totals-table .value { text-align: right; }
+        .totals-table .total-row td { border-top: 1px solid #999; font-weight: bold; font-size: 12px; padding-top: 8px; }
+
+        .export-note { margin-top: 10px; font-size: 10px; color: #777; }
+
+        .footer-columns { margin-top: 40px; }
+        .footer-columns td { vertical-align: top; width: 50%; padding-right: 20px; }
+        .footer-heading { font-weight: bold; margin-bottom: 8px; }
+        .signatory-title { font-size: 10px; font-weight: bold; letter-spacing: 0.5px; }
+        .signatory-line { margin: 22px 0 4px; border-top: 1px solid #999; width: 140px; }
+        .signatory-name { font-weight: bold; font-size: 11px; }
+        .bank-line { margin-bottom: 3px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="brand">nexstarc<span class="accent">.</span> <span style="font-size:11px; font-weight: normal; color:#888;">technologies</span></div>
-        <div style="text-align:right;">
-            <div style="font-size: 18px; font-weight: bold;">INVOICE</div>
-            <div class="muted">{{ $invoice->invoice_number }}</div>
-        </div>
-    </div>
-
-    <table style="border: none;">
-        <tr style="border: none;">
-            <td style="border: none; width: 50%; vertical-align: top;">
-                <div class="muted">Billed To</div>
-                <div style="font-weight: bold; font-size: 14px;">{{ $invoice->client->business_name }}</div>
-                <div class="muted">{{ $invoice->client->business_address }}</div>
-                <div class="muted">{{ $invoice->client->owner_name }}</div>
+    <table class="letterhead no-border">
+        <tr>
+            <td style="width: 55%;">
+                <img class="logo-badge" src="{{ public_path('images/logo-mark.png') }}">
+                <div class="company-name">{{ config('company.legal_name') }}</div>
+                @foreach (config('company.address_lines') as $line)
+                    <div class="muted">{{ $line }}</div>
+                @endforeach
+                @if (config('company.gstin'))
+                    <div class="muted" style="margin-top: 6px;">Tax ID: GSTIN - {{ config('company.gstin') }}</div>
+                @endif
+                <div class="muted" style="margin-top: 6px;">Phone: {{ config('company.phone') }}</div>
+                <div class="muted">{{ config('company.email') }}</div>
+                <div class="muted">{{ config('company.website') }}</div>
             </td>
-            <td style="border: none; width: 50%; vertical-align: top; text-align: right;">
-                <div class="muted">Issue Date: {{ $invoice->created_at->format('M j, Y') }}</div>
-                <div class="muted">Due Date: {{ $invoice->due_date?->format('M j, Y') ?? '—' }}</div>
-                <div style="margin-top: 6px;"><span class="status">{{ str_replace('_', ' ', $invoice->status) }}</span></div>
+            <td style="width: 45%;">
+                <div class="invoice-title">Invoice</div>
+                <table class="no-border meta-row" style="margin-top: 10px;">
+                    <tr><td class="meta-label">Invoice #</td><td class="meta-value">{{ $invoice->invoice_number }}</td></tr>
+                    <tr><td class="meta-label">Invoice date</td><td class="meta-value">{{ $invoice->created_at->format('d-M-Y') }}</td></tr>
+                    @if ($invoice->due_date)
+                        <tr><td class="meta-label">Due date</td><td class="meta-value">{{ $invoice->due_date->format('d-M-Y') }}</td></tr>
+                    @endif
+                </table>
+                <div class="amount-due-box">
+                    <div class="amount-due-label">Amount due:</div>
+                    <div class="amount-due-value">{{ $invoice->money($invoice->balanceDue()) }}</div>
+                </div>
             </td>
         </tr>
     </table>
 
-    <table>
+    <div class="divider"></div>
+
+    <div class="bill-to-label">Bill to</div>
+    <div class="bill-to-name">{{ $invoice->client->business_name }}</div>
+    @if ($invoice->client->owner_name)
+        <div class="muted">{{ $invoice->client->owner_name }}</div>
+    @endif
+    @if ($invoice->client->business_address)
+        <div class="muted">{{ $invoice->client->business_address }}</div>
+    @endif
+    @if ($invoice->client->owner_contact)
+        <div class="muted" style="margin-top: 6px;">{{ $invoice->client->owner_contact }}</div>
+    @endif
+    @if ($invoice->client->tax_id)
+        <div class="muted">{{ $invoice->clientTaxIdLabel() }}: {{ $invoice->client->tax_id }}</div>
+    @endif
+
+    <table class="items-table">
         <thead>
-            <tr><th>Description</th><th style="text-align:right;">Amount</th></tr>
+            <tr><th>Description</th><th class="amount">Amount</th></tr>
         </thead>
         <tbody>
             @foreach (($invoice->line_items ?: [['description' => 'Services rendered', 'amount' => $invoice->amount]]) as $item)
                 <tr>
-                    <td>{{ $item['description'] ?? 'Item' }}</td>
-                    <td style="text-align:right;">${{ number_format($item['amount'] ?? 0, 2) }}</td>
+                    <td>
+                        {{ $item['description'] ?? 'Item' }}
+                        @if (! empty($item['note']))
+                            <div class="item-desc-sub">{{ $item['note'] }}</div>
+                        @endif
+                    </td>
+                    <td class="amount">{{ $invoice->money($item['amount'] ?? 0) }}</td>
                 </tr>
             @endforeach
         </tbody>
     </table>
 
-    <table class="totals">
-        <tr><td>Subtotal</td><td style="text-align:right;">${{ number_format($invoice->amount, 2) }}</td></tr>
-        <tr><td>Tax ({{ $invoice->tax_percent }}%)</td><td style="text-align:right;">${{ number_format($invoice->total_amount - $invoice->amount, 2) }}</td></tr>
-        <tr class="grand"><td>Total</td><td style="text-align:right;">${{ number_format($invoice->total_amount, 2) }}</td></tr>
-        <tr><td>Amount Paid</td><td style="text-align:right;">${{ number_format($invoice->amount_paid, 2) }}</td></tr>
-        <tr><td>Balance Due</td><td style="text-align:right;">${{ number_format($invoice->balanceDue(), 2) }}</td></tr>
+    <table class="totals-table">
+        <tr><td class="label">Subtotal</td><td class="value">{{ $invoice->money($invoice->amount) }}</td></tr>
+        @if ((float) $invoice->tax_percent > 0)
+            <tr><td class="label">{{ $invoice->taxLabel() }} ({{ rtrim(rtrim(number_format((float) $invoice->tax_percent, 2), '0'), '.') }}%)</td><td class="value">{{ $invoice->money($invoice->total_amount - $invoice->amount) }}</td></tr>
+        @endif
+        <tr class="total-row"><td class="label">Total</td><td class="value">{{ $invoice->money($invoice->total_amount) }} {{ $invoice->currency }}</td></tr>
     </table>
 
-    <div style="margin-top: 60px; text-align: center; color: #999; font-size: 10px;">
-        Nexstarc Technologies &middot; Thank you for your business.
-    </div>
+    @if ($invoice->isExport())
+        <p class="export-note" style="text-align: right;">{{ $invoice->taxLabel() }}: 0% &mdash; Export of IT services is treated as zero-rated supply (Section 16, IGST Act).</p>
+    @endif
+
+    <table class="footer-columns no-border">
+        <tr>
+            <td>
+                <div class="footer-heading">Notes</div>
+                <div class="signatory-title">{{ config('company.signatory_title') }}</div>
+                <div class="signatory-line"></div>
+                <div class="signatory-name">{{ config('company.signatory_name') }}</div>
+            </td>
+            <td>
+                <div class="footer-heading">Terms and Conditions</div>
+                <div class="bank-line" style="font-weight: bold;">Bank Details</div>
+                <div class="bank-line muted">Account Name: {{ config('company.bank.account_name') }}</div>
+                <div class="bank-line muted">Account Number: {{ config('company.bank.account_number') }}</div>
+                <div class="bank-line muted">SWIFT: {{ config('company.bank.swift') }}, IFSC: {{ config('company.bank.ifsc') }}</div>
+                <div class="bank-line muted">Contact Number: {{ config('company.phone') }}@if (config('company.gstin')), GSTIN - {{ config('company.gstin') }}@endif</div>
+                <div class="bank-line muted" style="margin-top: 6px;">
+                    {{ $invoice->taxLabel() }}: {{ rtrim(rtrim(number_format((float) $invoice->tax_percent, 2), '0'), '.') }}%
+                    @if ($invoice->isExport())
+                        (Section 16 of the IGST Act places Export of IT services shall be treated as zero-rated supply.)
+                    @endif
+                </div>
+                @if ($invoice->isExport() && config('company.paypal_email'))
+                    <div class="bank-line muted" style="margin-top: 6px;">PayPal email: {{ config('company.paypal_email') }}</div>
+                    @if (config('company.merchant_id'))
+                        <div class="bank-line muted">Merchant ID: {{ config('company.merchant_id') }}</div>
+                    @endif
+                @endif
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

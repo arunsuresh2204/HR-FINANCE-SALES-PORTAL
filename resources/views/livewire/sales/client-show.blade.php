@@ -14,6 +14,7 @@
                     <div><dt class="text-white/40">Business Address</dt><dd class="mt-0.5 text-white">{{ $client->business_address ?? '—' }}</dd></div>
                     <div><dt class="text-white/40">Owner / Decision Maker</dt><dd class="mt-0.5 text-white">{{ $client->owner_name ?? '—' }} {{ $client->owner_designation ? '('.$client->owner_designation.')' : '' }}</dd></div>
                     <div><dt class="text-white/40">Contact</dt><dd class="mt-0.5 text-white">{{ $client->owner_contact ?? '—' }}</dd></div>
+                    <div><dt class="text-white/40">GSTIN / VAT / Tax ID</dt><dd class="mt-0.5 text-white">{{ $client->tax_id ?? '—' }}</dd></div>
                     <div><dt class="text-white/40">Sales Person</dt><dd class="mt-0.5 text-white">{{ $client->salesPerson->name }}</dd></div>
                     <div><dt class="text-white/40">Hours Logged</dt><dd class="mt-0.5 text-white">{{ number_format($totalHours, 1) }}h</dd></div>
                 </dl>
@@ -69,7 +70,7 @@
                         <div class="glass-inset flex items-center justify-between p-3">
                             <div>
                                 <p class="text-sm font-medium text-white">{{ $invoice->invoice_number }}</p>
-                                <p class="text-xs text-white/40">${{ number_format($invoice->total_amount, 2) }} &middot; Due {{ $invoice->due_date?->format('M j, Y') ?? '—' }}</p>
+                                <p class="text-xs text-white/40">{{ $invoice->money($invoice->total_amount) }} &middot; Due {{ $invoice->due_date?->format('M j, Y') ?? '—' }}</p>
                             </div>
                             <x-status-pill :status="$invoice->status" />
                         </div>
@@ -87,7 +88,7 @@
                     @forelse ($billingRequests as $br)
                         <div class="glass-inset p-3">
                             <div class="flex items-center justify-between">
-                                <p class="text-sm font-semibold text-white">${{ number_format($br->amount, 2) }}</p>
+                                <p class="text-sm font-semibold text-white">{{ \App\Support\Currency::format($br->amount, 'INR') }}</p>
                                 <x-status-pill :status="$br->status" />
                             </div>
                             <p class="mt-1 text-xs text-white/45">{{ $br->milestone_description }}</p>

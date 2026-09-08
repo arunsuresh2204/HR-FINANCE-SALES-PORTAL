@@ -18,7 +18,7 @@
                             <td>{{ $e->expense_date->format('M j, Y') }}</td>
                             <td class="capitalize">{{ $e->category }}</td>
                             <td class="max-w-xs truncate">{{ $e->description ?: '—' }}</td>
-                            <td class="font-semibold text-white">${{ number_format($e->amount, 2) }}</td>
+                            <td class="font-semibold text-white">{{ \App\Support\Currency::format($e->amount, 'INR') }}</td>
                             <td>
                                 @if ($e->receipt_file)
                                     <a href="{{ Storage::url($e->receipt_file) }}" target="_blank" class="text-xs font-semibold text-gold-300 hover:text-gold-200">View</a>
@@ -41,7 +41,7 @@
         <form wire:submit="submit" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <x-input-label for="amount" value="Amount ($)" />
+                    <x-input-label for="amount" value="Amount (₹)" />
                     <x-text-input wire:model="amount" id="amount" type="number" step="0.01" class="mt-0" />
                     <x-input-error :messages="$errors->get('amount')" class="mt-1" />
                 </div>

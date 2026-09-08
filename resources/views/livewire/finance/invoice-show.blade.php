@@ -22,17 +22,21 @@
                 <thead><tr><th>Description</th><th class="text-right">Amount</th></tr></thead>
                 <tbody>
                     @foreach (($invoice->line_items ?: [['description' => 'Services rendered', 'amount' => $invoice->amount]]) as $item)
-                        <tr><td>{{ $item['description'] ?? 'Item' }}</td><td class="text-right">${{ number_format($item['amount'] ?? 0, 2) }}</td></tr>
+                        <tr><td>{{ $item['description'] ?? 'Item' }}</td><td class="text-right">{{ $invoice->money($item['amount'] ?? 0) }}</td></tr>
                     @endforeach
                 </tbody>
             </table>
 
+            @if ($invoice->isExport())
+                <p class="mt-3 text-xs text-white/40">{{ $invoice->taxLabel() }}: 0% &middot; export of IT services is treated as zero-rated supply (Section 16, IGST Act).</p>
+            @endif
+
             <div class="mt-4 ml-auto max-w-xs space-y-1.5 text-sm">
-                <div class="flex justify-between text-white/60"><span>Subtotal</span><span>${{ number_format($invoice->amount, 2) }}</span></div>
-                <div class="flex justify-between text-white/60"><span>Tax ({{ $invoice->tax_percent }}%)</span><span>${{ number_format($invoice->total_amount - $invoice->amount, 2) }}</span></div>
-                <div class="flex justify-between border-t border-white/10 pt-1.5 text-base font-bold text-white"><span>Total</span><span>${{ number_format($invoice->total_amount, 2) }}</span></div>
-                <div class="flex justify-between text-emerald-300"><span>Paid</span><span>${{ number_format($invoice->amount_paid, 2) }}</span></div>
-                <div class="flex justify-between font-semibold text-gold-300"><span>Balance Due</span><span>${{ number_format($invoice->balanceDue(), 2) }}</span></div>
+                <div class="flex justify-between text-white/60"><span>Subtotal</span><span>{{ $invoice->money($invoice->amount) }}</span></div>
+                <div class="flex justify-between text-white/60"><span>{{ $invoice->taxLabel() }} ({{ rtrim(rtrim(number_format((float) $invoice->tax_percent, 2), '0'), '.') }}%)</span><span>{{ $invoice->money($invoice->total_amount - $invoice->amount) }}</span></div>
+                <div class="flex justify-between border-t border-white/10 pt-1.5 text-base font-bold text-white"><span>Total</span><span>{{ $invoice->money($invoice->total_amount) }}</span></div>
+                <div class="flex justify-between text-emerald-300"><span>Paid</span><span>{{ $invoice->money($invoice->amount_paid) }}</span></div>
+                <div class="flex justify-between font-semibold text-gold-300"><span>Balance Due</span><span>{{ $invoice->money($invoice->balanceDue()) }}</span></div>
             </div>
         </div>
 
@@ -40,6 +44,9 @@
             <p class="text-xs font-semibold uppercase tracking-wide text-white/40">Bill To</p>
             <p class="mt-2 font-semibold text-white">{{ $invoice->client->business_name }}</p>
             <p class="text-sm text-white/50">{{ $invoice->client->business_address }}</p>
+            @if ($invoice->client->tax_id)
+                <p class="mt-1 text-xs text-white/40">{{ $invoice->clientTaxIdLabel() }}: {{ $invoice->client->tax_id }}</p>
+            @endif
             <div class="mt-4 border-t border-white/10 pt-4 text-sm">
                 <div class="flex justify-between"><span class="text-white/40">Issued</span><span class="text-white">{{ $invoice->created_at->format('M j, Y') }}</span></div>
                 <div class="flex justify-between"><span class="text-white/40">Due</span><span class="text-white">{{ $invoice->due_date?->format('M j, Y') ?? '—' }}</span></div>
@@ -50,10 +57,10 @@
     <x-modal-glass wire-model="showPaymentForm" title="Record Payment">
         <form wire:submit="recordPayment" class="space-y-4">
             <div>
-                <x-input-label for="payment_amount" value="Amount ($)" />
+                <x-input-label :value="'Amount ('.\App\Support\Currency::symbol($invoice->currency).')'" for="payment_amount" />
                 <x-text-input wire:model="payment_amount" id="payment_amount" type="number" step="0.01" class="mt-0" />
                 <x-input-error :messages="$errors->get('payment_amount')" class="mt-1" />
-                <p class="mt-1 text-xs text-white/40">Balance due: ${{ number_format($invoice->balanceDue(), 2) }}</p>
+                <p class="mt-1 text-xs text-white/40">Balance due: {{ $invoice->money($invoice->balanceDue()) }}</p>
             </div>
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>

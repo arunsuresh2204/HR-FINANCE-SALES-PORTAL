@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Currency;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -9,7 +10,7 @@ class Invoice extends Model
 {
     protected $fillable = [
         'billing_request_id', 'client_id', 'created_by', 'invoice_number', 'line_items',
-        'amount', 'tax_percent', 'total_amount', 'amount_paid', 'due_date', 'status', 'pdf_path',
+        'currency', 'amount', 'tax_percent', 'total_amount', 'amount_paid', 'due_date', 'status', 'pdf_path',
     ];
 
     protected function casts(): array
@@ -47,5 +48,29 @@ class Invoice extends Model
     public function isOverdue(): bool
     {
         return $this->due_date && $this->due_date->isPast() && $this->status !== 'paid';
+    }
+
+    public function isExport(): bool
+    {
+        return $this->currency !== 'INR';
+    }
+
+    public function taxLabel(): string
+    {
+        return 'GST';
+    }
+
+    public function clientTaxIdLabel(): string
+    {
+        return match ($this->currency) {
+            'INR' => 'GSTIN',
+            'EUR' => 'VAT',
+            default => 'Tax ID',
+        };
+    }
+
+    public function money(float|string $amount): string
+    {
+        return Currency::format($amount, $this->currency ?? 'INR');
     }
 }

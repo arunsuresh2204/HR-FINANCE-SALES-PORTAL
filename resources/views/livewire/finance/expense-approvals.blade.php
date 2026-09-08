@@ -13,7 +13,7 @@
     @if ($byCategory->isNotEmpty())
         <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
             @foreach ($byCategory as $cat => $total)
-                <x-stat-card :label="ucfirst($cat)" value="${{ number_format($total, 0) }}" icon="receipt" accent="violet" />
+                <x-stat-card :label="ucfirst($cat)" value="{{ \App\Support\Currency::format($total, 'INR') }}" icon="receipt" accent="violet" />
             @endforeach
         </div>
     @endif
@@ -29,7 +29,7 @@
                             <td class="font-medium text-white">{{ $e->user->name }}</td>
                             <td class="capitalize">{{ $e->category }}</td>
                             <td class="max-w-xs truncate">{{ $e->description ?: '—' }}</td>
-                            <td class="font-semibold text-white">${{ number_format($e->amount, 2) }}</td>
+                            <td class="font-semibold text-white">{{ \App\Support\Currency::format($e->amount, 'INR') }}</td>
                             <td>
                                 @if ($e->receipt_file)
                                     <a href="{{ Storage::url($e->receipt_file) }}" target="_blank" class="text-xs font-semibold text-gold-300 hover:text-gold-200">View</a>

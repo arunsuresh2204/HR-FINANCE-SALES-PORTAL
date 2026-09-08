@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('owner_name')->nullable();
             $table->string('owner_designation')->nullable();
             $table->string('owner_contact')->nullable();
+            $table->string('tax_id')->nullable();
             $table->string('agreement_file')->nullable();
             $table->date('agreement_effective_date')->nullable();
             $table->text('agreement_scope_summary')->nullable();
