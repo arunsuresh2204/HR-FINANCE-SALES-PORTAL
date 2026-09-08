@@ -60,10 +60,18 @@
                 @endforeach
                 @if (config('company.gstin'))
                     <div class="muted" style="margin-top: 6px;">Tax ID: GSTIN - {{ config('company.gstin') }}</div>
+                @elseif (config('company.tax_id'))
+                    <div class="muted" style="margin-top: 6px;">Tax ID ({{ config('company.tax_id_label') }}): {{ config('company.tax_id') }}</div>
                 @endif
-                <div class="muted" style="margin-top: 6px;">Phone: {{ config('company.phone') }}</div>
-                <div class="muted">{{ config('company.email') }}</div>
-                <div class="muted">{{ config('company.website') }}</div>
+                @if (config('company.phone'))
+                    <div class="muted" style="margin-top: 6px;">Phone: {{ config('company.phone') }}</div>
+                @endif
+                @if (config('company.email'))
+                    <div class="muted">{{ config('company.email') }}</div>
+                @endif
+                @if (config('company.website'))
+                    <div class="muted">{{ config('company.website') }}</div>
+                @endif
             </td>
             <td style="width: 45%;">
                 <div class="invoice-title">Invoice</div>
@@ -142,9 +150,24 @@
                 <div class="footer-heading">Terms and Conditions</div>
                 <div class="bank-line" style="font-weight: bold;">Bank Details</div>
                 <div class="bank-line muted">Account Name: {{ config('company.bank.account_name') }}</div>
-                <div class="bank-line muted">Account Number: {{ config('company.bank.account_number') }}</div>
+                <div class="bank-line muted">Account Number / IBAN: {{ config('company.bank.account_number') }}</div>
                 <div class="bank-line muted">SWIFT: {{ config('company.bank.swift') }}, IFSC: {{ config('company.bank.ifsc') }}</div>
-                <div class="bank-line muted">Contact Number: {{ config('company.phone') }}@if (config('company.gstin')), GSTIN - {{ config('company.gstin') }}@endif</div>
+                @if (config('company.bank.bank_name'))
+                    <div class="bank-line muted">Bank: {{ config('company.bank.bank_name') }}</div>
+                @endif
+                @if (config('company.bank.bank_address'))
+                    <div class="bank-line muted">{{ config('company.bank.bank_address') }}</div>
+                @endif
+                @if (config('company.phone') || config('company.gstin') || config('company.tax_id'))
+                    <div class="bank-line muted" style="margin-top: 6px;">
+                        @if (config('company.phone'))Contact Number: {{ config('company.phone') }}@endif
+                        @if (config('company.gstin'))
+                            @if (config('company.phone')), @endif GSTIN - {{ config('company.gstin') }}
+                        @elseif (config('company.tax_id'))
+                            @if (config('company.phone')), @endif {{ config('company.tax_id_label') }} - {{ config('company.tax_id') }}
+                        @endif
+                    </div>
+                @endif
                 <div class="bank-line muted" style="margin-top: 6px;">
                     {{ $invoice->taxLabel() }}: {{ rtrim(rtrim(number_format((float) $invoice->tax_percent, 2), '0'), '.') }}%
                     @if ($invoice->isExport())
