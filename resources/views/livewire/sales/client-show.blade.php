@@ -197,7 +197,7 @@
             @else
                 <div>
                     <x-input-label for="hourly_rate" value="Hourly Rate" />
-                    <x-text-input wire:model="hourly_rate" id="hourly_rate" type="number" step="0.01" class="mt-0" />
+                    <x-text-input wire:model.live.debounce.400ms="hourly_rate" id="hourly_rate" type="number" step="0.01" class="mt-0" />
                     <x-input-error :messages="$errors->get('hourly_rate')" class="mt-1" />
                 </div>
 
@@ -214,7 +214,7 @@
                                     <x-input-error :messages="$errors->get('tasks.'.$index.'.description')" class="mt-1" />
                                 </div>
                                 <div class="w-28">
-                                    <x-text-input wire:model="tasks.{{ $index }}.hours" type="number" step="0.25" class="mt-0" placeholder="Hours" />
+                                    <x-text-input wire:model.live.debounce.400ms="tasks.{{ $index }}.hours" type="number" step="0.25" class="mt-0" placeholder="Hours" />
                                     <x-input-error :messages="$errors->get('tasks.'.$index.'.hours')" class="mt-1" />
                                 </div>
                                 @if (count($tasks) > 1)
