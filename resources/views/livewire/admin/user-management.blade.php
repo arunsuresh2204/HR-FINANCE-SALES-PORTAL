@@ -7,8 +7,9 @@
 
     @if (session('temp_password'))
         <div class="glass-card mb-6">
-            <p class="font-semibold text-white">Password reset for {{ session('temp_password_for') }}</p>
-            <p class="mt-1 text-sm text-white/60">New temporary password: <code class="rounded bg-black/40 px-2 py-1 font-mono text-gold-300">{{ session('temp_password') }}</code></p>
+            <p class="font-semibold text-white">Password updated for {{ session('temp_password_for') }}</p>
+            <p class="mt-1 text-sm text-white/60">New password: <code class="rounded bg-black/40 px-2 py-1 font-mono text-gold-300">{{ session('temp_password') }}</code></p>
+            <p class="mt-1 text-xs text-white/40">Share this with the employee securely. It won't be shown again.</p>
         </div>
     @endif
 
@@ -31,7 +32,7 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button wire:click="resetPassword({{ $u->id }})" wire:confirm="Reset password for {{ $u->name }}?" class="text-xs font-semibold text-white/50 hover:text-white">Reset Password</button>
+                        <button wire:click="openPasswordForm({{ $u->id }})" class="text-xs font-semibold text-white/50 hover:text-white">Change Password</button>
                         <button wire:click="toggleEdit({{ $u->id }})" class="btn-glass-secondary !px-3 !py-1.5 text-xs">
                             {{ isset($editingRoles[$u->id]) ? 'Cancel' : 'Edit Roles' }}
                         </button>
@@ -56,4 +57,26 @@
             </div>
         @endforeach
     </div>
+
+    <x-modal-glass wire-model="showPasswordForm" :title="'Change Password' . ($passwordUserName ? ' — ' . $passwordUserName : '')">
+        <form wire:submit="updatePassword" class="space-y-4">
+            <div>
+                <div class="flex items-center justify-between">
+                    <x-input-label for="new_password" value="New Password" />
+                    <button type="button" wire:click="generateRandomPassword" class="text-xs font-semibold text-gold-300 hover:text-gold-200">Generate Random</button>
+                </div>
+                <x-text-input wire:model="new_password" id="new_password" type="text" class="mt-0 font-mono" autocomplete="off" />
+                <x-input-error :messages="$errors->get('new_password')" class="mt-1" />
+            </div>
+            <div>
+                <x-input-label for="new_password_confirmation" value="Confirm Password" />
+                <x-text-input wire:model="new_password_confirmation" id="new_password_confirmation" type="text" class="mt-0 font-mono" autocomplete="off" />
+            </div>
+            <p class="text-xs text-white/40">The employee will need this password to log in. It will be shown once after saving so you can share it with them.</p>
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
+                <x-primary-button>Update Password</x-primary-button>
+            </div>
+        </form>
+    </x-modal-glass>
 </div>
