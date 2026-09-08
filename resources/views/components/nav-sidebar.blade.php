@@ -37,9 +37,17 @@
                         <a href="{{ route('hr.documents') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hr.documents') ? 'active' : '' }}"><x-icon name="document" class="h-4 w-4 shrink-0" />Documents</a>
                         <a href="{{ route('hr.announcements') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hr.announcements') ? 'active' : '' }}"><x-icon name="megaphone" class="h-4 w-4 shrink-0" />Announcements</a>
                         <a href="{{ route('hr.resignation') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hr.resignation') ? 'active' : '' }}"><x-icon name="exit" class="h-4 w-4 shrink-0" />Resignation</a>
-                        <a href="{{ route('org-chart') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('org-chart') ? 'active' : '' }}"><x-icon name="users" class="h-4 w-4 shrink-0" />Org Chart</a>
                     </div>
                 </div>
+
+                @if (auth()->user()->isManager() || auth()->user()->isHrAdmin())
+                    <div>
+                        <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">Team</p>
+                        <div class="mt-2 space-y-1">
+                            <a href="{{ route('org-chart') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('org-chart') ? 'active' : '' }}"><x-icon name="users" class="h-4 w-4 shrink-0" />Org Chart</a>
+                        </div>
+                    </div>
+                @endif
 
                 @if (auth()->user()->isProgrammer() || auth()->user()->isMarketer())
                     <div>

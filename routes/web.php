@@ -30,7 +30,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('documents', 'pages.hr.document-index')->name('hr.documents');
     Route::view('announcements', 'pages.hr.announcement-index')->name('hr.announcements');
     Route::view('resignation', 'pages.hr.resignation-index')->name('hr.resignation');
-    Route::view('org-chart', 'pages.company.org-chart')->name('org-chart');
+
+    Route::middleware(['role:manager|hr_admin|super_admin'])->group(function () {
+        Route::view('org-chart', 'pages.company.org-chart')->name('org-chart');
+    });
 
     // Role-specific daily logs
     Route::middleware(['role:programmer|super_admin'])->group(function () {
