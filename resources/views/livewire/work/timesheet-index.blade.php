@@ -14,7 +14,7 @@
         <div class="glass-sheen"></div>
         <div class="overflow-x-auto">
             <table class="table-glass">
-                <thead><tr><th>Date</th><th>Project / Client</th><th>Task</th><th>Hours</th><th>Status</th></tr></thead>
+                <thead><tr><th>Date</th><th>Project</th><th>Task</th><th>Hours</th><th>Status</th></tr></thead>
                 <tbody>
                     @forelse ($entries as $entry)
                         <tr>
@@ -46,15 +46,6 @@
                     <x-text-input wire:model="hours" id="hours" type="number" step="0.25" class="mt-0" />
                     <x-input-error :messages="$errors->get('hours')" class="mt-1" />
                 </div>
-            </div>
-            <div>
-                <x-input-label for="client_id" value="Client (optional)" />
-                <select wire:model="client_id" id="client_id" class="input-glass">
-                    <option value="">— In-house / Not applicable —</option>
-                    @foreach ($clients as $client)
-                        <option value="{{ $client->id }}">{{ $client->business_name }}</option>
-                    @endforeach
-                </select>
             </div>
             <div>
                 <x-input-label for="project_name" value="Project Name (optional)" />
