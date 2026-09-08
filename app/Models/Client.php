@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Client extends Model
 {
@@ -36,6 +37,11 @@ class Client extends Model
         return $this->hasMany(BillingRequest::class);
     }
 
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
+    }
+
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
@@ -54,5 +60,15 @@ class Client extends Model
     public function totalPaid(): float
     {
         return (float) $this->invoices()->sum('amount_paid');
+    }
+
+    public function billingRequestTasks(): HasManyThrough
+    {
+        return $this->hasManyThrough(BillingRequestTask::class, BillingRequest::class);
+    }
+
+    public function billableHours(): float
+    {
+        return (float) $this->billingRequestTasks()->sum('hours');
     }
 }

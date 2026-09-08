@@ -1,4 +1,4 @@
-@props(['label', 'value', 'icon' => 'chart', 'hint' => null, 'accent' => 'gold'])
+@props(['label', 'value', 'icon' => 'chart', 'hint' => null, 'accent' => 'gold', 'href' => null])
 
 @php
     $accents = [
@@ -8,9 +8,10 @@
         'rose' => 'bg-rose-400/15 text-rose-300',
         'violet' => 'bg-violet-400/15 text-violet-300',
     ];
+    $tag = $href ? 'a' : 'div';
 @endphp
 
-<div {{ $attributes->merge(['class' => 'glass-card-hover']) }}>
+<{{ $tag }} {!! $href ? 'href="'.$href.'" wire:navigate' : '' !!} {{ $attributes->merge(['class' => 'glass-card-hover block'.($href ? ' cursor-pointer transition hover:-translate-y-0.5' : '')]) }}>
     <div class="flex items-start justify-between">
         <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-white/40">{{ $label }}</p>
@@ -23,4 +24,4 @@
             <x-icon :name="$icon" class="h-5 w-5" />
         </span>
     </div>
-</div>
+</{{ $tag }}>
