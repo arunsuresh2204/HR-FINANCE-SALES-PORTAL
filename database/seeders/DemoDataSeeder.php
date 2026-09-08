@@ -18,6 +18,7 @@ use App\Models\Timesheet;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DemoDataSeeder extends Seeder
 {
@@ -97,6 +98,14 @@ class DemoDataSeeder extends Seeder
         ]);
         $sales2->assignRole('sales_exec');
 
+        $sales3 = User::create([
+            'employee_code' => 'EMP-0010', 'name' => 'Vishnu', 'email' => 'vishnu@nexstarc.com',
+            'password' => $password, 'email_verified_at' => now(), 'designation' => 'Sales Executive',
+            'department' => 'Sales', 'date_of_joining' => now()->subMonths(2)->startOfMonth(), 'employment_status' => 'active',
+            'monthly_salary' => 2000,
+        ]);
+        $sales3->assignRole('sales_exec');
+
         // Announcements
         Announcement::create([
             'posted_by' => $owner1->id, 'title' => 'Welcome to the Nexstarc Portal',
@@ -119,7 +128,7 @@ class DemoDataSeeder extends Seeder
         ]);
 
         // Attendance (last 5 working days) for all employees
-        $employees = [$owner1, $owner2, $owner3, $owner4, $dev1, $dev2, $marketer1, $sales1, $sales2];
+        $employees = [$owner1, $owner2, $owner3, $owner4, $dev1, $dev2, $marketer1, $sales1, $sales2, $sales3];
         foreach ($employees as $emp) {
             for ($i = 1; $i <= 5; $i++) {
                 $date = now()->subDays($i);
@@ -208,9 +217,68 @@ class DemoDataSeeder extends Seeder
             'milestone_description' => '50% on delivery', 'status' => 'pending',
         ]);
 
+        // Vishnu's pipeline: 20 leads, 10 of which are won and converted to clients
+        $vishnuLeads = [
+            ['name' => 'Olivia Chen', 'company' => 'GreenLeaf Organics', 'country' => 'Australia', 'service' => 'web', 'source' => 'Referral', 'requirement' => 'Online store for organic skincare products', 'budget' => 6500, 'status' => 'won', 'type' => 'E-commerce / Skincare'],
+            ['name' => 'Marcus Webb', 'company' => 'Webb & Sons Legal', 'country' => 'USA', 'service' => 'web', 'source' => 'LinkedIn', 'requirement' => 'Law firm website with client intake portal', 'budget' => 5200, 'status' => 'won', 'type' => 'Legal Services'],
+            ['name' => 'Fatima Al-Sayed', 'company' => 'Sayed Interiors', 'country' => 'UAE', 'service' => 'web', 'source' => 'Instagram', 'requirement' => 'Portfolio site for interior design studio', 'budget' => 7800, 'status' => 'won', 'type' => 'Interior Design'],
+            ['name' => "Liam O'Connor", 'company' => "O'Connor Fitness Studio", 'country' => 'Ireland', 'service' => 'mobile', 'source' => 'Referral', 'requirement' => 'Class booking app for boutique gym', 'budget' => 4300, 'status' => 'won', 'type' => 'Fitness'],
+            ['name' => 'Priya Chandran', 'company' => 'SpiceRoute Foods', 'country' => 'India', 'service' => 'web', 'source' => 'Google Ads', 'requirement' => 'Online ordering site for spice exports', 'budget' => 3200, 'status' => 'won', 'type' => 'Food Exports'],
+            ['name' => 'Hana Kobayashi', 'company' => 'Kobayashi Wellness Spa', 'country' => 'Japan', 'service' => 'mobile', 'source' => 'Upwork', 'requirement' => 'Appointment booking app for spa chain', 'budget' => 5600, 'status' => 'won', 'type' => 'Wellness'],
+            ['name' => 'Diego Fernández', 'company' => 'Fernández Auto Parts', 'country' => 'Mexico', 'service' => 'other', 'source' => 'Referral', 'requirement' => 'Inventory management system', 'budget' => 4900, 'status' => 'won', 'type' => 'Automotive'],
+            ['name' => 'Grace Mwangi', 'company' => 'Mwangi Handcrafts', 'country' => 'Kenya', 'service' => 'social_media', 'source' => 'Instagram', 'requirement' => 'Social media management for handcraft brand', 'budget' => 1800, 'status' => 'won', 'type' => 'Handcrafts'],
+            ['name' => 'Tom Fletcher', 'company' => 'Fletcher Realty Group', 'country' => 'UK', 'service' => 'web', 'source' => 'LinkedIn', 'requirement' => 'Property listings website with search filters', 'budget' => 6100, 'status' => 'won', 'type' => 'Real Estate'],
+            ['name' => 'Elena Petrova', 'company' => 'Petrova Beauty Bar', 'country' => 'Russia', 'service' => 'social_media', 'source' => 'Referral', 'requirement' => 'Social media management and content calendar', 'budget' => 2200, 'status' => 'won', 'type' => 'Beauty'],
+            ['name' => 'Noah Bennett', 'company' => 'Bennett Bros. Construction', 'country' => 'USA', 'service' => 'web', 'source' => 'Google Ads', 'requirement' => 'Company website with project gallery', 'budget' => 9000, 'status' => 'new'],
+            ['name' => 'Isabella Rossi', 'company' => 'Rossi Gourmet Deli', 'country' => 'Italy', 'service' => 'social_media', 'source' => 'Instagram', 'requirement' => 'Social media presence for new deli launch', 'budget' => 1500, 'status' => 'new'],
+            ['name' => 'Kwame Asante', 'company' => 'Asante Tech Repairs', 'country' => 'Ghana', 'service' => 'mobile', 'source' => 'Referral', 'requirement' => 'Repair booking and tracking app', 'budget' => 2800, 'status' => 'contacted'],
+            ['name' => 'Mei Lin', 'company' => 'Lin Family Dental', 'country' => 'Singapore', 'service' => 'web', 'source' => 'Google Ads', 'requirement' => 'Clinic website with appointment requests', 'budget' => 4700, 'status' => 'contacted'],
+            ['name' => 'Jonas Berg', 'company' => 'Berg Outdoor Gear', 'country' => 'Sweden', 'service' => 'pet_product', 'source' => 'Upwork', 'requirement' => 'Product catalog for outdoor pet gear line', 'budget' => 3600, 'status' => 'proposal_sent'],
+            ['name' => 'Aaliyah Brooks', 'company' => 'Brooks Pet Grooming', 'country' => 'USA', 'service' => 'pet_product', 'source' => 'Referral', 'requirement' => 'Booking site for mobile pet grooming service', 'budget' => 2100, 'status' => 'proposal_sent'],
+            ['name' => 'Ravi Sharma', 'company' => 'Sharma Logistics', 'country' => 'India', 'service' => 'other', 'source' => 'LinkedIn', 'requirement' => 'Fleet tracking dashboard', 'budget' => 5400, 'status' => 'negotiation'],
+            ['name' => 'Chloe Dubois', 'company' => 'Dubois Patisserie', 'country' => 'France', 'service' => 'social_media', 'source' => 'Instagram', 'requirement' => 'Social media management for patisserie chain', 'budget' => 1900, 'status' => 'negotiation'],
+            ['name' => "Sam O'Neill", 'company' => "O'Neill Plumbing Services", 'country' => 'Canada', 'service' => 'web', 'source' => 'Google Ads', 'requirement' => 'Local service website with quote requests', 'budget' => 3300, 'status' => 'lost'],
+            ['name' => 'Anika Patel', 'company' => 'Patel Yoga Studio', 'country' => 'India', 'service' => 'mobile', 'source' => 'Referral', 'requirement' => 'Class scheduling app for yoga studio', 'budget' => 2600, 'status' => 'lost'],
+        ];
+
+        foreach ($vishnuLeads as $i => $def) {
+            $email = Str::slug($def['name'], '.').'@'.Str::slug($def['company'], '').'.com';
+
+            $lead = Lead::create([
+                'sales_person_id' => $sales3->id,
+                'client_name' => $def['name'],
+                'company_name' => $def['company'],
+                'country' => $def['country'],
+                'email' => $email,
+                'phone' => '+1-555-03'.str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT),
+                'requirement' => $def['requirement'],
+                'service_type' => $def['service'],
+                'source' => $def['source'],
+                'status' => $def['status'],
+                'budget' => in_array($def['status'], ['won', 'lost']) ? $def['budget'] : null,
+                'follow_up_date' => in_array($def['status'], ['won', 'lost']) ? null : now()->addDays(2 + ($i % 7)),
+            ]);
+
+            if ($def['status'] === 'won') {
+                Client::create([
+                    'lead_id' => $lead->id,
+                    'sales_person_id' => $sales3->id,
+                    'business_name' => $def['company'],
+                    'business_type' => $def['type'] ?? null,
+                    'business_address' => $def['country'],
+                    'owner_name' => $def['name'],
+                    'owner_designation' => 'Owner',
+                    'owner_contact' => $email,
+                    'agreement_effective_date' => now()->subDays($i + 1),
+                    'agreement_scope_summary' => $def['requirement'],
+                ]);
+            }
+        }
+
         // Sales targets (current month)
         SalesTarget::create(['user_id' => $sales1->id, 'month' => now()->month, 'year' => now()->year, 'target_amount' => 10000, 'commission_percent' => 5]);
         SalesTarget::create(['user_id' => $sales2->id, 'month' => now()->month, 'year' => now()->year, 'target_amount' => 8000, 'commission_percent' => 5]);
+        SalesTarget::create(['user_id' => $sales3->id, 'month' => now()->month, 'year' => now()->year, 'target_amount' => 12000, 'commission_percent' => 5]);
 
         // Expenses
         Expense::create([
