@@ -52,7 +52,7 @@ class InvoiceIndex extends Component
         $this->currency = 'INR';
         $this->tax_percent = '18';
         $this->due_date = now()->addDays(15)->toDateString();
-        $this->lineItems = [['description' => '', 'amount' => '']];
+        $this->lineItems = [['description' => '', 'hours' => '', 'rate' => '', 'amount' => '']];
         $this->resetValidation();
         $this->showCreateForm = true;
     }
@@ -84,7 +84,7 @@ class InvoiceIndex extends Component
 
     public function addLineItem(): void
     {
-        $this->lineItems[] = ['description' => '', 'amount' => ''];
+        $this->lineItems[] = ['description' => '', 'hours' => '', 'rate' => '', 'amount' => ''];
     }
 
     public function removeLineItem(int $index): void
@@ -110,8 +110,13 @@ class InvoiceIndex extends Component
         ])->values()->all();
 
         foreach ($this->lineItems as $item) {
-            if (trim($item['description'] ?? '') !== '' && (float) ($item['amount'] ?? 0) > 0) {
-                $lineItems[] = ['description' => $item['description'], 'amount' => (float) $item['amount']];
+            $description = trim($item['description'] ?? '');
+            $hours = (float) ($item['hours'] ?? 0);
+            $rate = (float) ($item['rate'] ?? 0);
+            $amount = ($hours > 0 && $rate > 0) ? $hours * $rate : (float) ($item['amount'] ?? 0);
+
+            if ($description !== '' && $amount > 0) {
+                $lineItems[] = ['description' => $description, 'amount' => $amount];
             }
         }
 

@@ -53,9 +53,6 @@ class ClientShow extends Component
     #[Validate('required_if:billing_type,milestone|nullable|string|max:255')]
     public string $milestone_description = '';
 
-    #[Validate('required_if:billing_type,hourly|nullable|numeric|min:0.01')]
-    public string $hourly_rate = '';
-
     public array $tasks = [];
 
     public function mount(Client $client): void
@@ -111,17 +108,18 @@ class ClientShow extends Component
 
     public function openBillingForm(): void
     {
-        $this->reset(['project_id', 'amount', 'milestone_description', 'hourly_rate']);
+        $this->reset(['project_id', 'amount', 'milestone_description']);
         $this->currency = 'INR';
         $this->billing_type = 'milestone';
-        $this->tasks = [['description' => '', 'hours' => '']];
+        $this->tasks = [['description' => '', 'hours' => '', 'rate' => '']];
         $this->resetValidation();
         $this->showBillingForm = true;
     }
 
     public function addTaskRow(): void
     {
-        $this->tasks[] = ['description' => '', 'hours' => ''];
+        $lastRate = end($this->tasks)['rate'] ?? '';
+        $this->tasks[] = ['description' => '', 'hours' => '', 'rate' => $lastRate];
     }
 
     public function removeTaskRow(int $index): void
@@ -156,14 +154,16 @@ class ClientShow extends Component
             $this->validate([
                 'project_id' => 'nullable|exists:projects,id',
                 'currency' => 'required|in:INR,USD,EUR',
-                'hourly_rate' => 'required|numeric|min:0.01',
                 'tasks' => 'required|array|min:1',
                 'tasks.*.description' => 'required|string|max:255',
                 'tasks.*.hours' => 'required|numeric|min:0.25|max:24',
+                'tasks.*.rate' => 'required|numeric|min:0.01',
             ]);
 
-            $totalHours = array_sum(array_column($this->tasks, 'hours'));
-            $amount = $totalHours * (float) $this->hourly_rate;
+            $amount = array_sum(array_map(
+                fn ($task) => (float) $task['hours'] * (float) $task['rate'],
+                $this->tasks
+            ));
 
             DB::transaction(function () use ($amount) {
                 $billingRequest = BillingRequest::create([
@@ -173,7 +173,6 @@ class ClientShow extends Component
                     'currency' => $this->currency,
                     'billing_type' => 'hourly',
                     'amount' => $amount,
-                    'hourly_rate' => $this->hourly_rate,
                     'status' => 'pending',
                 ]);
 
@@ -181,6 +180,7 @@ class ClientShow extends Component
                     $billingRequest->tasks()->create([
                         'task_description' => $task['description'],
                         'hours' => $task['hours'],
+                        'rate' => $task['rate'],
                     ]);
                 }
             });

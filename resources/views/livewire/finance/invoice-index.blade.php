@@ -133,17 +133,29 @@
                     <x-input-label value="Manual Line Items (optional)" class="mb-0" />
                     <button type="button" wire:click="addLineItem" class="text-xs font-semibold text-gold-300 hover:text-gold-200">+ Add Line Item</button>
                 </div>
-                <div class="space-y-2">
+                <p class="mb-2 text-xs text-white/40">Enter a flat Amount, or Hours &times; Rate to compute it — Hours &times; Rate takes priority when both are filled.</p>
+                <div class="space-y-3">
                     @foreach ($lineItems as $index => $item)
-                        <div class="flex items-start gap-2" wire:key="line-item-{{ $index }}">
-                            <div class="flex-1">
-                                <x-text-input wire:model="lineItems.{{ $index }}.description" type="text" class="mt-0" placeholder="Description" />
+                        <div class="glass-inset space-y-2 p-2.5" wire:key="line-item-{{ $index }}">
+                            <div class="flex items-start gap-2">
+                                <div class="flex-1">
+                                    <x-text-input wire:model="lineItems.{{ $index }}.description" type="text" class="mt-0" placeholder="Description" />
+                                </div>
+                                @if (count($lineItems) > 1)
+                                    <button type="button" wire:click="removeLineItem({{ $index }})" class="mt-2 text-white/30 hover:text-rose-300"><x-icon name="trash" class="h-4 w-4" /></button>
+                                @endif
                             </div>
-                            <div class="w-32">
+                            <div class="grid grid-cols-3 gap-2">
+                                <x-text-input wire:model.live.debounce.400ms="lineItems.{{ $index }}.hours" type="number" step="0.25" class="mt-0" placeholder="Hours (optional)" />
+                                <x-text-input wire:model.live.debounce.400ms="lineItems.{{ $index }}.rate" type="number" step="0.01" class="mt-0" placeholder="Rate (optional)" />
                                 <x-text-input wire:model="lineItems.{{ $index }}.amount" type="number" step="0.01" class="mt-0" placeholder="Amount" />
                             </div>
-                            @if (count($lineItems) > 1)
-                                <button type="button" wire:click="removeLineItem({{ $index }})" class="mt-2 text-white/30 hover:text-rose-300"><x-icon name="trash" class="h-4 w-4" /></button>
+                            @php
+                                $itemHours = (float) ($item['hours'] ?? 0);
+                                $itemRate = (float) ($item['rate'] ?? 0);
+                            @endphp
+                            @if ($itemHours > 0 && $itemRate > 0)
+                                <p class="text-xs text-gold-300/80">{{ number_format($itemHours, 2) }}h &times; {{ \App\Support\Currency::format($itemRate, $currency) }} = {{ \App\Support\Currency::format($itemHours * $itemRate, $currency) }} (overrides Amount)</p>
                             @endif
                         </div>
                     @endforeach

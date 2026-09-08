@@ -17,7 +17,6 @@ return new class extends Migration
             $table->enum('billing_type', ['milestone', 'hourly'])->default('milestone');
             $table->decimal('amount', 12, 2);
             $table->string('milestone_description')->nullable();
-            $table->decimal('hourly_rate', 10, 2)->nullable();
             $table->enum('status', ['pending', 'invoiced', 'rejected'])->default('pending');
             $table->timestamps();
         });

@@ -11,14 +11,13 @@ class BillingRequest extends Model
 {
     protected $fillable = [
         'client_id', 'project_id', 'created_by', 'currency', 'billing_type',
-        'amount', 'milestone_description', 'hourly_rate', 'status',
+        'amount', 'milestone_description', 'status',
     ];
 
     protected function casts(): array
     {
         return [
             'amount' => 'decimal:2',
-            'hourly_rate' => 'decimal:2',
         ];
     }
 

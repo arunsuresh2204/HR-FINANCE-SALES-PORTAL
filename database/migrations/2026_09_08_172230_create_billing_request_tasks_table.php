@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('billing_request_id')->constrained()->cascadeOnDelete();
             $table->string('task_description');
             $table->decimal('hours', 6, 2);
+            $table->decimal('rate', 10, 2);
             $table->timestamps();
         });
     }

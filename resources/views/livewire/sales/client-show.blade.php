@@ -147,7 +147,7 @@
         </form>
     </x-modal-glass>
 
-    <x-modal-glass wire-model="showBillingForm" title="New Billing Request" max-width="xl">
+    <x-modal-glass wire-model="showBillingForm" title="New Billing Request" max-width="2xl">
         <form wire:submit="submitBillingRequest" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -196,42 +196,43 @@
                 </div>
             @else
                 <div>
-                    <x-input-label for="hourly_rate" value="Hourly Rate" />
-                    <x-text-input wire:model.live.debounce.400ms="hourly_rate" id="hourly_rate" type="number" step="0.01" class="mt-0" />
-                    <x-input-error :messages="$errors->get('hourly_rate')" class="mt-1" />
-                </div>
-
-                <div>
                     <div class="mb-2 flex items-center justify-between">
                         <x-input-label value="Tasks" class="mb-0" />
                         <button type="button" wire:click="addTaskRow" class="text-xs font-semibold text-gold-300 hover:text-gold-200">+ Add Task</button>
                     </div>
-                    <div class="space-y-2">
+                    <div class="grid grid-cols-[1fr_6rem_6rem_1.5rem] gap-2 px-0.5 text-xs font-semibold uppercase tracking-wide text-white/30">
+                        <span>Task</span><span>Hours</span><span>Rate</span><span></span>
+                    </div>
+                    <div class="mt-1 space-y-2">
                         @foreach ($tasks as $index => $task)
-                            <div class="flex items-start gap-2" wire:key="task-row-{{ $index }}">
-                                <div class="flex-1">
+                            <div class="grid grid-cols-[1fr_6rem_6rem_1.5rem] items-start gap-2" wire:key="task-row-{{ $index }}">
+                                <div>
                                     <x-text-input wire:model="tasks.{{ $index }}.description" type="text" class="mt-0" placeholder="Task description" />
                                     <x-input-error :messages="$errors->get('tasks.'.$index.'.description')" class="mt-1" />
                                 </div>
-                                <div class="w-28">
+                                <div>
                                     <x-text-input wire:model.live.debounce.400ms="tasks.{{ $index }}.hours" type="number" step="0.25" class="mt-0" placeholder="Hours" />
                                     <x-input-error :messages="$errors->get('tasks.'.$index.'.hours')" class="mt-1" />
                                 </div>
+                                <div>
+                                    <x-text-input wire:model.live.debounce.400ms="tasks.{{ $index }}.rate" type="number" step="0.01" class="mt-0" placeholder="Rate" />
+                                    <x-input-error :messages="$errors->get('tasks.'.$index.'.rate')" class="mt-1" />
+                                </div>
                                 @if (count($tasks) > 1)
                                     <button type="button" wire:click="removeTaskRow({{ $index }})" class="mt-2 text-white/30 hover:text-rose-300"><x-icon name="trash" class="h-4 w-4" /></button>
+                                @else
+                                    <span></span>
                                 @endif
                             </div>
                         @endforeach
                     </div>
+                    <p class="mt-2 text-xs text-white/40">Each task can have its own rate — e.g. senior vs. junior work on the same request.</p>
                     @php
                         $totalTaskHours = collect($tasks)->sum(fn ($t) => (float) ($t['hours'] ?? 0));
-                        $estimatedAmount = $totalTaskHours * (float) ($hourly_rate ?: 0);
+                        $estimatedAmount = collect($tasks)->sum(fn ($t) => (float) ($t['hours'] ?? 0) * (float) ($t['rate'] ?? 0));
                     @endphp
-                    <p class="mt-2 text-xs text-white/40">
-                        {{ number_format($totalTaskHours, 2) }} total hours
-                        @if ($hourly_rate)
-                            &middot; Estimated amount: {{ \App\Support\Currency::format($estimatedAmount, $currency) }}
-                        @endif
+                    <p class="mt-1 text-xs text-white/40">
+                        {{ number_format($totalTaskHours, 2) }} total hours &middot; Estimated amount: {{ \App\Support\Currency::format($estimatedAmount, $currency) }}
                     </p>
                 </div>
             @endif
