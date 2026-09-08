@@ -1,35 +1,102 @@
 <div>
-    <x-page-header title="My Documents" subtitle="ID proofs, contracts and certifications on file.">
-        <x-slot:actions>
-            <button wire:click="openForm" class="btn-glass-primary"><x-icon name="upload" class="h-4 w-4" /> Upload Document</button>
-        </x-slot:actions>
-    </x-page-header>
+    <x-page-header title="My Documents" subtitle="Career progress, offer letter and mandatory records on file." />
 
-    <div class="glass-panel relative overflow-hidden">
-        <div class="glass-sheen"></div>
-        <div class="overflow-x-auto">
-            <table class="table-glass">
-                <thead><tr><th>Title</th><th>Type</th><th>Uploaded</th><th></th></tr></thead>
-                <tbody>
-                    @forelse ($documents as $doc)
-                        <tr>
-                            <td class="font-medium text-white">{{ $doc->title }}</td>
-                            <td><x-status-pill :status="$doc->type" /></td>
-                            <td>{{ $doc->created_at->format('M j, Y') }}</td>
-                            <td class="text-right space-x-3">
-                                <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="text-xs font-semibold text-gold-300 hover:text-gold-200">View</a>
-                                <button wire:click="delete({{ $doc->id }})" wire:confirm="Delete this document?" class="text-xs font-semibold text-rose-300 hover:text-rose-200">Delete</button>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="4" class="py-8 text-center text-white/40">No documents uploaded yet.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+    <div class="grid gap-6 lg:grid-cols-3">
+        <div class="glass-panel relative overflow-hidden p-6 lg:col-span-2">
+            <div class="glass-sheen"></div>
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold-400/15 text-gold-300"><x-icon name="briefcase" class="h-5 w-5" /></span>
+                <div>
+                    <h2 class="text-base font-bold text-white">Career Progress</h2>
+                    <p class="text-xs text-white/40">{{ auth()->user()->employmentTypeLabel() }} &middot; {{ auth()->user()->designation ?: 'No designation set' }}{{ auth()->user()->department ? ' · '.auth()->user()->department : '' }}</p>
+                </div>
+            </div>
+
+            <div class="mt-6 space-y-4">
+                @forelse ($promotions as $promo)
+                    <div class="glass-inset flex items-start gap-4 p-4">
+                        <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-400/15 text-emerald-300"><x-icon name="check" class="h-4 w-4" /></span>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-white">{{ $promo->new_designation }}@if ($promo->new_department) <span class="text-white/40">&middot; {{ $promo->new_department }}</span>@endif</p>
+                            <p class="mt-0.5 text-xs text-white/40">
+                                Effective {{ $promo->effective_date->format('M j, Y') }}
+                                @if ($promo->previous_designation)
+                                    &middot; promoted from {{ $promo->previous_designation }}
+                                @endif
+                            </p>
+                            @if ($promo->notes)
+                                <p class="mt-1.5 text-xs text-white/50">{{ $promo->notes }}</p>
+                            @endif
+                        </div>
+                        @if ($promo->certificate_path)
+                            <a href="{{ Storage::url($promo->certificate_path) }}" target="_blank" class="shrink-0 text-xs font-semibold text-gold-300 hover:text-gold-200">Certificate</a>
+                        @endif
+                    </div>
+                @empty
+                    <p class="text-sm text-white/40">No promotions on record yet. Your career milestones will appear here once HR records them.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <div class="glass-panel relative overflow-hidden p-6">
+            <div class="glass-sheen"></div>
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-400/15 text-sky-300"><x-icon name="document" class="h-5 w-5" /></span>
+                <h2 class="text-base font-bold text-white">Offer Letter</h2>
+            </div>
+            <div class="mt-4">
+                @if ($offerLetter)
+                    <a href="{{ Storage::url($offerLetter->file_path) }}" target="_blank" class="glass-inset flex items-center justify-between p-3 transition hover:bg-white/[0.06]">
+                        <span class="text-sm font-medium text-white">{{ $offerLetter->title }}</span>
+                        <x-icon name="arrow-right" class="h-4 w-4 text-white/30" />
+                    </a>
+                @else
+                    <p class="text-sm text-white/40">Your offer letter hasn't been uploaded by HR yet.</p>
+                @endif
+            </div>
         </div>
     </div>
 
-    <div class="glass-panel relative mt-8 overflow-hidden p-6">
+    <div class="glass-panel relative mt-6 overflow-hidden p-6">
+        <div class="glass-sheen"></div>
+        <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-white">Mandatory Document Checklist</h2>
+            @if ($requiredMissing > 0)
+                <span class="badge-glass !border-rose-400/25 !bg-rose-400/10 !text-rose-200">{{ $requiredMissing }} required document{{ $requiredMissing === 1 ? '' : 's' }} missing</span>
+            @else
+                <span class="badge-glass !border-emerald-400/25 !bg-emerald-400/10 !text-emerald-200">All required documents submitted</span>
+            @endif
+        </div>
+
+        <div class="mt-6 space-y-6">
+            @foreach ($catalog as $group)
+                <div>
+                    <h3 class="mb-3 text-xs font-semibold uppercase tracking-wide text-white/40">{{ $group['label'] }}</h3>
+                    <div class="grid gap-2 sm:grid-cols-2">
+                        @foreach ($group['items'] as $key => $item)
+                            @php $doc = $documents->get($key); @endphp
+                            <div class="glass-inset flex items-center justify-between p-3">
+                                <div class="min-w-0">
+                                    <p class="truncate text-sm font-medium text-white">{{ $item['label'] }}</p>
+                                    <p class="text-xs {{ $item['required'] ? 'text-rose-300/70' : 'text-white/35' }}">{{ $item['required'] ? 'Required' : 'Optional' }}</p>
+                                </div>
+                                <div class="flex shrink-0 items-center gap-3">
+                                    @if ($doc)
+                                        <a href="{{ Storage::url($doc->file_path) }}" target="_blank" class="text-xs font-semibold text-gold-300 hover:text-gold-200">View</a>
+                                        <button wire:click="openForm('{{ $key }}')" class="text-xs font-semibold text-white/50 hover:text-white/80">Replace</button>
+                                    @else
+                                        <button wire:click="openForm('{{ $key }}')" class="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/80 hover:bg-white/20">Upload</button>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    <div class="glass-panel relative mt-6 overflow-hidden p-6">
         <div class="glass-sheen"></div>
         <h2 class="mb-4 text-base font-bold text-white">Company Policies</h2>
         <div class="space-y-2">
@@ -52,20 +119,7 @@
 
     <x-modal-glass wire-model="showForm" title="Upload Document">
         <form wire:submit="submit" class="space-y-4">
-            <div>
-                <x-input-label for="title" value="Title" />
-                <x-text-input wire:model="title" id="title" type="text" class="mt-0" placeholder="e.g. Passport Copy" />
-                <x-input-error :messages="$errors->get('title')" class="mt-1" />
-            </div>
-            <div>
-                <x-input-label for="type" value="Document Type" />
-                <select wire:model="type" id="type" class="input-glass">
-                    <option value="id_proof">ID Proof</option>
-                    <option value="contract">Contract</option>
-                    <option value="certification">Certification</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
+            <p class="text-sm text-white/60">{{ $activeKey ? (\App\Models\EmployeeDocument::flatCatalog()[$activeKey]['label'] ?? '') : '' }}</p>
             <div>
                 <x-input-label for="file" value="File" />
                 <input wire:model="file" id="file" type="file" class="input-glass file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white/80" />

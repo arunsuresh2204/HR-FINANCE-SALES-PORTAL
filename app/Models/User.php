@@ -40,6 +40,7 @@ class User extends Authenticatable
         'bank_ifsc',
         'monthly_salary',
         'employment_status',
+        'employment_type',
     ];
 
     /**
@@ -126,6 +127,31 @@ class User extends Authenticatable
     public function resignations(): HasMany
     {
         return $this->hasMany(Resignation::class);
+    }
+
+    public function promotions(): HasMany
+    {
+        return $this->hasMany(Promotion::class)->orderByDesc('effective_date');
+    }
+
+    public function companyDocuments(): HasMany
+    {
+        return $this->hasMany(CompanyDocument::class);
+    }
+
+    public function offerLetter(): ?CompanyDocument
+    {
+        return $this->companyDocuments()->where('type', CompanyDocument::TYPE_OFFER_LETTER)->latest()->first();
+    }
+
+    public function employmentTypeLabel(): string
+    {
+        return match ($this->employment_type) {
+            'trainee_paid' => 'Trainee (Paid)',
+            'trainee_unpaid' => 'Trainee (Unpaid)',
+            'intern' => 'Intern',
+            default => 'Full-time Employee',
+        };
     }
 
     public function isSuperAdmin(): bool

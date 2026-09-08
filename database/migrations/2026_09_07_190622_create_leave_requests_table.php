@@ -20,6 +20,8 @@ return new class extends Migration
             $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->dateTime('reviewed_at')->nullable();
             $table->text('review_notes')->nullable();
+            $table->string('certificate_path')->nullable();
+            $table->dateTime('certificate_requested_at')->nullable();
             $table->timestamps();
         });
     }

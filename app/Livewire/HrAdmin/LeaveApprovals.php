@@ -15,6 +15,12 @@ class LeaveApprovals extends Component
 
     public function approve(LeaveRequest $leaveRequest): void
     {
+        if ($leaveRequest->needsCertificate()) {
+            $this->dispatch('toast', message: 'This sick leave needs a medical certificate before it can be approved. Request it from the employee first.', type: 'error');
+
+            return;
+        }
+
         $leaveRequest->update([
             'status' => 'approved',
             'reviewed_by' => Auth::id(),
@@ -33,6 +39,12 @@ class LeaveApprovals extends Component
         ]);
 
         $this->dispatch('toast', message: 'Leave request rejected.', type: 'success');
+    }
+
+    public function requestCertificate(LeaveRequest $leaveRequest): void
+    {
+        $leaveRequest->update(['certificate_requested_at' => now()]);
+        $this->dispatch('toast', message: "Certificate request sent to {$leaveRequest->user->name}.", type: 'success');
     }
 
     public function render()

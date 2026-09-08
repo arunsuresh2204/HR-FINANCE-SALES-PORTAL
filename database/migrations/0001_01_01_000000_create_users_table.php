@@ -32,6 +32,7 @@ return new class extends Migration
             $table->string('bank_ifsc')->nullable();
             $table->decimal('monthly_salary', 12, 2)->nullable();
             $table->enum('employment_status', ['active', 'on_notice', 'resigned', 'offboarded'])->default('active');
+            $table->enum('employment_type', ['full_time', 'trainee_paid', 'trainee_unpaid', 'intern'])->default('full_time');
             $table->rememberToken();
             $table->timestamps();
         });

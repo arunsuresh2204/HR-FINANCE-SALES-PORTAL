@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Hr;
 
+use App\Models\CompanyDocument;
 use App\Models\EmployeeDocument;
 use App\Models\PolicyDocument;
 use Illuminate\Support\Facades\Auth;
@@ -15,19 +16,20 @@ class DocumentIndex extends Component
 
     public bool $showForm = false;
 
-    #[Validate('required|string|max:255')]
-    public string $title = '';
+    public ?string $activeKey = null;
 
-    #[Validate('required|in:id_proof,contract,certification,other')]
-    public string $type = 'id_proof';
-
-    #[Validate('required|file|max:10240')]
+    #[Validate('required|file|max:10240|mimes:jpg,jpeg,png,pdf')]
     public $file = null;
 
-    public function openForm(): void
+    public function openForm(string $key): void
     {
-        $this->reset(['title', 'file']);
-        $this->type = 'id_proof';
+        if (! array_key_exists($key, EmployeeDocument::flatCatalog())) {
+            return;
+        }
+
+        $this->activeKey = $key;
+        $this->file = null;
+        $this->resetValidation();
         $this->showForm = true;
     }
 
@@ -35,32 +37,34 @@ class DocumentIndex extends Component
     {
         $this->validate();
 
-        EmployeeDocument::create([
-            'user_id' => Auth::id(),
-            'title' => $this->title,
-            'type' => $this->type,
-            'file_path' => $this->file->store('employee-documents', 'public'),
-        ]);
+        $catalog = EmployeeDocument::flatCatalog();
 
-        $this->showForm = false;
-        $this->dispatch('toast', message: 'Document uploaded.', type: 'success');
-    }
-
-    public function delete(EmployeeDocument $employeeDocument): void
-    {
-        if ($employeeDocument->user_id !== Auth::id()) {
+        if (! $this->activeKey || ! array_key_exists($this->activeKey, $catalog)) {
             return;
         }
 
-        $employeeDocument->delete();
-        $this->dispatch('toast', message: 'Document deleted.', type: 'success');
+        EmployeeDocument::updateOrCreate(
+            ['user_id' => Auth::id(), 'type' => $this->activeKey],
+            ['title' => $catalog[$this->activeKey]['label'], 'file_path' => $this->file->store('employee-documents', 'public')]
+        );
+
+        $this->showForm = false;
+        $this->reset(['activeKey', 'file']);
+        $this->dispatch('toast', message: 'Document uploaded.', type: 'success');
     }
 
     public function render()
     {
+        $user = Auth::user();
+        $documents = EmployeeDocument::where('user_id', $user->id)->get()->keyBy('type');
+
         return view('livewire.hr.document-index', [
-            'documents' => EmployeeDocument::where('user_id', Auth::id())->latest()->get(),
+            'documents' => $documents,
+            'catalog' => EmployeeDocument::CATALOG,
             'policies' => PolicyDocument::latest()->get(),
+            'promotions' => $user->promotions,
+            'offerLetter' => $user->offerLetter(),
+            'requiredMissing' => collect(EmployeeDocument::requiredKeys())->diff($documents->keys())->count(),
         ]);
     }
 }

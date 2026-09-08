@@ -3,18 +3,27 @@
 namespace App\Livewire\HrAdmin;
 
 use App\Models\Asset;
+use App\Models\CompanyDocument;
+use App\Models\EmployeeDocument;
+use App\Models\Promotion;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Spatie\Permission\Models\Role;
 
 class EmployeeShow extends Component
 {
+    use WithFileUploads;
+
     public User $user;
 
     public array $roles = [];
 
     public string $employment_status = 'active';
+
+    public string $employment_type = 'full_time';
 
     public string $designation = '';
 
@@ -30,11 +39,34 @@ class EmployeeShow extends Component
     #[Validate('nullable|string|max:255')]
     public string $item_type = '';
 
+    public bool $showPromotionForm = false;
+
+    #[Validate('required|string|max:255')]
+    public string $new_designation = '';
+
+    #[Validate('nullable|string|max:255')]
+    public string $new_department = '';
+
+    #[Validate('required|date')]
+    public string $effective_date = '';
+
+    #[Validate('nullable|string|max:500')]
+    public string $promotion_notes = '';
+
+    #[Validate('nullable|file|max:5120|mimes:jpg,jpeg,png,pdf')]
+    public $promotionCertificate = null;
+
+    public bool $showOfferLetterForm = false;
+
+    #[Validate('required|file|max:10240|mimes:jpg,jpeg,png,pdf')]
+    public $offerLetterFile = null;
+
     public function mount(User $user): void
     {
         $this->user = $user;
         $this->roles = $user->getRoleNames()->toArray();
         $this->employment_status = $user->employment_status;
+        $this->employment_type = $user->employment_type;
         $this->designation = $user->designation ?? '';
         $this->department = $user->department ?? '';
         $this->monthly_salary = $user->monthly_salary ? (float) $user->monthly_salary : null;
@@ -50,6 +82,7 @@ class EmployeeShow extends Component
     {
         $this->validate([
             'employment_status' => 'required|in:active,on_notice,resigned,offboarded',
+            'employment_type' => 'required|in:full_time,trainee_paid,trainee_unpaid,intern',
             'designation' => 'nullable|string|max:255',
             'department' => 'nullable|string|max:255',
             'monthly_salary' => 'nullable|numeric|min:0',
@@ -57,6 +90,7 @@ class EmployeeShow extends Component
 
         $this->user->update([
             'employment_status' => $this->employment_status,
+            'employment_type' => $this->employment_type,
             'designation' => $this->designation,
             'department' => $this->department,
             'monthly_salary' => $this->monthly_salary,
@@ -88,13 +122,82 @@ class EmployeeShow extends Component
         $this->dispatch('toast', message: 'Asset marked as returned.', type: 'success');
     }
 
+    public function openPromotionForm(): void
+    {
+        $this->reset(['new_designation', 'new_department', 'effective_date', 'promotion_notes', 'promotionCertificate']);
+        $this->new_designation = $this->user->designation ?? '';
+        $this->new_department = $this->user->department ?? '';
+        $this->effective_date = now()->toDateString();
+        $this->resetValidation();
+        $this->showPromotionForm = true;
+    }
+
+    public function addPromotion(): void
+    {
+        $this->validate([
+            'new_designation' => 'required|string|max:255',
+            'new_department' => 'nullable|string|max:255',
+            'effective_date' => 'required|date',
+            'promotion_notes' => 'nullable|string|max:500',
+            'promotionCertificate' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf',
+        ]);
+
+        Promotion::create([
+            'user_id' => $this->user->id,
+            'created_by' => Auth::id(),
+            'previous_designation' => $this->user->designation,
+            'new_designation' => $this->new_designation,
+            'previous_department' => $this->user->department,
+            'new_department' => $this->new_department ?: $this->user->department,
+            'effective_date' => $this->effective_date,
+            'notes' => $this->promotion_notes,
+            'certificate_path' => $this->promotionCertificate?->store('promotion-certificates', 'public'),
+        ]);
+
+        $this->user->update([
+            'designation' => $this->new_designation,
+            'department' => $this->new_department ?: $this->user->department,
+        ]);
+        $this->user->refresh();
+        $this->designation = $this->user->designation ?? '';
+        $this->department = $this->user->department ?? '';
+
+        $this->showPromotionForm = false;
+        $this->dispatch('toast', message: 'Promotion recorded and designation updated.', type: 'success');
+    }
+
+    public function submitOfferLetter(): void
+    {
+        $this->validate(['offerLetterFile' => 'required|file|max:10240|mimes:jpg,jpeg,png,pdf']);
+
+        CompanyDocument::updateOrCreate(
+            ['user_id' => $this->user->id, 'type' => CompanyDocument::TYPE_OFFER_LETTER],
+            [
+                'title' => 'Offer Letter',
+                'file_path' => $this->offerLetterFile->store('company-documents', 'public'),
+                'uploaded_by' => Auth::id(),
+            ]
+        );
+
+        $this->showOfferLetterForm = false;
+        $this->reset(['offerLetterFile']);
+        $this->dispatch('toast', message: 'Offer letter uploaded.', type: 'success');
+    }
+
     public function render()
     {
+        $documents = EmployeeDocument::where('user_id', $this->user->id)->get()->keyBy('type');
+
         return view('livewire.hr-admin.employee-show', [
             'allRoles' => Role::orderBy('name')->pluck('name'),
             'assets' => Asset::where('user_id', $this->user->id)->orderByDesc('assigned_date')->get(),
             'leaveBalanceUsed' => $this->user->leaveRequests()->where('status', 'approved')->whereYear('start_date', now()->year)->sum('days'),
             'recentAttendance' => $this->user->attendances()->orderByDesc('work_date')->limit(5)->get(),
+            'catalog' => EmployeeDocument::CATALOG,
+            'documents' => $documents,
+            'requiredMissing' => collect(EmployeeDocument::requiredKeys())->diff($documents->keys())->count(),
+            'promotions' => $this->user->promotions,
+            'offerLetter' => $this->user->offerLetter(),
         ]);
     }
 }
