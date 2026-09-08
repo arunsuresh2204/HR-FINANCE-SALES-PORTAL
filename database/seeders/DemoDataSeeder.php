@@ -283,6 +283,75 @@ class DemoDataSeeder extends Seeder
             }
         }
 
+        // Ten days of daily cold-outreach leads added to Vishnu's pipeline (10+ contacts/day)
+        $dailyLeadTechnologies = ['Web Development', 'Mobile App', 'Digital Marketing', 'E-commerce', 'WordPress', 'Social Media', 'SEO', 'Branding', 'Other'];
+        $dailyLeadSources = ['Upwork', 'LinkedIn', 'Cold Email', 'Cold Call', 'Referral', 'Instagram', 'Google Ads', 'Freelancer.com'];
+        $dailyLeadCountries = ['USA', 'UK', 'Canada', 'Australia', 'India', 'Germany', 'UAE', 'Singapore', 'South Africa', 'Netherlands', 'Ireland', 'New Zealand'];
+
+        $requirementsByTechnology = [
+            'Web Development' => ['Company website redesign', 'Landing page for a product launch', 'Corporate site with a blog', 'Portfolio site rebuild', 'Multi-page brochure website'],
+            'Mobile App' => ['iOS/Android app for bookings', 'Delivery tracking app', 'Loyalty app for repeat customers', 'Internal staff scheduling app', 'On-demand service app'],
+            'Digital Marketing' => ['Monthly social media management', 'Paid ads campaign setup', 'Content calendar and posting', 'Influencer outreach campaign', 'Email marketing setup'],
+            'E-commerce' => ['Online store for retail products', 'Shopify migration and setup', 'Subscription box storefront', 'Marketplace storefront setup', 'Product catalog with checkout'],
+            'WordPress' => ['WordPress site build from a template', 'Blog plus membership area', 'WooCommerce store setup', 'Site speed and SEO cleanup', 'Theme redesign refresh'],
+            'Social Media' => ['Instagram and Facebook management', 'Short-form video content plan', 'Community management retainer', 'Brand page setup and growth', 'Content creation and scheduling'],
+            'SEO' => ['On-page SEO audit and fixes', 'Local SEO for a service business', 'Keyword strategy and content plan', 'Technical SEO cleanup', 'Backlink building campaign'],
+            'Branding' => ['Logo and brand identity kit', 'Brand style guide', 'Business card and stationery design', 'Rebrand for a growing company', 'Packaging design refresh'],
+            'Other' => ['Custom internal tool', 'CRM setup and integration', 'Automation workflow build', 'Data dashboard build', 'General IT consulting'],
+        ];
+
+        $dailyLeadStatusPool = [];
+        foreach (['pending' => 40, 'positive' => 20, 'negative' => 15, 'proposal_sent' => 12, 'rejected' => 6, 'won' => 4, 'lost' => 3] as $status => $weight) {
+            $dailyLeadStatusPool = array_merge($dailyLeadStatusPool, array_fill(0, $weight, $status));
+        }
+
+        for ($day = 9; $day >= 0; $day--) {
+            $leadsToday = rand(8, 14);
+
+            for ($n = 0; $n < $leadsToday; $n++) {
+                $technology = $dailyLeadTechnologies[array_rand($dailyLeadTechnologies)];
+                $requirement = $requirementsByTechnology[$technology][array_rand($requirementsByTechnology[$technology])];
+                $name = fake()->name();
+                $company = fake()->company();
+                $status = $dailyLeadStatusPool[array_rand($dailyLeadStatusPool)];
+                $isClosed = in_array($status, Lead::CLOSED_STATUSES, true);
+                $country = $dailyLeadCountries[array_rand($dailyLeadCountries)];
+                $email = Str::slug($name, '.').'@'.Str::slug($company, '').'.com';
+
+                $lead = Lead::create([
+                    'sales_person_id' => $sales3->id,
+                    'client_name' => $name,
+                    'company_name' => $company,
+                    'country' => $country,
+                    'email' => $email,
+                    'phone' => fake()->e164PhoneNumber(),
+                    'requirement' => $requirement,
+                    'service_type' => $technology,
+                    'source' => $dailyLeadSources[array_rand($dailyLeadSources)],
+                    'status' => $status,
+                    'budget' => $isClosed ? fake()->numberBetween(800, 9000) : null,
+                    'follow_up_date' => $isClosed ? null : now()->addDays(rand(1, 7)),
+                    'contacted_date' => now()->subDays($day),
+                    'comment' => in_array($status, ['positive', 'negative', 'rejected'], true) ? fake()->sentence(10) : null,
+                ]);
+
+                if ($status === 'won') {
+                    Client::create([
+                        'lead_id' => $lead->id,
+                        'sales_person_id' => $sales3->id,
+                        'business_name' => $company,
+                        'business_type' => $technology,
+                        'business_address' => $country,
+                        'owner_name' => $name,
+                        'owner_designation' => 'Owner',
+                        'owner_contact' => $email,
+                        'agreement_effective_date' => now()->subDays($day),
+                        'agreement_scope_summary' => $requirement,
+                    ]);
+                }
+            }
+        }
+
         // Sales targets (current month, plus a prior-month shortfall for Divya to demonstrate carryforward)
         $prevMonthDate = now()->subMonthNoOverflow();
         SalesTarget::create(['user_id' => $sales2->id, 'month' => $prevMonthDate->month, 'year' => $prevMonthDate->year, 'target_amount' => 6000, 'commission_percent' => 5]);
