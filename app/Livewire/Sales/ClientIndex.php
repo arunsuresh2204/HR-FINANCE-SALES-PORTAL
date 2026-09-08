@@ -13,6 +13,13 @@ class ClientIndex extends Component
 
     public string $search = '';
 
+    public string $view = 'grid';
+
+    public function setView(string $view): void
+    {
+        $this->view = in_array($view, ['grid', 'list'], true) ? $view : 'grid';
+    }
+
     public function updatingSearch(): void
     {
         $this->resetPage();

@@ -31,4 +31,31 @@ class SalesTarget extends Model
             ->whereMonth('updated_at', $this->month)
             ->sum('budget');
     }
+
+    public function deficitCarriedIn(): float
+    {
+        $prevMonth = $this->month - 1;
+        $prevYear = $this->year;
+
+        if ($prevMonth < 1) {
+            $prevMonth = 12;
+            $prevYear--;
+        }
+
+        $previous = self::where('user_id', $this->user_id)
+            ->where('month', $prevMonth)
+            ->where('year', $prevYear)
+            ->first();
+
+        if (! $previous) {
+            return 0;
+        }
+
+        return max(0, $previous->effectiveTargetAmount() - $previous->achievedAmount());
+    }
+
+    public function effectiveTargetAmount(): float
+    {
+        return (float) $this->target_amount + $this->deficitCarriedIn();
+    }
 }

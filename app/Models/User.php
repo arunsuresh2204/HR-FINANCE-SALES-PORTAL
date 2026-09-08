@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -41,6 +43,7 @@ class User extends Authenticatable
         'monthly_salary',
         'employment_status',
         'employment_type',
+        'manager_id',
     ];
 
     /**
@@ -144,6 +147,41 @@ class User extends Authenticatable
         return $this->companyDocuments()->where('type', CompanyDocument::TYPE_OFFER_LETTER)->latest()->first();
     }
 
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    public function directReports(): HasMany
+    {
+        return $this->hasMany(User::class, 'manager_id');
+    }
+
+    public function additionalManagers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_additional_managers', 'user_id', 'manager_id');
+    }
+
+    public function additionalReports(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_additional_managers', 'manager_id', 'user_id');
+    }
+
+    public function allManagers()
+    {
+        return $this->additionalManagers->when($this->manager, fn ($c) => $c->push($this->manager))->unique('id');
+    }
+
+    public function allReports()
+    {
+        return $this->directReports->concat($this->additionalReports)->unique('id');
+    }
+
+    public function isManagerOf(User $user): bool
+    {
+        return $user->manager_id === $this->id || $user->additionalManagers->contains('id', $this->id);
+    }
+
     public function employmentTypeLabel(): string
     {
         return match ($this->employment_type) {
@@ -187,6 +225,21 @@ class User extends Authenticatable
     public function canManageLeads(): bool
     {
         return $this->hasAnyRole(['sales_exec', 'marketer', 'super_admin']);
+    }
+
+    public function isManager(): bool
+    {
+        return $this->hasAnyRole(['manager', 'super_admin']);
+    }
+
+    public function isTeamLead(): bool
+    {
+        return $this->hasAnyRole(['team_lead', 'super_admin']);
+    }
+
+    public function canSetSalesTargets(): bool
+    {
+        return $this->hasAnyRole(['manager', 'super_admin']);
     }
 
     public function initials(): string

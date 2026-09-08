@@ -30,6 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('documents', 'pages.hr.document-index')->name('hr.documents');
     Route::view('announcements', 'pages.hr.announcement-index')->name('hr.announcements');
     Route::view('resignation', 'pages.hr.resignation-index')->name('hr.resignation');
+    Route::view('org-chart', 'pages.company.org-chart')->name('org-chart');
 
     // Role-specific daily logs
     Route::middleware(['role:programmer|super_admin'])->group(function () {
@@ -53,6 +54,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('clients/{client}', function (Client $client) {
                 return view('pages.sales.client-show', compact('client'));
             })->name('clients.show');
+        });
+
+        Route::middleware(['role:sales_exec|manager|super_admin'])->group(function () {
             Route::view('targets', 'pages.sales.target-dashboard')->name('targets');
         });
     });

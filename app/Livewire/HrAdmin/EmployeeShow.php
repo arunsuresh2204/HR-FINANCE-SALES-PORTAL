@@ -31,6 +31,10 @@ class EmployeeShow extends Component
 
     public ?float $monthly_salary = null;
 
+    public ?int $manager_id = null;
+
+    public array $additional_manager_ids = [];
+
     public bool $showAssetForm = false;
 
     #[Validate('required|string|max:255')]
@@ -70,6 +74,28 @@ class EmployeeShow extends Component
         $this->designation = $user->designation ?? '';
         $this->department = $user->department ?? '';
         $this->monthly_salary = $user->monthly_salary ? (float) $user->monthly_salary : null;
+        $this->manager_id = $user->manager_id;
+        $this->additional_manager_ids = $user->additionalManagers()->pluck('users.id')->all();
+    }
+
+    public function saveReporting(): void
+    {
+        $this->validate([
+            'manager_id' => 'nullable|exists:users,id',
+            'additional_manager_ids' => 'array',
+            'additional_manager_ids.*' => 'exists:users,id',
+        ]);
+
+        if ($this->manager_id === $this->user->id) {
+            $this->addError('manager_id', 'An employee cannot report to themselves.');
+
+            return;
+        }
+
+        $this->user->update(['manager_id' => $this->manager_id]);
+        $this->user->additionalManagers()->sync(array_diff($this->additional_manager_ids, [$this->user->id]));
+
+        $this->dispatch('toast', message: 'Reporting line updated.', type: 'success');
     }
 
     public function saveRoles(): void
@@ -190,6 +216,7 @@ class EmployeeShow extends Component
 
         return view('livewire.hr-admin.employee-show', [
             'allRoles' => Role::orderBy('name')->pluck('name'),
+            'potentialManagers' => User::where('id', '!=', $this->user->id)->orderBy('name')->get(),
             'assets' => Asset::where('user_id', $this->user->id)->orderByDesc('assigned_date')->get(),
             'leaveBalanceUsed' => $this->user->leaveRequests()->where('status', 'approved')->whereYear('start_date', now()->year)->sum('days'),
             'recentAttendance' => $this->user->attendances()->orderByDesc('work_date')->limit(5)->get(),

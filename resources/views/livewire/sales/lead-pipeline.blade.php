@@ -50,6 +50,19 @@
     </div>
 
     <div class="mb-4 flex flex-wrap items-center gap-3">
+        <div class="inline-flex rounded-xl border border-white/10 bg-white/5 p-1">
+            <button type="button" wire:click="setRange('week')" class="rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $range === 'week' ? 'bg-gold-400 text-ink-950' : 'text-white/50 hover:text-white' }}">Week</button>
+            <button type="button" wire:click="setRange('month')" class="rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $range === 'month' ? 'bg-gold-400 text-ink-950' : 'text-white/50 hover:text-white' }}">Month</button>
+        </div>
+        <div class="flex items-center gap-1.5">
+            <button type="button" wire:click="prevPeriod" class="glass rounded-lg p-1.5 text-white/50 hover:text-white"><x-icon name="arrow-right" class="h-3.5 w-3.5 rotate-180" /></button>
+            <span class="min-w-[9rem] text-center text-sm font-semibold text-white">{{ $rangeLabel }}</span>
+            <button type="button" wire:click="nextPeriod" class="glass rounded-lg p-1.5 text-white/50 hover:text-white"><x-icon name="arrow-right" class="h-3.5 w-3.5" /></button>
+        </div>
+        <input wire:model.live="monthPicker" type="month" class="input-glass w-40" title="Jump to a month">
+    </div>
+
+    <div class="mb-4 flex flex-wrap items-center gap-3">
         <div class="relative max-w-xs flex-1">
             <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
             <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search leads..." class="input-glass pl-9">
@@ -96,10 +109,12 @@
                         <tr wire:key="lead-row-{{ $lead->id }}">
                             <td class="whitespace-nowrap text-white/60">{{ $lead->contacted_date?->format('M j') ?? $lead->created_at->format('M j') }}</td>
                             <td class="max-w-[10rem]">
-                                <p class="truncate font-medium text-white">{{ $lead->client_name }}</p>
-                                @if ($lead->company_name)
-                                    <p class="truncate text-xs text-white/40">{{ $lead->company_name }}</p>
-                                @endif
+                                <button type="button" wire:click="viewRequirement({{ $lead->id }})" class="block text-left">
+                                    <p class="truncate font-medium text-white hover:text-gold-300">{{ $lead->client_name }}</p>
+                                    @if ($lead->company_name)
+                                        <p class="truncate text-xs text-white/40">{{ $lead->company_name }}</p>
+                                    @endif
+                                </button>
                             </td>
                             <td class="whitespace-nowrap text-white/60">{{ $lead->country ?? '—' }}</td>
                             <td class="max-w-xs">
@@ -137,4 +152,30 @@
         </div>
         <div class="p-4">{{ $leads->links() }}</div>
     </div>
+
+    <x-modal-glass wire-model="showRequirementModal" title="{{ $viewingLead?->client_name }}" max-width="lg">
+        @if ($viewingLead)
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div><p class="text-xs text-white/40">Country</p><p class="mt-0.5 text-white">{{ $viewingLead->country ?? '—' }}</p></div>
+                    <div><p class="text-xs text-white/40">Technology</p><p class="mt-0.5 text-white">{{ $viewingLead->service_type }}</p></div>
+                    <div><p class="text-xs text-white/40">Source</p><p class="mt-0.5 text-white">{{ $viewingLead->source }}</p></div>
+                    <div><p class="text-xs text-white/40">Status</p><p class="mt-0.5"><x-status-pill :status="$viewingLead->status" /></p></div>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-white/40">Requirement</p>
+                    <p class="mt-1 whitespace-pre-line text-sm text-white/75">{{ $viewingLead->requirement }}</p>
+                </div>
+                @if ($viewingLead->comment)
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-white/40">Comment</p>
+                        <p class="mt-1 whitespace-pre-line text-sm text-white/75">{{ $viewingLead->comment }}</p>
+                    </div>
+                @endif
+                <div class="flex justify-end">
+                    <a href="{{ route('sales.leads.show', $viewingLead) }}" wire:navigate class="btn-glass-secondary">Open Full Lead</a>
+                </div>
+            </div>
+        @endif
+    </x-modal-glass>
 </div>

@@ -48,7 +48,7 @@ class DemoDataSeeder extends Seeder
             'department' => 'Sales', 'date_of_joining' => '2021-01-01', 'employment_status' => 'active',
             'monthly_salary' => 4500,
         ]);
-        $owner3->assignRole(['super_admin', 'sales_exec', 'finance_admin']);
+        $owner3->assignRole(['super_admin', 'sales_exec', 'finance_admin', 'manager']);
 
         $owner4 = User::create([
             'employee_code' => 'EMP-0004', 'name' => 'Karthik Iyer', 'email' => 'karthik@nexstarc.com',
@@ -56,13 +56,13 @@ class DemoDataSeeder extends Seeder
             'department' => 'Sales', 'date_of_joining' => '2021-01-01', 'employment_status' => 'active',
             'monthly_salary' => 4500,
         ]);
-        $owner4->assignRole(['super_admin', 'sales_exec', 'hr_admin']);
+        $owner4->assignRole(['super_admin', 'sales_exec', 'hr_admin', 'manager']);
 
         $dev1 = User::create([
             'employee_code' => 'EMP-0005', 'name' => 'Sneha Reddy', 'email' => 'sneha@nexstarc.com',
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Full Stack Developer',
             'department' => 'Engineering', 'date_of_joining' => '2022-03-15', 'employment_status' => 'active',
-            'monthly_salary' => 2200,
+            'monthly_salary' => 2200, 'manager_id' => $owner1->id,
         ]);
         $dev1->assignRole('programmer');
 
@@ -70,7 +70,7 @@ class DemoDataSeeder extends Seeder
             'employee_code' => 'EMP-0006', 'name' => 'Vikram Shah', 'email' => 'vikram@nexstarc.com',
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Mobile App Developer',
             'department' => 'Engineering', 'date_of_joining' => '2022-06-01', 'employment_status' => 'active',
-            'monthly_salary' => 2200,
+            'monthly_salary' => 2200, 'manager_id' => $owner1->id,
         ]);
         $dev2->assignRole('programmer');
 
@@ -78,23 +78,23 @@ class DemoDataSeeder extends Seeder
             'employee_code' => 'EMP-0007', 'name' => 'Anjali Verma', 'email' => 'anjali@nexstarc.com',
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Social Media Marketer',
             'department' => 'Marketing', 'date_of_joining' => '2022-09-01', 'employment_status' => 'active',
-            'monthly_salary' => 1800,
+            'monthly_salary' => 1800, 'manager_id' => $owner3->id,
         ]);
         $marketer1->assignRole('marketer');
 
         $sales1 = User::create([
             'employee_code' => 'EMP-0008', 'name' => 'Rohan Kapoor', 'email' => 'rohan@nexstarc.com',
-            'password' => $password, 'email_verified_at' => now(), 'designation' => 'Sales Executive',
+            'password' => $password, 'email_verified_at' => now(), 'designation' => 'Sales Team Lead',
             'department' => 'Sales', 'date_of_joining' => '2023-01-10', 'employment_status' => 'active',
-            'monthly_salary' => 2000,
+            'monthly_salary' => 2000, 'manager_id' => $owner4->id,
         ]);
-        $sales1->assignRole('sales_exec');
+        $sales1->assignRole(['sales_exec', 'team_lead']);
 
         $sales2 = User::create([
             'employee_code' => 'EMP-0009', 'name' => 'Divya Pillai', 'email' => 'divya@nexstarc.com',
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Sales Executive',
             'department' => 'Sales', 'date_of_joining' => '2023-04-20', 'employment_status' => 'active',
-            'monthly_salary' => 2000,
+            'monthly_salary' => 2000, 'manager_id' => $sales1->id,
         ]);
         $sales2->assignRole('sales_exec');
 
@@ -102,9 +102,10 @@ class DemoDataSeeder extends Seeder
             'employee_code' => 'EMP-0010', 'name' => 'Vishnu', 'email' => 'vishnu@nexstarc.com',
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Sales Executive',
             'department' => 'Sales', 'date_of_joining' => now()->subMonths(2)->startOfMonth(), 'employment_status' => 'active',
-            'monthly_salary' => 2000,
+            'monthly_salary' => 2000, 'manager_id' => $sales1->id,
         ]);
         $sales3->assignRole('sales_exec');
+        $sales3->additionalManagers()->attach($owner3->id);
 
         // Announcements
         Announcement::create([
@@ -282,7 +283,10 @@ class DemoDataSeeder extends Seeder
             }
         }
 
-        // Sales targets (current month)
+        // Sales targets (current month, plus a prior-month shortfall for Divya to demonstrate carryforward)
+        $prevMonthDate = now()->subMonthNoOverflow();
+        SalesTarget::create(['user_id' => $sales2->id, 'month' => $prevMonthDate->month, 'year' => $prevMonthDate->year, 'target_amount' => 6000, 'commission_percent' => 5]);
+
         SalesTarget::create(['user_id' => $sales1->id, 'month' => now()->month, 'year' => now()->year, 'target_amount' => 10000, 'commission_percent' => 5]);
         SalesTarget::create(['user_id' => $sales2->id, 'month' => now()->month, 'year' => now()->year, 'target_amount' => 8000, 'commission_percent' => 5]);
         SalesTarget::create(['user_id' => $sales3->id, 'month' => now()->month, 'year' => now()->year, 'target_amount' => 12000, 'commission_percent' => 5]);

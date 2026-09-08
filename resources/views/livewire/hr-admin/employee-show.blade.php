@@ -68,6 +68,34 @@
             </div>
 
             <div class="glass-card">
+                <h2 class="mb-4 text-base font-bold text-white">Reporting Line</h2>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <x-input-label for="manager_id" value="Reports To" />
+                        <select wire:model="manager_id" id="manager_id" class="input-glass">
+                            <option value="">— No manager —</option>
+                            @foreach ($potentialManagers as $pm)
+                                <option value="{{ $pm->id }}">{{ $pm->name }} @if ($pm->designation)({{ $pm->designation }})@endif</option>
+                            @endforeach
+                        </select>
+                        <x-input-error :messages="$errors->get('manager_id')" class="mt-1" />
+                    </div>
+                    <div>
+                        <x-input-label for="additional_manager_ids" value="Additional Managers (optional)" />
+                        <select wire:model="additional_manager_ids" id="additional_manager_ids" multiple class="input-glass h-24">
+                            @foreach ($potentialManagers as $pm)
+                                <option value="{{ $pm->id }}">{{ $pm->name }}</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-white/35">Hold Ctrl/Cmd to select more than one.</p>
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end">
+                    <x-primary-button wire:click="saveReporting">Save Reporting Line</x-primary-button>
+                </div>
+            </div>
+
+            <div class="glass-card">
                 <div class="mb-4 flex items-center justify-between">
                     <h2 class="text-base font-bold text-white">Assets</h2>
                     <button wire:click="$set('showAssetForm', true)" class="text-xs font-semibold text-gold-300 hover:text-gold-200">+ Assign Asset</button>

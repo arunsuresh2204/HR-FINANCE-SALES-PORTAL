@@ -4,6 +4,7 @@ namespace App\Livewire\Sales;
 
 use App\Models\Lead;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -18,6 +19,16 @@ class LeadPipeline extends Component
     public string $statusFilter = '';
 
     public string $search = '';
+
+    public string $range = 'week';
+
+    public string $anchorDate = '';
+
+    public string $monthPicker = '';
+
+    public bool $showRequirementModal = false;
+
+    public ?int $viewingLeadId = null;
 
     #[Validate('required|string|max:255')]
     public string $client_name = '';
@@ -43,6 +54,51 @@ class LeadPipeline extends Component
     public array $statuses = [];
 
     public array $comments = [];
+
+    public function mount(): void
+    {
+        $this->anchorDate = now()->toDateString();
+        $this->monthPicker = now()->format('Y-m');
+    }
+
+    public function setRange(string $range): void
+    {
+        $this->range = in_array($range, ['week', 'month'], true) ? $range : 'week';
+        $this->resetPage();
+    }
+
+    public function prevPeriod(): void
+    {
+        $date = Carbon::parse($this->anchorDate);
+        $this->anchorDate = $this->range === 'week' ? $date->subWeek()->toDateString() : $date->subMonthNoOverflow()->toDateString();
+        $this->monthPicker = Carbon::parse($this->anchorDate)->format('Y-m');
+        $this->resetPage();
+    }
+
+    public function nextPeriod(): void
+    {
+        $date = Carbon::parse($this->anchorDate);
+        $this->anchorDate = $this->range === 'week' ? $date->addWeek()->toDateString() : $date->addMonthNoOverflow()->toDateString();
+        $this->monthPicker = Carbon::parse($this->anchorDate)->format('Y-m');
+        $this->resetPage();
+    }
+
+    public function updatedMonthPicker(string $value): void
+    {
+        if (! $value) {
+            return;
+        }
+
+        $this->range = 'month';
+        $this->anchorDate = Carbon::createFromFormat('Y-m', $value)->startOfMonth()->toDateString();
+        $this->resetPage();
+    }
+
+    public function viewRequirement(int $leadId): void
+    {
+        $this->viewingLeadId = $leadId;
+        $this->showRequirementModal = true;
+    }
 
     public function createLead(): void
     {
@@ -121,6 +177,20 @@ class LeadPipeline extends Component
                 ->orWhere('requirement', 'like', "%{$this->search}%"));
         }
 
+        $anchor = Carbon::parse($this->anchorDate ?: now());
+
+        if ($this->range === 'week') {
+            $rangeStart = $anchor->copy()->startOfWeek(Carbon::MONDAY);
+            $rangeEnd = $anchor->copy()->endOfWeek(Carbon::SUNDAY);
+            $rangeLabel = $rangeStart->format('M j').' – '.$rangeEnd->format('M j, Y');
+        } else {
+            $rangeStart = $anchor->copy()->startOfMonth();
+            $rangeEnd = $anchor->copy()->endOfMonth();
+            $rangeLabel = $rangeStart->format('F Y');
+        }
+
+        $query->whereBetween('contacted_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()]);
+
         $leads = $query->paginate(25);
 
         $this->statuses = $leads->pluck('status', 'id')->all();
@@ -130,6 +200,8 @@ class LeadPipeline extends Component
             'leads' => $leads,
             'owners' => $user->isSuperAdmin() ? User::role(['sales_exec', 'marketer'])->orderBy('name')->get() : collect(),
             'statusOptions' => Lead::STATUSES,
+            'rangeLabel' => $rangeLabel,
+            'viewingLead' => $this->viewingLeadId ? Lead::find($this->viewingLeadId) : null,
         ]);
     }
 }
