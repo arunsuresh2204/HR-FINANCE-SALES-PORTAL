@@ -360,6 +360,70 @@ class DemoDataSeeder extends Seeder
         SalesTarget::create(['user_id' => $sales2->id, 'month' => now()->month, 'year' => now()->year, 'target_amount' => 8000, 'commission_percent' => 5]);
         SalesTarget::create(['user_id' => $sales3->id, 'month' => now()->month, 'year' => now()->year, 'target_amount' => 12000, 'commission_percent' => 5]);
 
+        // Three months of prior sales-target history, each with a few backdated won deals so
+        // "achieved" isn't just zero, showing a mix of over- and under-target months.
+        $targetHistoryRanges = [
+            $sales1->id => [9000, 13000],
+            $sales2->id => [7000, 9000],
+            $sales3->id => [11000, 15000],
+        ];
+
+        for ($monthsBack = 1; $monthsBack <= 3; $monthsBack++) {
+            $periodDate = now()->subMonthsNoOverflow($monthsBack);
+
+            foreach ($targetHistoryRanges as $userId => [$minTarget, $maxTarget]) {
+                if (SalesTarget::where('user_id', $userId)->where('month', $periodDate->month)->where('year', $periodDate->year)->exists()) {
+                    continue;
+                }
+
+                SalesTarget::create([
+                    'user_id' => $userId,
+                    'month' => $periodDate->month,
+                    'year' => $periodDate->year,
+                    'target_amount' => rand($minTarget, $maxTarget),
+                    'commission_percent' => 5,
+                ]);
+
+                for ($dealNum = 0; $dealNum < rand(1, 3); $dealNum++) {
+                    $dealName = fake()->name();
+                    $dealCompany = fake()->company();
+                    $dealTechnology = $dailyLeadTechnologies[array_rand($dailyLeadTechnologies)];
+                    $dealDate = $periodDate->copy()->setDay(rand(1, $periodDate->daysInMonth));
+                    $dealEmail = Str::slug($dealName, '.').'@'.Str::slug($dealCompany, '').'.com';
+
+                    $historicalLead = Lead::create([
+                        'sales_person_id' => $userId,
+                        'client_name' => $dealName,
+                        'company_name' => $dealCompany,
+                        'country' => $dailyLeadCountries[array_rand($dailyLeadCountries)],
+                        'email' => $dealEmail,
+                        'phone' => fake()->e164PhoneNumber(),
+                        'requirement' => $requirementsByTechnology[$dealTechnology][array_rand($requirementsByTechnology[$dealTechnology])],
+                        'service_type' => $dealTechnology,
+                        'source' => $dailyLeadSources[array_rand($dailyLeadSources)],
+                        'status' => 'won',
+                        'budget' => rand(2000, 6000),
+                        'contacted_date' => $dealDate->copy()->subDays(rand(3, 10)),
+                    ]);
+
+                    Lead::where('id', $historicalLead->id)->update(['updated_at' => $dealDate]);
+
+                    Client::create([
+                        'lead_id' => $historicalLead->id,
+                        'sales_person_id' => $userId,
+                        'business_name' => $dealCompany,
+                        'business_type' => $dealTechnology,
+                        'business_address' => $historicalLead->country,
+                        'owner_name' => $dealName,
+                        'owner_designation' => 'Owner',
+                        'owner_contact' => $dealEmail,
+                        'agreement_effective_date' => $dealDate,
+                        'agreement_scope_summary' => $historicalLead->requirement,
+                    ]);
+                }
+            }
+        }
+
         // Expenses
         Expense::create([
             'user_id' => $marketer1->id, 'amount' => 45.99, 'category' => 'software',
