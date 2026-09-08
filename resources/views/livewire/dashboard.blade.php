@@ -8,7 +8,7 @@
         <x-stat-card label="Pending Expenses" :value="$pendingExpenses" icon="receipt" accent="violet" :href="route('hr.expenses')" />
     </div>
 
-    @if (auth()->user()->isProgrammer() || auth()->user()->isMarketer() || auth()->user()->isSalesExec())
+    @if (auth()->user()->isProgrammer() || auth()->user()->isMarketer() || auth()->user()->canManageLeads())
         <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             @if (auth()->user()->isProgrammer())
                 <x-stat-card label="Hours Logged Today" :value="number_format($todayHours ?? 0, 1)" icon="code" accent="sky" hint="{{ number_format($weekHours ?? 0, 1) }}h this week" :href="route('work.timesheets')" />
@@ -16,12 +16,12 @@
             @if (auth()->user()->isMarketer())
                 <x-stat-card label="Marketing Hours Today" :value="number_format($todayMarketingHours ?? 0, 1)" icon="megaphone" accent="violet" :href="route('work.marketing-logs')" />
             @endif
-            @if (auth()->user()->isSalesExec())
+            @if (auth()->user()->canManageLeads())
                 <x-stat-card label="Open Leads" :value="$myLeadsOpen" icon="target" accent="sky" :href="route('sales.leads')" />
                 <x-stat-card label="Won This Month" :value="$myLeadsWonThisMonth" icon="briefcase" accent="emerald" :href="route('sales.leads')" />
-                @if ($salesTarget)
-                    <x-stat-card label="Target Progress" value="${{ number_format($salesAchieved) }} / ${{ number_format($salesTarget->target_amount) }}" icon="chart" accent="gold" :href="route('sales.targets')" />
-                @endif
+            @endif
+            @if (auth()->user()->isSalesExec() && $salesTarget)
+                <x-stat-card label="Target Progress" value="${{ number_format($salesAchieved) }} / ${{ number_format($salesTarget->target_amount) }}" icon="chart" accent="gold" :href="route('sales.targets')" />
             @endif
         </div>
     @endif

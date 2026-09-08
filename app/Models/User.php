@@ -184,6 +184,11 @@ class User extends Authenticatable
         return $this->hasAnyRole(['marketer', 'super_admin']);
     }
 
+    public function canManageLeads(): bool
+    {
+        return $this->hasAnyRole(['sales_exec', 'marketer', 'super_admin']);
+    }
+
     public function initials(): string
     {
         $words = preg_split('/\s+/', trim($this->name));

@@ -16,6 +16,8 @@
         'contacted' => 'bg-violet-400/15 text-violet-300 border-violet-400/20',
         'proposal_sent' => 'bg-violet-400/15 text-violet-300 border-violet-400/20',
         'negotiation' => 'bg-gold-400/15 text-gold-300 border-gold-400/20',
+        'positive' => 'bg-emerald-400/15 text-emerald-300 border-emerald-400/20',
+        'negative' => 'bg-rose-400/15 text-rose-300 border-rose-400/20',
         'in_progress' => 'bg-sky-400/15 text-sky-300 border-sky-400/20',
         'draft' => 'bg-white/10 text-white/60 border-white/15',
         'rejected' => 'bg-rose-400/15 text-rose-300 border-rose-400/20',

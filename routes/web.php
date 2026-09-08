@@ -40,16 +40,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Sales
-    Route::middleware(['role:sales_exec|super_admin'])->prefix('sales')->name('sales.')->group(function () {
-        Route::view('leads', 'pages.sales.lead-pipeline')->name('leads');
-        Route::get('leads/{lead}', function (Lead $lead) {
-            return view('pages.sales.lead-show', compact('lead'));
-        })->name('leads.show');
-        Route::view('clients', 'pages.sales.client-index')->name('clients');
-        Route::get('clients/{client}', function (Client $client) {
-            return view('pages.sales.client-show', compact('client'));
-        })->name('clients.show');
-        Route::view('targets', 'pages.sales.target-dashboard')->name('targets');
+    Route::prefix('sales')->name('sales.')->group(function () {
+        Route::middleware(['role:sales_exec|marketer|super_admin'])->group(function () {
+            Route::view('leads', 'pages.sales.lead-pipeline')->name('leads');
+            Route::get('leads/{lead}', function (Lead $lead) {
+                return view('pages.sales.lead-show', compact('lead'));
+            })->name('leads.show');
+        });
+
+        Route::middleware(['role:sales_exec|super_admin'])->group(function () {
+            Route::view('clients', 'pages.sales.client-index')->name('clients');
+            Route::get('clients/{client}', function (Client $client) {
+                return view('pages.sales.client-show', compact('client'));
+            })->name('clients.show');
+            Route::view('targets', 'pages.sales.target-dashboard')->name('targets');
+        });
     });
 
     // HR Admin

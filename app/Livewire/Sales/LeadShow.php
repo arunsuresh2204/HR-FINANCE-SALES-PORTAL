@@ -16,6 +16,12 @@ class LeadShow extends Component
 
     public string $budget = '';
 
+    #[Validate('nullable|string|max:2000')]
+    public string $comment = '';
+
+    #[Validate('nullable|string|max:255')]
+    public string $contact_link = '';
+
     #[Validate('required|string|max:1000')]
     public string $note = '';
 
@@ -44,11 +50,13 @@ class LeadShow extends Component
         $this->lead = $lead;
         $this->status = $lead->status;
         $this->budget = $lead->budget ? (string) $lead->budget : '';
+        $this->comment = $lead->comment ?? '';
+        $this->contact_link = $lead->contact_link ?? '';
     }
 
     public function updateStatus(): void
     {
-        $this->validate(['status' => 'required|in:new,contacted,proposal_sent,negotiation,won,lost']);
+        $this->validate(['status' => 'required|in:'.implode(',', Lead::STATUSES)]);
 
         $data = ['status' => $this->status];
 
@@ -60,6 +68,21 @@ class LeadShow extends Component
         $this->lead->update($data);
 
         $this->dispatch('toast', message: 'Lead status updated.', type: 'success');
+    }
+
+    public function saveDetails(): void
+    {
+        $this->validate([
+            'comment' => 'nullable|string|max:2000',
+            'contact_link' => 'nullable|string|max:255',
+        ]);
+
+        $this->lead->update([
+            'comment' => $this->comment ?: null,
+            'contact_link' => $this->contact_link ?: null,
+        ]);
+
+        $this->dispatch('toast', message: 'Details saved.', type: 'success');
     }
 
     public function addNote(): void
@@ -85,6 +108,10 @@ class LeadShow extends Component
 
     public function convertToClient(): void
     {
+        if (! Auth::user()->isSalesExec()) {
+            return;
+        }
+
         $this->validate([
             'business_name' => 'required|string|max:255',
             'business_type' => 'nullable|string|max:255',

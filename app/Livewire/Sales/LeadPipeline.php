@@ -7,12 +7,15 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class LeadPipeline extends Component
 {
-    public bool $showForm = false;
+    use WithPagination;
 
-    public string $salesPersonFilter = '';
+    public string $ownerFilter = '';
+
+    public string $statusFilter = '';
 
     public string $search = '';
 
@@ -25,35 +28,21 @@ class LeadPipeline extends Component
     #[Validate('nullable|string|max:255')]
     public string $country = '';
 
-    #[Validate('nullable|email|max:255')]
-    public string $email = '';
-
-    #[Validate('nullable|string|max:50')]
-    public string $phone = '';
-
-    #[Validate('nullable|string|max:50')]
-    public string $whatsapp = '';
-
     #[Validate('required|string|max:2000')]
     public string $requirement = '';
 
-    #[Validate('required|in:web,mobile,social_media,pet_product,other')]
-    public string $service_type = 'web';
+    #[Validate('required|string|max:100')]
+    public string $service_type = '';
 
     #[Validate('required|string|max:255')]
     public string $source = '';
 
-    #[Validate('nullable|date')]
-    public string $follow_up_date = '';
+    #[Validate('nullable|string|max:255')]
+    public string $contact_link = '';
 
-    public const STATUSES = ['new', 'contacted', 'proposal_sent', 'negotiation', 'won', 'lost'];
+    public array $statuses = [];
 
-    public function openForm(): void
-    {
-        $this->reset(['client_name', 'company_name', 'country', 'email', 'phone', 'whatsapp', 'requirement', 'source', 'follow_up_date']);
-        $this->service_type = 'web';
-        $this->showForm = true;
-    }
+    public array $comments = [];
 
     public function createLead(): void
     {
@@ -62,56 +51,85 @@ class LeadPipeline extends Component
         Lead::create([
             'sales_person_id' => Auth::id(),
             'client_name' => $this->client_name,
-            'company_name' => $this->company_name,
-            'country' => $this->country,
-            'email' => $this->email,
-            'phone' => $this->phone,
-            'whatsapp' => $this->whatsapp,
+            'company_name' => $this->company_name ?: null,
+            'country' => $this->country ?: null,
             'requirement' => $this->requirement,
             'service_type' => $this->service_type,
             'source' => $this->source,
-            'status' => 'new',
-            'follow_up_date' => $this->follow_up_date ?: null,
+            'contact_link' => $this->contact_link ?: null,
+            'status' => 'pending',
+            'contacted_date' => now()->toDateString(),
         ]);
 
-        $this->showForm = false;
-        $this->dispatch('toast', message: 'Lead created.', type: 'success');
+        $this->reset(['client_name', 'company_name', 'country', 'requirement', 'contact_link']);
+        $this->resetValidation();
+        $this->resetPage();
+        $this->dispatch('toast', message: 'Lead added.', type: 'success');
     }
 
-    public function moveStatus(Lead $lead, string $status): void
+    public function updatedStatuses($value, $key): void
     {
-        if (! in_array($status, self::STATUSES, true)) {
+        if (! in_array($value, Lead::STATUSES, true)) {
             return;
         }
 
-        $lead->update(['status' => $status]);
+        $lead = Lead::find($key);
 
-        if ($status === 'won') {
-            $this->dispatch('toast', message: 'Lead marked as won! Convert it to a client from the lead page.', type: 'success');
+        if (! $lead || (! Auth::user()->isSuperAdmin() && $lead->sales_person_id !== Auth::id())) {
+            return;
         }
+
+        $lead->update(['status' => $value]);
+
+        if ($value === 'won') {
+            $this->dispatch('toast', message: 'Lead marked as won! Convert it to a client from the lead page.', type: 'success');
+        } else {
+            $this->dispatch('toast', message: 'Status updated.', type: 'success');
+        }
+    }
+
+    public function updatedComments($value, $key): void
+    {
+        $lead = Lead::find($key);
+
+        if (! $lead || (! Auth::user()->isSuperAdmin() && $lead->sales_person_id !== Auth::id())) {
+            return;
+        }
+
+        $lead->update(['comment' => $value]);
     }
 
     public function render()
     {
         $user = Auth::user();
 
-        $query = Lead::with('salesPerson')->latest();
+        $query = Lead::with('salesPerson')->latest('contacted_date');
 
         if (! $user->isSuperAdmin()) {
             $query->where('sales_person_id', $user->id);
-        } elseif ($this->salesPersonFilter) {
-            $query->where('sales_person_id', $this->salesPersonFilter);
+        } elseif ($this->ownerFilter) {
+            $query->where('sales_person_id', $this->ownerFilter);
+        }
+
+        if ($this->statusFilter) {
+            $query->where('status', $this->statusFilter);
         }
 
         if ($this->search) {
-            $query->where(fn ($q) => $q->where('client_name', 'like', "%{$this->search}%")->orWhere('company_name', 'like', "%{$this->search}%"));
+            $query->where(fn ($q) => $q->where('client_name', 'like', "%{$this->search}%")
+                ->orWhere('company_name', 'like', "%{$this->search}%")
+                ->orWhere('requirement', 'like', "%{$this->search}%"));
         }
 
-        $leads = $query->get()->groupBy('status');
+        $leads = $query->paginate(25);
+
+        $this->statuses = $leads->pluck('status', 'id')->all();
+        $this->comments = $leads->pluck('comment', 'id')->map(fn ($c) => $c ?? '')->all();
 
         return view('livewire.sales.lead-pipeline', [
-            'columns' => collect(self::STATUSES)->mapWithKeys(fn ($status) => [$status => $leads->get($status, collect())]),
-            'salesPeople' => $user->isSuperAdmin() ? User::role('sales_exec')->orderBy('name')->get() : collect(),
+            'leads' => $leads,
+            'owners' => $user->isSuperAdmin() ? User::role(['sales_exec', 'marketer'])->orderBy('name')->get() : collect(),
+            'statusOptions' => Lead::STATUSES,
         ]);
     }
 }

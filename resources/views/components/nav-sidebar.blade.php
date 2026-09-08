@@ -54,13 +54,15 @@
                     </div>
                 @endif
 
-                @if (auth()->user()->isSalesExec())
+                @if (auth()->user()->canManageLeads())
                     <div>
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">Sales</p>
                         <div class="mt-2 space-y-1">
                             <a href="{{ route('sales.leads') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('sales.leads*') ? 'active' : '' }}"><x-icon name="target" class="h-4 w-4 shrink-0" />Leads Pipeline</a>
-                            <a href="{{ route('sales.clients') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('sales.clients*') ? 'active' : '' }}"><x-icon name="briefcase" class="h-4 w-4 shrink-0" />Clients</a>
-                            <a href="{{ route('sales.targets') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('sales.targets') ? 'active' : '' }}"><x-icon name="chart" class="h-4 w-4 shrink-0" />Sales Targets</a>
+                            @if (auth()->user()->isSalesExec())
+                                <a href="{{ route('sales.clients') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('sales.clients*') ? 'active' : '' }}"><x-icon name="briefcase" class="h-4 w-4 shrink-0" />Clients</a>
+                                <a href="{{ route('sales.targets') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('sales.targets') ? 'active' : '' }}"><x-icon name="chart" class="h-4 w-4 shrink-0" />Sales Targets</a>
+                            @endif
                         </div>
                     </div>
                 @endif

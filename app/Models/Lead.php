@@ -9,19 +9,28 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Lead extends Model
 {
-    public const STATUSES = ['new', 'contacted', 'proposal_sent', 'negotiation', 'won', 'lost'];
+    public const STATUSES = ['pending', 'positive', 'negative', 'proposal_sent', 'rejected', 'won', 'lost'];
+
+    public const CLOSED_STATUSES = ['won', 'lost', 'rejected'];
 
     protected $fillable = [
         'sales_person_id', 'client_name', 'company_name', 'country', 'email', 'phone',
         'whatsapp', 'requirement', 'service_type', 'source', 'status', 'budget', 'follow_up_date',
+        'contacted_date', 'comment', 'contact_link',
     ];
 
     protected function casts(): array
     {
         return [
             'follow_up_date' => 'date',
+            'contacted_date' => 'date',
             'budget' => 'decimal:2',
         ];
+    }
+
+    public function isClosed(): bool
+    {
+        return in_array($this->status, self::CLOSED_STATUSES, true);
     }
 
     public function salesPerson(): BelongsTo

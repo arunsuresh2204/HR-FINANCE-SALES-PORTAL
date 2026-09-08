@@ -18,11 +18,14 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->string('whatsapp')->nullable();
             $table->text('requirement');
-            $table->enum('service_type', ['web', 'mobile', 'social_media', 'pet_product', 'other']);
+            $table->string('service_type');
             $table->string('source');
-            $table->enum('status', ['new', 'contacted', 'proposal_sent', 'negotiation', 'won', 'lost'])->default('new');
+            $table->enum('status', ['pending', 'positive', 'negative', 'proposal_sent', 'rejected', 'won', 'lost'])->default('pending');
             $table->decimal('budget', 12, 2)->nullable();
             $table->date('follow_up_date')->nullable();
+            $table->date('contacted_date')->nullable();
+            $table->text('comment')->nullable();
+            $table->string('contact_link')->nullable();
             $table->timestamps();
         });
     }

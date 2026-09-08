@@ -41,9 +41,12 @@ class Dashboard extends Component
             $data['todayMarketingHours'] = MarketingLog::where('user_id', $user->id)->whereDate('work_date', $today)->sum('hours');
         }
 
-        if ($user->isSalesExec()) {
-            $data['myLeadsOpen'] = Lead::where('sales_person_id', $user->id)->whereNotIn('status', ['won', 'lost'])->count();
+        if ($user->canManageLeads()) {
+            $data['myLeadsOpen'] = Lead::where('sales_person_id', $user->id)->whereNotIn('status', Lead::CLOSED_STATUSES)->count();
             $data['myLeadsWonThisMonth'] = Lead::where('sales_person_id', $user->id)->where('status', 'won')->whereMonth('updated_at', now()->month)->whereYear('updated_at', now()->year)->count();
+        }
+
+        if ($user->isSalesExec()) {
             $target = SalesTarget::where('user_id', $user->id)->where('month', now()->month)->where('year', now()->year)->first();
             $data['salesTarget'] = $target;
             $data['salesAchieved'] = $target?->achievedAmount() ?? 0;
@@ -64,7 +67,7 @@ class Dashboard extends Component
 
         if ($user->isSuperAdmin()) {
             $data['totalClients'] = Client::count();
-            $data['openLeads'] = Lead::whereNotIn('status', ['won', 'lost'])->count();
+            $data['openLeads'] = Lead::whereNotIn('status', Lead::CLOSED_STATUSES)->count();
             $data['totalRevenue'] = Invoice::sum('amount_paid');
         }
 

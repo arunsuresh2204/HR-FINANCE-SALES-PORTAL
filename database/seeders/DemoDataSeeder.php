@@ -177,20 +177,23 @@ class DemoDataSeeder extends Seeder
         $lead1 = Lead::create([
             'sales_person_id' => $sales1->id, 'client_name' => 'Michael Torres', 'company_name' => 'PawCare Co.',
             'country' => 'USA', 'email' => 'michael@pawcare.com', 'phone' => '+1-555-0101',
-            'requirement' => 'E-commerce website for pet supplies', 'service_type' => 'web',
+            'requirement' => 'E-commerce website for pet supplies', 'service_type' => 'Web Development',
             'source' => 'Upwork', 'status' => 'won', 'budget' => 8000, 'follow_up_date' => now()->addDays(2),
+            'contacted_date' => now()->subDays(10),
         ]);
         Lead::create([
             'sales_person_id' => $sales2->id, 'client_name' => 'Sarah Lin', 'company_name' => 'BrightBrand Media',
             'country' => 'Canada', 'email' => 'sarah@brightbrand.com', 'phone' => '+1-555-0199',
-            'requirement' => 'Social media management retainer', 'service_type' => 'social_media',
+            'requirement' => 'Social media management retainer', 'service_type' => 'Social Media',
             'source' => 'LinkedIn', 'status' => 'proposal_sent', 'budget' => 1500, 'follow_up_date' => now()->addDays(3),
+            'contacted_date' => now()->subDays(4),
         ]);
         Lead::create([
             'sales_person_id' => $owner4->id, 'client_name' => 'James Okafor', 'company_name' => null,
             'country' => 'UK', 'email' => 'james@example.com', 'phone' => '+44-7700-900123',
-            'requirement' => 'Mobile app for local delivery service', 'service_type' => 'mobile',
-            'source' => 'Referral', 'status' => 'new', 'budget' => null,
+            'requirement' => 'Mobile app for local delivery service', 'service_type' => 'Mobile App',
+            'source' => 'Referral', 'status' => 'pending', 'budget' => null,
+            'contacted_date' => now()->subDay(),
         ]);
 
         // Client conversion for lead1
@@ -219,30 +222,31 @@ class DemoDataSeeder extends Seeder
 
         // Vishnu's pipeline: 20 leads, 10 of which are won and converted to clients
         $vishnuLeads = [
-            ['name' => 'Olivia Chen', 'company' => 'GreenLeaf Organics', 'country' => 'Australia', 'service' => 'web', 'source' => 'Referral', 'requirement' => 'Online store for organic skincare products', 'budget' => 6500, 'status' => 'won', 'type' => 'E-commerce / Skincare'],
-            ['name' => 'Marcus Webb', 'company' => 'Webb & Sons Legal', 'country' => 'USA', 'service' => 'web', 'source' => 'LinkedIn', 'requirement' => 'Law firm website with client intake portal', 'budget' => 5200, 'status' => 'won', 'type' => 'Legal Services'],
-            ['name' => 'Fatima Al-Sayed', 'company' => 'Sayed Interiors', 'country' => 'UAE', 'service' => 'web', 'source' => 'Instagram', 'requirement' => 'Portfolio site for interior design studio', 'budget' => 7800, 'status' => 'won', 'type' => 'Interior Design'],
-            ['name' => "Liam O'Connor", 'company' => "O'Connor Fitness Studio", 'country' => 'Ireland', 'service' => 'mobile', 'source' => 'Referral', 'requirement' => 'Class booking app for boutique gym', 'budget' => 4300, 'status' => 'won', 'type' => 'Fitness'],
-            ['name' => 'Priya Chandran', 'company' => 'SpiceRoute Foods', 'country' => 'India', 'service' => 'web', 'source' => 'Google Ads', 'requirement' => 'Online ordering site for spice exports', 'budget' => 3200, 'status' => 'won', 'type' => 'Food Exports'],
-            ['name' => 'Hana Kobayashi', 'company' => 'Kobayashi Wellness Spa', 'country' => 'Japan', 'service' => 'mobile', 'source' => 'Upwork', 'requirement' => 'Appointment booking app for spa chain', 'budget' => 5600, 'status' => 'won', 'type' => 'Wellness'],
-            ['name' => 'Diego Fernández', 'company' => 'Fernández Auto Parts', 'country' => 'Mexico', 'service' => 'other', 'source' => 'Referral', 'requirement' => 'Inventory management system', 'budget' => 4900, 'status' => 'won', 'type' => 'Automotive'],
-            ['name' => 'Grace Mwangi', 'company' => 'Mwangi Handcrafts', 'country' => 'Kenya', 'service' => 'social_media', 'source' => 'Instagram', 'requirement' => 'Social media management for handcraft brand', 'budget' => 1800, 'status' => 'won', 'type' => 'Handcrafts'],
-            ['name' => 'Tom Fletcher', 'company' => 'Fletcher Realty Group', 'country' => 'UK', 'service' => 'web', 'source' => 'LinkedIn', 'requirement' => 'Property listings website with search filters', 'budget' => 6100, 'status' => 'won', 'type' => 'Real Estate'],
-            ['name' => 'Elena Petrova', 'company' => 'Petrova Beauty Bar', 'country' => 'Russia', 'service' => 'social_media', 'source' => 'Referral', 'requirement' => 'Social media management and content calendar', 'budget' => 2200, 'status' => 'won', 'type' => 'Beauty'],
-            ['name' => 'Noah Bennett', 'company' => 'Bennett Bros. Construction', 'country' => 'USA', 'service' => 'web', 'source' => 'Google Ads', 'requirement' => 'Company website with project gallery', 'budget' => 9000, 'status' => 'new'],
-            ['name' => 'Isabella Rossi', 'company' => 'Rossi Gourmet Deli', 'country' => 'Italy', 'service' => 'social_media', 'source' => 'Instagram', 'requirement' => 'Social media presence for new deli launch', 'budget' => 1500, 'status' => 'new'],
-            ['name' => 'Kwame Asante', 'company' => 'Asante Tech Repairs', 'country' => 'Ghana', 'service' => 'mobile', 'source' => 'Referral', 'requirement' => 'Repair booking and tracking app', 'budget' => 2800, 'status' => 'contacted'],
-            ['name' => 'Mei Lin', 'company' => 'Lin Family Dental', 'country' => 'Singapore', 'service' => 'web', 'source' => 'Google Ads', 'requirement' => 'Clinic website with appointment requests', 'budget' => 4700, 'status' => 'contacted'],
-            ['name' => 'Jonas Berg', 'company' => 'Berg Outdoor Gear', 'country' => 'Sweden', 'service' => 'pet_product', 'source' => 'Upwork', 'requirement' => 'Product catalog for outdoor pet gear line', 'budget' => 3600, 'status' => 'proposal_sent'],
-            ['name' => 'Aaliyah Brooks', 'company' => 'Brooks Pet Grooming', 'country' => 'USA', 'service' => 'pet_product', 'source' => 'Referral', 'requirement' => 'Booking site for mobile pet grooming service', 'budget' => 2100, 'status' => 'proposal_sent'],
-            ['name' => 'Ravi Sharma', 'company' => 'Sharma Logistics', 'country' => 'India', 'service' => 'other', 'source' => 'LinkedIn', 'requirement' => 'Fleet tracking dashboard', 'budget' => 5400, 'status' => 'negotiation'],
-            ['name' => 'Chloe Dubois', 'company' => 'Dubois Patisserie', 'country' => 'France', 'service' => 'social_media', 'source' => 'Instagram', 'requirement' => 'Social media management for patisserie chain', 'budget' => 1900, 'status' => 'negotiation'],
-            ['name' => "Sam O'Neill", 'company' => "O'Neill Plumbing Services", 'country' => 'Canada', 'service' => 'web', 'source' => 'Google Ads', 'requirement' => 'Local service website with quote requests', 'budget' => 3300, 'status' => 'lost'],
-            ['name' => 'Anika Patel', 'company' => 'Patel Yoga Studio', 'country' => 'India', 'service' => 'mobile', 'source' => 'Referral', 'requirement' => 'Class scheduling app for yoga studio', 'budget' => 2600, 'status' => 'lost'],
+            ['name' => 'Olivia Chen', 'company' => 'GreenLeaf Organics', 'country' => 'Australia', 'service' => 'Web Development', 'source' => 'Referral', 'requirement' => 'Online store for organic skincare products', 'budget' => 6500, 'status' => 'won', 'type' => 'E-commerce / Skincare'],
+            ['name' => 'Marcus Webb', 'company' => 'Webb & Sons Legal', 'country' => 'USA', 'service' => 'Web Development', 'source' => 'LinkedIn', 'requirement' => 'Law firm website with client intake portal', 'budget' => 5200, 'status' => 'won', 'type' => 'Legal Services'],
+            ['name' => 'Fatima Al-Sayed', 'company' => 'Sayed Interiors', 'country' => 'UAE', 'service' => 'WordPress', 'source' => 'Instagram', 'requirement' => 'Portfolio site for interior design studio', 'budget' => 7800, 'status' => 'won', 'type' => 'Interior Design'],
+            ['name' => "Liam O'Connor", 'company' => "O'Connor Fitness Studio", 'country' => 'Ireland', 'service' => 'Mobile App', 'source' => 'Referral', 'requirement' => 'Class booking app for boutique gym', 'budget' => 4300, 'status' => 'won', 'type' => 'Fitness'],
+            ['name' => 'Priya Chandran', 'company' => 'SpiceRoute Foods', 'country' => 'India', 'service' => 'E-commerce', 'source' => 'Google Ads', 'requirement' => 'Online ordering site for spice exports', 'budget' => 3200, 'status' => 'won', 'type' => 'Food Exports'],
+            ['name' => 'Hana Kobayashi', 'company' => 'Kobayashi Wellness Spa', 'country' => 'Japan', 'service' => 'Mobile App', 'source' => 'Upwork', 'requirement' => 'Appointment booking app for spa chain', 'budget' => 5600, 'status' => 'won', 'type' => 'Wellness'],
+            ['name' => 'Diego Fernández', 'company' => 'Fernández Auto Parts', 'country' => 'Mexico', 'service' => 'Other', 'source' => 'Referral', 'requirement' => 'Inventory management system', 'budget' => 4900, 'status' => 'won', 'type' => 'Automotive'],
+            ['name' => 'Grace Mwangi', 'company' => 'Mwangi Handcrafts', 'country' => 'Kenya', 'service' => 'Digital Marketing', 'source' => 'Instagram', 'requirement' => 'Social media management for handcraft brand', 'budget' => 1800, 'status' => 'won', 'type' => 'Handcrafts'],
+            ['name' => 'Tom Fletcher', 'company' => 'Fletcher Realty Group', 'country' => 'UK', 'service' => 'Web Development', 'source' => 'LinkedIn', 'requirement' => 'Property listings website with search filters', 'budget' => 6100, 'status' => 'won', 'type' => 'Real Estate'],
+            ['name' => 'Elena Petrova', 'company' => 'Petrova Beauty Bar', 'country' => 'Russia', 'service' => 'Digital Marketing', 'source' => 'Referral', 'requirement' => 'Social media management and content calendar', 'budget' => 2200, 'status' => 'won', 'type' => 'Beauty'],
+            ['name' => 'Noah Bennett', 'company' => 'Bennett Bros. Construction', 'country' => 'USA', 'service' => 'Web Development', 'source' => 'Google Ads', 'requirement' => 'Company website with project gallery', 'budget' => 9000, 'status' => 'pending'],
+            ['name' => 'Isabella Rossi', 'company' => 'Rossi Gourmet Deli', 'country' => 'Italy', 'service' => 'Digital Marketing', 'source' => 'Instagram', 'requirement' => 'Social media presence for new deli launch', 'budget' => 1500, 'status' => 'pending'],
+            ['name' => 'Kwame Asante', 'company' => 'Asante Tech Repairs', 'country' => 'Ghana', 'service' => 'Mobile App', 'source' => 'Referral', 'requirement' => 'Repair booking and tracking app', 'budget' => 2800, 'status' => 'positive', 'comment' => 'Replied enthusiastically, wants a call this week.'],
+            ['name' => 'Mei Lin', 'company' => 'Lin Family Dental', 'country' => 'Singapore', 'service' => 'WordPress', 'source' => 'Google Ads', 'requirement' => 'Clinic website with appointment requests', 'budget' => 4700, 'status' => 'negative', 'comment' => 'Said budget is too tight right now, revisit in Q4.'],
+            ['name' => 'Jonas Berg', 'company' => 'Berg Outdoor Gear', 'country' => 'Sweden', 'service' => 'E-commerce', 'source' => 'Upwork', 'requirement' => 'Product catalog for outdoor pet gear line', 'budget' => 3600, 'status' => 'proposal_sent', 'comment' => 'Proposal sent, awaiting sign-off from their ops team.', 'contact_link' => 'https://www.linkedin.com/in/jonasberg-example'],
+            ['name' => 'Aaliyah Brooks', 'company' => 'Brooks Pet Grooming', 'country' => 'USA', 'service' => 'Mobile App', 'source' => 'Referral', 'requirement' => 'Booking site for mobile pet grooming service', 'budget' => 2100, 'status' => 'proposal_sent'],
+            ['name' => 'Ravi Sharma', 'company' => 'Sharma Logistics', 'country' => 'India', 'service' => 'Other', 'source' => 'LinkedIn', 'requirement' => 'Fleet tracking dashboard', 'budget' => 5400, 'status' => 'proposal_sent', 'contact_link' => 'https://www.linkedin.com/in/ravisharma-example'],
+            ['name' => 'Chloe Dubois', 'company' => 'Dubois Patisserie', 'country' => 'France', 'service' => 'Digital Marketing', 'source' => 'Instagram', 'requirement' => 'Social media management for patisserie chain', 'budget' => 1900, 'status' => 'rejected', 'comment' => 'Went with a local agency instead.'],
+            ['name' => "Sam O'Neill", 'company' => "O'Neill Plumbing Services", 'country' => 'Canada', 'service' => 'Web Development', 'source' => 'Google Ads', 'requirement' => 'Local service website with quote requests', 'budget' => 3300, 'status' => 'lost'],
+            ['name' => 'Anika Patel', 'company' => 'Patel Yoga Studio', 'country' => 'India', 'service' => 'Mobile App', 'source' => 'Referral', 'requirement' => 'Class scheduling app for yoga studio', 'budget' => 2600, 'status' => 'lost'],
         ];
 
         foreach ($vishnuLeads as $i => $def) {
             $email = Str::slug($def['name'], '.').'@'.Str::slug($def['company'], '').'.com';
+            $isClosed = in_array($def['status'], \App\Models\Lead::CLOSED_STATUSES, true);
 
             $lead = Lead::create([
                 'sales_person_id' => $sales3->id,
@@ -255,8 +259,11 @@ class DemoDataSeeder extends Seeder
                 'service_type' => $def['service'],
                 'source' => $def['source'],
                 'status' => $def['status'],
-                'budget' => in_array($def['status'], ['won', 'lost']) ? $def['budget'] : null,
-                'follow_up_date' => in_array($def['status'], ['won', 'lost']) ? null : now()->addDays(2 + ($i % 7)),
+                'budget' => $isClosed ? $def['budget'] : null,
+                'follow_up_date' => $isClosed ? null : now()->addDays(2 + ($i % 7)),
+                'contacted_date' => now()->subDays(20 - $i),
+                'comment' => $def['comment'] ?? null,
+                'contact_link' => $def['contact_link'] ?? null,
             ]);
 
             if ($def['status'] === 'won') {

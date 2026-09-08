@@ -1,117 +1,140 @@
 <div>
-    <x-page-header title="Leads Pipeline" subtitle="Track every lead from first contact to close.">
+    <x-page-header title="Leads Pipeline" subtitle="Log cold-outreach contacts and track responses.">
         <x-slot:actions>
-            <a href="{{ route('sales.clients') }}" wire:navigate class="btn-glass-secondary"><x-icon name="briefcase" class="h-4 w-4" /> Clients</a>
-            <button wire:click="openForm" class="btn-glass-primary"><x-icon name="plus" class="h-4 w-4" /> New Lead</button>
+            @if (auth()->user()->isSalesExec())
+                <a href="{{ route('sales.clients') }}" wire:navigate class="btn-glass-secondary"><x-icon name="briefcase" class="h-4 w-4" /> Clients</a>
+            @endif
         </x-slot:actions>
     </x-page-header>
 
-    <div class="mb-5 flex flex-wrap items-center gap-3">
+    <div class="glass-card mb-6">
+        <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-white/40">Add a Lead</p>
+        <form wire:submit="createLead" class="grid grid-cols-1 gap-2 md:grid-cols-6">
+            <div class="md:col-span-1">
+                <x-text-input wire:model="client_name" type="text" class="mt-0" placeholder="Client name" />
+                <x-input-error :messages="$errors->get('client_name')" class="mt-1" />
+            </div>
+            <div class="md:col-span-1">
+                <x-text-input wire:model="country" type="text" class="mt-0" placeholder="Country" />
+            </div>
+            <div class="md:col-span-2">
+                <x-text-input wire:model="requirement" type="text" class="mt-0" placeholder="Requirement / what they need" />
+                <x-input-error :messages="$errors->get('requirement')" class="mt-1" />
+            </div>
+            <div class="md:col-span-1">
+                <input wire:model="service_type" list="tech-suggestions" type="text" class="input-glass" placeholder="Technology">
+                <datalist id="tech-suggestions">
+                    <option value="WordPress">
+                    <option value="Web Development">
+                    <option value="Mobile App">
+                    <option value="Digital Marketing">
+                    <option value="Social Media">
+                    <option value="SEO">
+                    <option value="E-commerce">
+                    <option value="Branding">
+                    <option value="Other">
+                </datalist>
+                <x-input-error :messages="$errors->get('service_type')" class="mt-1" />
+            </div>
+            <div class="md:col-span-1">
+                <x-text-input wire:model="source" type="text" class="mt-0" placeholder="Source (Upwork, FK...)" />
+                <x-input-error :messages="$errors->get('source')" class="mt-1" />
+            </div>
+            <div class="md:col-span-5">
+                <x-text-input wire:model="contact_link" type="text" class="mt-0" placeholder="Contact (LinkedIn URL, email, phone...)" />
+            </div>
+            <div class="md:col-span-1">
+                <button class="btn-glass-primary w-full justify-center"><x-icon name="plus" class="h-4 w-4" /> Add Lead</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="mb-4 flex flex-wrap items-center gap-3">
         <div class="relative max-w-xs flex-1">
             <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
             <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search leads..." class="input-glass pl-9">
         </div>
-        @if ($salesPeople->isNotEmpty())
-            <select wire:model.live="salesPersonFilter" class="input-glass w-48">
-                <option value="">All Sales People</option>
-                @foreach ($salesPeople as $sp)
-                    <option value="{{ $sp->id }}">{{ $sp->name }}</option>
+        <select wire:model.live="statusFilter" class="input-glass w-44">
+            <option value="">All Statuses</option>
+            @foreach ($statusOptions as $s)
+                <option value="{{ $s }}">{{ ucwords(str_replace('_', ' ', $s)) }}</option>
+            @endforeach
+        </select>
+        @if ($owners->isNotEmpty())
+            <select wire:model.live="ownerFilter" class="input-glass w-48">
+                <option value="">Everyone</option>
+                @foreach ($owners as $owner)
+                    <option value="{{ $owner->id }}">{{ $owner->name }}</option>
                 @endforeach
             </select>
         @endif
     </div>
 
-    <div class="flex gap-4 overflow-x-auto pb-4">
-        @foreach ($columns as $status => $leads)
-            <div class="kanban-column">
-                <div class="flex items-center justify-between px-1">
-                    <p class="text-sm font-bold text-white"><x-status-pill :status="$status" /></p>
-                    <span class="text-xs font-semibold text-white/40">{{ $leads->count() }}</span>
-                </div>
-                <div class="space-y-3">
-                    @foreach ($leads as $lead)
-                        <a href="{{ route('sales.leads.show', $lead) }}" wire:navigate class="kanban-card block">
-                            <p class="font-semibold text-white">{{ $lead->client_name }}</p>
-                            @if ($lead->company_name)
-                                <p class="text-xs text-white/45">{{ $lead->company_name }}</p>
-                            @endif
-                            <p class="mt-2 line-clamp-2 text-xs text-white/50">{{ $lead->requirement }}</p>
-                            <div class="mt-3 flex items-center justify-between">
-                                <span class="badge-glass">{{ ucwords(str_replace('_', ' ', $lead->service_type)) }}</span>
-                                @if ($lead->budget)
-                                    <span class="text-xs font-bold text-gold-300">${{ number_format($lead->budget) }}</span>
+    <div class="glass-panel relative overflow-hidden">
+        <div class="glass-sheen"></div>
+        <div class="overflow-x-auto">
+            <table class="table-glass">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Client</th>
+                        <th>Country</th>
+                        <th>Requirement</th>
+                        <th>Technology</th>
+                        <th>Source</th>
+                        <th>Status</th>
+                        <th>Comment</th>
+                        <th>Contact</th>
+                        @if ($owners->isNotEmpty())
+                            <th>Owner</th>
+                        @endif
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($leads as $lead)
+                        <tr wire:key="lead-row-{{ $lead->id }}">
+                            <td class="whitespace-nowrap text-white/60">{{ $lead->contacted_date?->format('M j') ?? $lead->created_at->format('M j') }}</td>
+                            <td class="max-w-[10rem]">
+                                <p class="truncate font-medium text-white">{{ $lead->client_name }}</p>
+                                @if ($lead->company_name)
+                                    <p class="truncate text-xs text-white/40">{{ $lead->company_name }}</p>
                                 @endif
-                            </div>
-                            @if ($lead->follow_up_date)
-                                <p class="mt-2 text-[11px] text-white/30">Follow up {{ $lead->follow_up_date->format('M j') }}</p>
+                            </td>
+                            <td class="whitespace-nowrap text-white/60">{{ $lead->country ?? '—' }}</td>
+                            <td class="max-w-xs">
+                                <p class="line-clamp-2 text-white/70">{{ $lead->requirement }}</p>
+                            </td>
+                            <td class="whitespace-nowrap"><span class="badge-glass">{{ $lead->service_type }}</span></td>
+                            <td class="whitespace-nowrap text-white/60">{{ $lead->source }}</td>
+                            <td class="min-w-[9rem]">
+                                <select wire:model.live="statuses.{{ $lead->id }}" class="input-glass !py-1.5 text-xs">
+                                    @foreach ($statusOptions as $s)
+                                        <option value="{{ $s }}">{{ ucwords(str_replace('_', ' ', $s)) }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td class="min-w-[10rem]">
+                                <input wire:model.blur="comments.{{ $lead->id }}" type="text" class="input-glass !py-1.5 text-xs" placeholder="Add comment...">
+                            </td>
+                            <td class="max-w-[8rem]">
+                                @if ($lead->contact_link)
+                                    <a href="{{ Str::startsWith($lead->contact_link, 'http') ? $lead->contact_link : '#' }}" target="_blank" class="block max-w-[8rem] truncate text-xs font-semibold text-gold-300 hover:text-gold-200" title="{{ $lead->contact_link }}">{{ Str::limit($lead->contact_link, 22) }}</a>
+                                @else
+                                    <span class="text-white/25">—</span>
+                                @endif
+                            </td>
+                            @if ($owners->isNotEmpty())
+                                <td class="whitespace-nowrap text-white/60">{{ $lead->salesPerson->name }}</td>
                             @endif
-                        </a>
-                    @endforeach
-                    @if ($leads->isEmpty())
-                        <p class="px-1 text-xs text-white/25">No leads here.</p>
-                    @endif
-                </div>
-            </div>
-        @endforeach
+                            <td class="text-right"><a href="{{ route('sales.leads.show', $lead) }}" wire:navigate class="text-xs font-semibold text-gold-300 hover:text-gold-200">Open</a></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="11" class="py-8 text-center text-white/40">No leads yet — add your first one above.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div class="p-4">{{ $leads->links() }}</div>
     </div>
-
-    <x-modal-glass wire-model="showForm" title="New Lead" max-width="xl">
-        <form wire:submit="createLead" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <x-input-label for="client_name" value="Client / Contact Name" />
-                    <x-text-input wire:model="client_name" id="client_name" type="text" class="mt-0" />
-                    <x-input-error :messages="$errors->get('client_name')" class="mt-1" />
-                </div>
-                <div>
-                    <x-input-label for="company_name" value="Company Name" />
-                    <x-text-input wire:model="company_name" id="company_name" type="text" class="mt-0" />
-                </div>
-            </div>
-            <div class="grid grid-cols-3 gap-4">
-                <div>
-                    <x-input-label for="country" value="Country" />
-                    <x-text-input wire:model="country" id="country" type="text" class="mt-0" />
-                </div>
-                <div>
-                    <x-input-label for="email" value="Email" />
-                    <x-text-input wire:model="email" id="email" type="email" class="mt-0" />
-                </div>
-                <div>
-                    <x-input-label for="phone" value="Phone / WhatsApp" />
-                    <x-text-input wire:model="phone" id="phone" type="text" class="mt-0" />
-                </div>
-            </div>
-            <div>
-                <x-input-label for="requirement" value="Requirement" />
-                <textarea wire:model="requirement" id="requirement" rows="3" class="input-glass"></textarea>
-                <x-input-error :messages="$errors->get('requirement')" class="mt-1" />
-            </div>
-            <div class="grid grid-cols-3 gap-4">
-                <div>
-                    <x-input-label for="service_type" value="Service Type" />
-                    <select wire:model="service_type" id="service_type" class="input-glass">
-                        <option value="web">Web</option>
-                        <option value="mobile">Mobile</option>
-                        <option value="social_media">Social Media</option>
-                        <option value="pet_product">Pet Product</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div>
-                    <x-input-label for="source" value="Source" />
-                    <x-text-input wire:model="source" id="source" type="text" class="mt-0" placeholder="Upwork, Referral..." />
-                    <x-input-error :messages="$errors->get('source')" class="mt-1" />
-                </div>
-                <div>
-                    <x-input-label for="follow_up_date" value="Follow-up Date" />
-                    <x-text-input wire:model="follow_up_date" id="follow_up_date" type="date" class="mt-0" />
-                </div>
-            </div>
-            <div class="flex justify-end gap-3 pt-2">
-                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
-                <x-primary-button>Create Lead</x-primary-button>
-            </div>
-        </form>
-    </x-modal-glass>
 </div>
