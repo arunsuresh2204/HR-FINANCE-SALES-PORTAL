@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Hr;
 
+use App\Models\Holiday;
 use App\Models\LeaveRequest;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Validate;
@@ -120,12 +121,18 @@ class LeaveIndex extends Component
             ? LeaveRequest::calculateBusinessDays($this->start_date, $this->end_date)
             : 0;
 
+        $previewHolidays = ($this->start_date && $this->end_date)
+            ? Holiday::whereBetween('date', [$this->start_date, $this->end_date])->orderBy('date')->get()
+            : collect();
+
         return view('livewire.hr.leave-index', [
             'requests' => LeaveRequest::where('user_id', $userId)->latest()->paginate(10),
             'usedDays' => $usedDays,
             'remainingDays' => max(self::ANNUAL_ENTITLEMENT - $usedDays, 0),
             'previewDays' => $previewDays,
+            'previewHolidays' => $previewHolidays,
             'showCertificateHint' => $this->type === 'sick' && $previewDays >= LeaveRequest::CERTIFICATE_MIN_DAYS && ! $this->certificate,
+            'upcomingHolidays' => Holiday::where('date', '>=', now()->toDateString())->orderBy('date')->limit(6)->get(),
         ]);
     }
 }

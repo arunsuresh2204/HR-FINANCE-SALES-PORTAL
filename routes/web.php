@@ -59,6 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             return view('pages.hr-admin.employee-show', compact('user'));
         })->name('employees.show');
         Route::view('leave-approvals', 'pages.hr-admin.leave-approvals')->name('leave-approvals');
+        Route::view('holidays', 'pages.hr-admin.holiday-index')->name('holidays');
         Route::view('resignations', 'pages.hr-admin.resignation-approvals')->name('resignations');
         Route::view('policies', 'pages.hr-admin.policy-index')->name('policies');
         Route::view('reports', 'pages.hr-admin.hr-reports')->name('reports');

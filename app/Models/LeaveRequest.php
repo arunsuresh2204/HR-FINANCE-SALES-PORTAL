@@ -63,9 +63,11 @@ class LeaveRequest extends Model
             return 0;
         }
 
+        $holidays = Holiday::datesBetween($cursor->toDateString(), $endDate->toDateString());
+
         $days = 0;
         while ($cursor->lte($endDate)) {
-            if (! $cursor->isWeekend()) {
+            if (! $cursor->isWeekend() && ! in_array($cursor->toDateString(), $holidays, true)) {
                 $days++;
             }
             $cursor->addDay();

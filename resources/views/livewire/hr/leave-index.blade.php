@@ -11,6 +11,18 @@
         <x-stat-card label="Days Remaining" :value="$remainingDays" icon="calendar" accent="emerald" />
     </div>
 
+    @if ($upcomingHolidays->isNotEmpty())
+        <div class="glass-card mt-6">
+            <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-white/40">Upcoming Kerala Public Holidays</p>
+            <div class="flex flex-wrap gap-2">
+                @foreach ($upcomingHolidays as $holiday)
+                    <span class="badge-glass">{{ $holiday->date->format('M j') }} &middot; {{ $holiday->name }}</span>
+                @endforeach
+            </div>
+            <p class="mt-2 text-xs text-white/30">Working days are Monday–Friday. Weekends and these holidays are automatically excluded from your leave day count.</p>
+        </div>
+    @endif
+
     <div class="glass-panel relative mt-6 overflow-hidden">
         <div class="glass-sheen"></div>
         <div class="overflow-x-auto">
@@ -95,8 +107,13 @@
                     <x-input-error :messages="$errors->get('end_date')" class="mt-1" />
                 </div>
             </div>
-            @if ($previewDays > 0)
-                <p class="text-xs text-white/40">{{ $previewDays }} working {{ Str::plural('day', $previewDays) }} requested.</p>
+            @if ($start_date && $end_date)
+                <p class="text-xs text-white/40">{{ $previewDays }} working {{ Str::plural('day', $previewDays) }} requested (weekends excluded).</p>
+                @if ($previewHolidays->isNotEmpty())
+                    <p class="text-xs text-amber-300/80">
+                        Also excluded: {{ $previewHolidays->map(fn ($h) => $h->name.' ('.$h->date->format('M j').')')->implode(', ') }}
+                    </p>
+                @endif
             @endif
             <div>
                 <x-input-label for="reason" value="Reason (optional)" />

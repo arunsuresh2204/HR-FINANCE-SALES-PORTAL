@@ -71,6 +71,7 @@
                         <div class="mt-2 space-y-1">
                             <a href="{{ route('hradmin.employees') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.employees*') ? 'active' : '' }}"><x-icon name="users" class="h-4 w-4 shrink-0" />Employees</a>
                             <a href="{{ route('hradmin.leave-approvals') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.leave-approvals') ? 'active' : '' }}"><x-icon name="check" class="h-4 w-4 shrink-0" />Leave Approvals</a>
+                            <a href="{{ route('hradmin.holidays') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.holidays') ? 'active' : '' }}"><x-icon name="calendar" class="h-4 w-4 shrink-0" />Holiday Calendar</a>
                             <a href="{{ route('hradmin.resignations') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.resignations') ? 'active' : '' }}"><x-icon name="exit" class="h-4 w-4 shrink-0" />Offboarding</a>
                             <a href="{{ route('hradmin.policies') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.policies') ? 'active' : '' }}"><x-icon name="document" class="h-4 w-4 shrink-0" />Policies</a>
                             <a href="{{ route('hradmin.reports') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.reports') ? 'active' : '' }}"><x-icon name="chart" class="h-4 w-4 shrink-0" />HR Reports</a>
