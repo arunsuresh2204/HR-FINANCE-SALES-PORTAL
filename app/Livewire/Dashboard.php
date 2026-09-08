@@ -25,7 +25,7 @@ class Dashboard extends Component
         $today = now()->toDateString();
 
         $data = [
-            'todayAttendance' => Attendance::where('user_id', $user->id)->where('work_date', $today)->first(),
+            'todayAttendance' => Attendance::where('user_id', $user->id)->whereDate('work_date', $today)->first(),
             'pendingLeave' => LeaveRequest::where('user_id', $user->id)->where('status', 'pending')->count(),
             'approvedLeaveDaysThisYear' => LeaveRequest::where('user_id', $user->id)->where('status', 'approved')->whereYear('start_date', now()->year)->sum('days'),
             'pendingExpenses' => Expense::where('user_id', $user->id)->where('status', 'pending')->count(),
@@ -33,12 +33,12 @@ class Dashboard extends Component
         ];
 
         if ($user->isProgrammer()) {
-            $data['todayHours'] = Timesheet::where('user_id', $user->id)->where('work_date', $today)->sum('hours');
+            $data['todayHours'] = Timesheet::where('user_id', $user->id)->whereDate('work_date', $today)->sum('hours');
             $data['weekHours'] = Timesheet::where('user_id', $user->id)->whereBetween('work_date', [now()->startOfWeek(), now()->endOfWeek()])->sum('hours');
         }
 
         if ($user->isMarketer()) {
-            $data['todayMarketingHours'] = MarketingLog::where('user_id', $user->id)->where('work_date', $today)->sum('hours');
+            $data['todayMarketingHours'] = MarketingLog::where('user_id', $user->id)->whereDate('work_date', $today)->sum('hours');
         }
 
         if ($user->isSalesExec()) {

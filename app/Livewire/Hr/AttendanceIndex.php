@@ -16,7 +16,8 @@ class AttendanceIndex extends Component
         $user = Auth::user();
         $today = now()->toDateString();
 
-        $attendance = Attendance::firstOrNew(['user_id' => $user->id, 'work_date' => $today]);
+        $attendance = Attendance::where('user_id', $user->id)->whereDate('work_date', $today)->first()
+            ?? new Attendance(['user_id' => $user->id, 'work_date' => $today]);
 
         if ($attendance->exists && $attendance->clock_in) {
             $this->dispatch('toast', message: 'You have already clocked in today.', type: 'error');
@@ -37,7 +38,7 @@ class AttendanceIndex extends Component
         $user = Auth::user();
         $today = now()->toDateString();
 
-        $attendance = Attendance::where('user_id', $user->id)->where('work_date', $today)->first();
+        $attendance = Attendance::where('user_id', $user->id)->whereDate('work_date', $today)->first();
 
         if (! $attendance || ! $attendance->clock_in) {
             $this->dispatch('toast', message: 'You need to clock in first.', type: 'error');
@@ -63,7 +64,7 @@ class AttendanceIndex extends Component
         $today = now()->toDateString();
 
         return view('livewire.hr.attendance-index', [
-            'todayAttendance' => Attendance::where('user_id', $user->id)->where('work_date', $today)->first(),
+            'todayAttendance' => Attendance::where('user_id', $user->id)->whereDate('work_date', $today)->first(),
             'history' => Attendance::where('user_id', $user->id)->orderByDesc('work_date')->paginate(10),
         ]);
     }
