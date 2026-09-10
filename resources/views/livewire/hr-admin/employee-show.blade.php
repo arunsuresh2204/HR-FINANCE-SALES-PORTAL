@@ -163,6 +163,12 @@
                                         &middot; from {{ $promo->previous_designation }}
                                     @endif
                                 </p>
+                                @if ($promo->hasSalaryHike())
+                                    <p class="mt-1 text-xs font-medium {{ $promo->hikeAmount() >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
+                                        {{ \App\Support\Currency::format($promo->previous_salary, 'INR') }} &rarr; {{ \App\Support\Currency::format($promo->new_salary, 'INR') }}
+                                        ({{ $promo->hikeAmount() >= 0 ? '+' : '' }}{{ \App\Support\Currency::format($promo->hikeAmount(), 'INR') }}@if ($promo->hikePercent() !== null), {{ $promo->hikeAmount() >= 0 ? '+' : '' }}{{ number_format($promo->hikePercent(), 1) }}%@endif)
+                                    </p>
+                                @endif
                                 @if ($promo->notes)
                                     <p class="mt-1 text-xs text-white/50">{{ $promo->notes }}</p>
                                 @endif
@@ -199,6 +205,14 @@
                                 <x-text-input wire:model="effective_date" id="effective_date" type="date" class="mt-0" />
                                 <x-input-error :messages="$errors->get('effective_date')" class="mt-1" />
                             </div>
+                            <div>
+                                <x-input-label for="new_salary" value="New Monthly Salary (optional)" />
+                                <x-text-input wire:model="new_salary" id="new_salary" type="number" step="0.01" min="0" class="mt-0" placeholder="{{ $user->monthly_salary ? \App\Support\Currency::format($user->monthly_salary, 'INR') : 'e.g. 45000' }}" />
+                                <p class="mt-1 text-xs text-white/40">Current: {{ $user->monthly_salary ? \App\Support\Currency::format($user->monthly_salary, 'INR') : 'Not set' }}. Leave blank if this promotion has no salary hike.</p>
+                                <x-input-error :messages="$errors->get('new_salary')" class="mt-1" />
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <x-input-label for="promotionCertificate" value="Certificate (optional)" />
                                 <input wire:model="promotionCertificate" id="promotionCertificate" type="file" class="input-glass file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white/80" />

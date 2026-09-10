@@ -57,6 +57,9 @@ class EmployeeShow extends Component
     #[Validate('nullable|string|max:255')]
     public string $new_department = '';
 
+    #[Validate('nullable|numeric|min:0')]
+    public string $new_salary = '';
+
     #[Validate('required|date')]
     public string $effective_date = '';
 
@@ -162,7 +165,7 @@ class EmployeeShow extends Component
 
     public function openPromotionForm(): void
     {
-        $this->reset(['editingPromotionId', 'new_designation', 'new_department', 'effective_date', 'promotion_notes', 'promotionCertificate']);
+        $this->reset(['editingPromotionId', 'new_designation', 'new_department', 'new_salary', 'effective_date', 'promotion_notes', 'promotionCertificate']);
         $this->new_designation = $this->user->designation ?? '';
         $this->new_department = $this->user->department ?? '';
         $this->effective_date = now()->toDateString();
@@ -177,6 +180,7 @@ class EmployeeShow extends Component
         $this->editingPromotionId = $promotionId;
         $this->new_designation = $promotion->new_designation;
         $this->new_department = $promotion->new_department ?? '';
+        $this->new_salary = $promotion->new_salary !== null ? (string) $promotion->new_salary : '';
         $this->effective_date = $promotion->effective_date->toDateString();
         $this->promotion_notes = $promotion->notes ?? '';
         $this->promotionCertificate = null;
@@ -186,7 +190,7 @@ class EmployeeShow extends Component
 
     public function cancelPromotionForm(): void
     {
-        $this->reset(['showPromotionForm', 'editingPromotionId', 'new_designation', 'new_department', 'effective_date', 'promotion_notes', 'promotionCertificate']);
+        $this->reset(['showPromotionForm', 'editingPromotionId', 'new_designation', 'new_department', 'new_salary', 'effective_date', 'promotion_notes', 'promotionCertificate']);
     }
 
     public function addPromotion(): void
@@ -194,6 +198,7 @@ class EmployeeShow extends Component
         $this->validate([
             'new_designation' => 'required|string|max:255',
             'new_department' => 'nullable|string|max:255',
+            'new_salary' => 'nullable|numeric|min:0',
             'effective_date' => 'required|date',
             'promotion_notes' => 'nullable|string|max:500',
             'promotionCertificate' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf',
@@ -206,6 +211,8 @@ class EmployeeShow extends Component
             'new_designation' => $this->new_designation,
             'previous_department' => $this->user->department,
             'new_department' => $this->new_department ?: $this->user->department,
+            'previous_salary' => $this->user->monthly_salary,
+            'new_salary' => $this->new_salary !== '' ? $this->new_salary : null,
             'effective_date' => $this->effective_date,
             'notes' => $this->promotion_notes,
             'certificate_path' => $this->promotionCertificate?->store('promotion-certificates', 'public'),
@@ -214,10 +221,12 @@ class EmployeeShow extends Component
         $this->user->update([
             'designation' => $this->new_designation,
             'department' => $this->new_department ?: $this->user->department,
+            'monthly_salary' => $this->new_salary !== '' ? $this->new_salary : $this->user->monthly_salary,
         ]);
         $this->user->refresh();
         $this->designation = $this->user->designation ?? '';
         $this->department = $this->user->department ?? '';
+        $this->monthly_salary = $this->user->monthly_salary ? (float) $this->user->monthly_salary : null;
 
         $this->showPromotionForm = false;
         $this->dispatch('toast', message: 'Promotion recorded and designation updated.', type: 'success');
@@ -230,6 +239,7 @@ class EmployeeShow extends Component
         $this->validate([
             'new_designation' => 'required|string|max:255',
             'new_department' => 'nullable|string|max:255',
+            'new_salary' => 'nullable|numeric|min:0',
             'effective_date' => 'required|date',
             'promotion_notes' => 'nullable|string|max:500',
             'promotionCertificate' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf',
@@ -238,6 +248,7 @@ class EmployeeShow extends Component
         $promotion->update([
             'new_designation' => $this->new_designation,
             'new_department' => $this->new_department ?: $promotion->new_department,
+            'new_salary' => $this->new_salary !== '' ? $this->new_salary : null,
             'effective_date' => $this->effective_date,
             'notes' => $this->promotion_notes,
             'certificate_path' => $this->promotionCertificate
@@ -245,18 +256,20 @@ class EmployeeShow extends Component
                 : $promotion->certificate_path,
         ]);
 
-        // Keep the employee's live designation/department in sync only when we just
-        // edited their most recent promotion — an older record shouldn't overwrite it.
+        // Keep the employee's live designation/department/salary in sync only when we
+        // just edited their most recent promotion — an older record shouldn't overwrite it.
         $latest = $this->user->promotions()->first();
 
         if ($latest && $latest->id === $promotion->id) {
             $this->user->update([
                 'designation' => $promotion->new_designation,
                 'department' => $promotion->new_department,
+                'monthly_salary' => $promotion->new_salary !== null ? $promotion->new_salary : $this->user->monthly_salary,
             ]);
             $this->user->refresh();
             $this->designation = $this->user->designation ?? '';
             $this->department = $this->user->department ?? '';
+            $this->monthly_salary = $this->user->monthly_salary ? (float) $this->user->monthly_salary : null;
         }
 
         $this->cancelPromotionForm();
