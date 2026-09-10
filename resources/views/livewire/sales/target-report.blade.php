@@ -61,7 +61,7 @@
         </div>
     </div>
 
-    <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
+    <div class="mb-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
         <div class="glass-card lg:col-span-3">
             <div class="mb-3 flex items-center justify-between">
                 <h2 class="text-base font-bold text-white">Sales Achievement</h2>
@@ -118,6 +118,47 @@
                     <p class="text-sm text-white/40">No leads contacted this month.</p>
                 @endforelse
             </div>
+        </div>
+    </div>
+
+    <div class="glass-panel relative mb-6 overflow-hidden">
+        <div class="glass-sheen"></div>
+        <div class="p-5 pb-0">
+            <h2 class="text-base font-bold text-white">Channel Source Breakdown</h2>
+            <p class="mt-1 text-xs text-white/40">Where this month's contacts came from, and what they converted to.</p>
+        </div>
+        <div class="overflow-x-auto p-5">
+            <table class="table-glass">
+                <thead>
+                    <tr>
+                        <th>Source</th>
+                        <th>Leads Contacted</th>
+                        <th>Share of Contacts</th>
+                        <th>Deals Won</th>
+                        <th>Deal Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($sourceStats as $s)
+                        <tr>
+                            <td class="font-medium text-white">{{ $s['source'] }}</td>
+                            <td class="text-white/60">{{ $s['contacted'] }}</td>
+                            <td class="min-w-[10rem]">
+                                <div class="flex items-center gap-2">
+                                    <div class="h-2 w-24 rounded-full bg-white/5">
+                                        <div class="h-2 rounded-full bg-sky-400" style="width: {{ $s['contactedPct'] }}%"></div>
+                                    </div>
+                                    <span class="text-xs text-white/50">{{ $s['contactedPct'] }}%</span>
+                                </div>
+                            </td>
+                            <td class="text-white/60">{{ $s['won'] }}</td>
+                            <td class="font-semibold text-gold-300">${{ number_format($s['dealValue']) }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="py-6 text-center text-white/40">No contacts logged this month.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 

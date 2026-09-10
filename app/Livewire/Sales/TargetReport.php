@@ -98,6 +98,21 @@ class TargetReport extends Component
 
         $currentTarget = SalesTarget::where('user_id', $this->user->id)->where('month', $this->month)->where('year', $this->year)->first();
 
+        $sources = $contacted->pluck('source')->merge($wonLeads->pluck('source'))->unique()->sort()->values();
+
+        $sourceStats = $sources->map(function ($source) use ($contacted, $wonLeads, $totalContacted) {
+            $contactedForSource = $contacted->where('source', $source);
+            $wonForSource = $wonLeads->where('source', $source);
+
+            return [
+                'source' => $source,
+                'contacted' => $contactedForSource->count(),
+                'contactedPct' => $totalContacted > 0 ? (int) round($contactedForSource->count() / $totalContacted * 100) : 0,
+                'won' => $wonForSource->count(),
+                'dealValue' => $wonForSource->sum('budget'),
+            ];
+        })->sortByDesc('contacted')->values();
+
         return view('livewire.sales.target-report', [
             'period' => $period,
             'totalContacted' => $totalContacted,
@@ -112,6 +127,7 @@ class TargetReport extends Component
             'totalDealValue' => $wonLeads->sum('budget'),
             'totalProjects' => $clientRows->sum(fn ($r) => $r['projects']->count()),
             'currentTarget' => $currentTarget,
+            'sourceStats' => $sourceStats,
         ]);
     }
 }
