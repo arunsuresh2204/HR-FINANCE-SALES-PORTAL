@@ -10,6 +10,7 @@ use App\Models\Client;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Lead;
+use App\Models\LeadActivity;
 use App\Models\LeaveRequest;
 use App\Models\MarketingLog;
 use App\Models\PolicyDocument;
@@ -281,8 +282,24 @@ class DemoDataSeeder extends Seeder
                 'contact_link' => $def['contact_link'] ?? null,
             ]);
 
+            $activityNotes = [
+                'Initial cold outreach message sent.',
+                'Followed up via email with more details.',
+                'Had a call to discuss requirements.',
+                'Sent proposal for review.',
+                'Confirmed scope and next steps.',
+            ];
+            $activityCount = $isClosed ? rand(2, 4) : rand(0, 2);
+            for ($a = 0; $a < $activityCount; $a++) {
+                LeadActivity::create([
+                    'lead_id' => $lead->id,
+                    'user_id' => $sales3->id,
+                    'note' => $activityNotes[$a % count($activityNotes)],
+                ]);
+            }
+
             if ($def['status'] === 'won') {
-                Client::create([
+                $wonClient = Client::create([
                     'lead_id' => $lead->id,
                     'sales_person_id' => $sales3->id,
                     'business_name' => $def['company'],
@@ -294,6 +311,18 @@ class DemoDataSeeder extends Seeder
                     'agreement_effective_date' => now()->subDays($i + 1),
                     'agreement_scope_summary' => $def['requirement'],
                 ]);
+
+                if ($i < 3) {
+                    $wonProject = Project::create([
+                        'client_id' => $wonClient->id,
+                        'created_by' => $sales3->id,
+                        'assigned_to' => $owner3->id,
+                        'name' => $def['company'].' Engagement',
+                        'description' => $def['requirement'],
+                        'status' => 'active',
+                    ]);
+                    $wonProject->developers()->attach([$dev1->id]);
+                }
             }
         }
 

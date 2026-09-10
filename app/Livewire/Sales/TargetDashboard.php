@@ -5,19 +5,22 @@ namespace App\Livewire\Sales;
 use App\Models\Lead;
 use App\Models\SalesTarget;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
 class TargetDashboard extends Component
 {
-    public int $month;
-
-    public int $year;
+    public string $monthPicker;
 
     public bool $showTargetForm = false;
 
     public ?int $targetUserId = null;
+
+    public ?int $targetMonth = null;
+
+    public ?int $targetYear = null;
 
     #[Validate('required|numeric|min:0')]
     public string $target_amount = '';
@@ -25,42 +28,59 @@ class TargetDashboard extends Component
     #[Validate('nullable|numeric|min:0|max:100')]
     public string $commission_percent = '0';
 
+    public bool $showReportModal = false;
+
+    public ?int $reportUserId = null;
+
+    public ?int $reportMonth = null;
+
+    public ?int $reportYear = null;
+
     public function mount(): void
     {
-        $this->month = now()->month;
-        $this->year = now()->year;
+        $this->monthPicker = now()->format('Y-m');
     }
 
-    public function prevMonth(): void
+    public function shiftAnchor(int $delta): void
     {
-        $this->month--;
-        if ($this->month < 1) {
-            $this->month = 12;
-            $this->year--;
-        }
+        $anchor = Carbon::createFromFormat('Y-m', $this->monthPicker)->addMonthsNoOverflow($delta);
+        $this->monthPicker = $anchor->format('Y-m');
     }
 
-    public function nextMonth(): void
+    protected function periods(): array
     {
-        $this->month++;
-        if ($this->month > 12) {
-            $this->month = 1;
-            $this->year++;
-        }
+        $anchor = Carbon::createFromFormat('Y-m', $this->monthPicker)->startOfMonth();
+
+        return collect(range(0, 4))->map(fn ($i) => $anchor->copy()->subMonthsNoOverflow($i))->all();
     }
 
-    public function openTargetForm(int $userId): void
+    protected function canManage(User $targetUser): bool
     {
         $authUser = Auth::user();
+
+        return $authUser->isSuperAdmin() || $authUser->isManagerOf($targetUser);
+    }
+
+    protected function canView(User $targetUser): bool
+    {
+        $authUser = Auth::user();
+
+        return $authUser->id === $targetUser->id || $this->canManage($targetUser);
+    }
+
+    public function openTargetForm(int $userId, int $month, int $year): void
+    {
         $targetUser = User::findOrFail($userId);
 
-        if (! $authUser->isSuperAdmin() && ! $authUser->isManagerOf($targetUser)) {
+        if (! $this->canManage($targetUser)) {
             return;
         }
 
-        $existing = SalesTarget::where('user_id', $userId)->where('month', $this->month)->where('year', $this->year)->first();
+        $existing = SalesTarget::where('user_id', $userId)->where('month', $month)->where('year', $year)->first();
 
         $this->targetUserId = $userId;
+        $this->targetMonth = $month;
+        $this->targetYear = $year;
         $this->target_amount = $existing ? (string) $existing->target_amount : '';
         $this->commission_percent = $existing ? (string) $existing->commission_percent : '0';
         $this->resetValidation();
@@ -69,22 +89,16 @@ class TargetDashboard extends Component
 
     public function saveTarget(): void
     {
-        $authUser = Auth::user();
-
-        if (! $authUser->canSetSalesTargets()) {
-            return;
-        }
-
         $targetUser = User::findOrFail($this->targetUserId);
 
-        if (! $authUser->isSuperAdmin() && ! $authUser->isManagerOf($targetUser)) {
+        if (! $this->canManage($targetUser)) {
             return;
         }
 
         $this->validate();
 
         SalesTarget::updateOrCreate(
-            ['user_id' => $this->targetUserId, 'month' => $this->month, 'year' => $this->year],
+            ['user_id' => $this->targetUserId, 'month' => $this->targetMonth, 'year' => $this->targetYear],
             ['target_amount' => $this->target_amount, 'commission_percent' => $this->commission_percent ?: 0]
         );
 
@@ -92,20 +106,74 @@ class TargetDashboard extends Component
         $this->dispatch('toast', message: 'Target saved.', type: 'success');
     }
 
-    protected function statsFor(User $user): array
+    public function viewReport(int $userId, int $month, int $year): void
     {
-        $target = SalesTarget::where('user_id', $user->id)->where('month', $this->month)->where('year', $this->year)->first();
-        $totalLeads = Lead::where('sales_person_id', $user->id)->count();
-        $wonLeads = Lead::where('sales_person_id', $user->id)->where('status', 'won')->count();
+        $targetUser = User::findOrFail($userId);
+
+        if (! $this->canView($targetUser)) {
+            return;
+        }
+
+        $this->reportUserId = $userId;
+        $this->reportMonth = $month;
+        $this->reportYear = $year;
+        $this->showReportModal = true;
+    }
+
+    protected function monthStatsFor(User $user, Carbon $period): array
+    {
+        $target = SalesTarget::where('user_id', $user->id)->where('month', $period->month)->where('year', $period->year)->first();
 
         return [
-            'user' => $user,
+            'month' => $period->month,
+            'year' => $period->year,
+            'label' => $period->format('F Y'),
             'target' => $target,
             'achieved' => $target?->achievedAmount() ?? 0,
             'effectiveTarget' => $target?->effectiveTargetAmount() ?? 0,
             'deficitCarried' => $target?->deficitCarriedIn() ?? 0,
-            'openLeads' => Lead::where('sales_person_id', $user->id)->whereNotIn('status', Lead::CLOSED_STATUSES)->count(),
-            'conversionRate' => $totalLeads ? round($wonLeads / $totalLeads * 100) : 0,
+            'clientsAcquired' => Lead::where('sales_person_id', $user->id)
+                ->where('status', 'won')
+                ->whereYear('updated_at', $period->year)
+                ->whereMonth('updated_at', $period->month)
+                ->count(),
+        ];
+    }
+
+    protected function reportData(): ?array
+    {
+        if (! $this->showReportModal || ! $this->reportUserId) {
+            return null;
+        }
+
+        $user = User::find($this->reportUserId);
+
+        if (! $user) {
+            return null;
+        }
+
+        $wonLeads = Lead::where('sales_person_id', $user->id)
+            ->where('status', 'won')
+            ->whereYear('updated_at', $this->reportYear)
+            ->whereMonth('updated_at', $this->reportMonth)
+            ->with(['client.projects.billingRequests', 'activities'])
+            ->latest('updated_at')
+            ->get();
+
+        $rows = $wonLeads->map(fn (Lead $lead) => [
+            'lead' => $lead,
+            'projects' => $lead->client?->projects ?? collect(),
+            'contacts' => $lead->activities->count(),
+        ]);
+
+        return [
+            'user' => $user,
+            'period' => Carbon::create($this->reportYear, $this->reportMonth, 1),
+            'rows' => $rows,
+            'totalClients' => $wonLeads->count(),
+            'totalDealValue' => $wonLeads->sum('budget'),
+            'totalProjects' => $rows->sum(fn ($r) => $r['projects']->count()),
+            'totalContacts' => $rows->sum('contacts'),
         ];
     }
 
@@ -122,11 +190,24 @@ class TargetDashboard extends Component
             $salesPeople = collect([$authUser]);
         }
 
-        $rows = $salesPeople->map(fn ($sp) => $this->statsFor($sp))->sortByDesc('achieved')->values();
+        $periods = $this->periods();
+
+        $rows = $salesPeople->map(function (User $sp) use ($periods) {
+            $totalLeads = Lead::where('sales_person_id', $sp->id)->count();
+            $wonLeadsAllTime = Lead::where('sales_person_id', $sp->id)->where('status', 'won')->count();
+
+            return [
+                'user' => $sp,
+                'openLeads' => Lead::where('sales_person_id', $sp->id)->whereNotIn('status', Lead::CLOSED_STATUSES)->count(),
+                'conversionRate' => $totalLeads ? round($wonLeadsAllTime / $totalLeads * 100) : 0,
+                'months' => collect($periods)->map(fn ($p) => $this->monthStatsFor($sp, $p))->all(),
+            ];
+        })->sortByDesc(fn ($row) => $row['months'][0]['achieved'])->values();
 
         return view('livewire.sales.target-dashboard', [
             'rows' => $rows,
             'canSetTargets' => $authUser->canSetSalesTargets(),
+            'report' => $this->reportData(),
         ]);
     }
 }
