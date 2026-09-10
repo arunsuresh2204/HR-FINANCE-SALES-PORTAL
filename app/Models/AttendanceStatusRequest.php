@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AttendanceStatusRequest extends Model
 {
     protected $fillable = [
-        'attendance_id', 'user_id', 'requested_status', 'requested_clock_in', 'requested_clock_out',
+        'attendance_id', 'user_id', 'requested_status', 'reason_category', 'requested_clock_in', 'requested_clock_out',
         'reason', 'status', 'reviewed_by', 'reviewed_at', 'review_notes',
     ];
 

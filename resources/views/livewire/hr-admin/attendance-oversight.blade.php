@@ -93,7 +93,7 @@
                         <tr>
                             <th>Employee</th>
                             <th>Date</th>
-                            <th>Requested Status</th>
+                            <th>Reason Category</th>
                             <th>Reported Times</th>
                             <th>Reason</th>
                             <th>Status</th>
@@ -112,7 +112,13 @@
                                     @endif
                                 </td>
                                 <td class="text-white/60">{{ $req->attendance->work_date->format('M j, Y') }}</td>
-                                <td><x-status-pill :status="$req->requested_status" /></td>
+                                <td>
+                                    @if ($req->reason_category)
+                                        <span class="badge-glass !border-sky-400/25 !bg-sky-400/10 !text-sky-200">{{ $req->reason_category }}</span>
+                                    @else
+                                        <span class="text-white/30">—</span>
+                                    @endif
+                                </td>
                                 <td class="text-white/60">
                                     @if ($req->requested_clock_in || $req->requested_clock_out)
                                         {{ $req->requested_clock_in ? \Carbon\Carbon::parse($req->requested_clock_in)->format('g:i A') : '—' }}

@@ -78,14 +78,14 @@
         <form wire:submit="submitStatusRequest" class="space-y-4">
             <p class="text-sm text-white/50">Ask HR to review and correct this day's attendance status.</p>
             <div>
-                <x-input-label for="requested_status" value="What should it be?" />
-                <select wire:model="requested_status" id="requested_status" class="input-glass">
-                    <option value="present">Present</option>
-                    <option value="late">Late</option>
-                    <option value="absent">Absent</option>
-                    <option value="on_leave">On Leave</option>
+                <x-input-label for="reason_category" value="What should it be?" />
+                <select wire:model="reason_category" id="reason_category" class="input-glass">
+                    <option value="">Select a reason...</option>
+                    @foreach (\App\Livewire\Hr\AttendanceIndex::REASON_CATEGORIES as $categoryOption)
+                        <option value="{{ $categoryOption }}">{{ $categoryOption }}</option>
+                    @endforeach
                 </select>
-                <x-input-error :messages="$errors->get('requested_status')" class="mt-1" />
+                <x-input-error :messages="$errors->get('reason_category')" class="mt-1" />
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -102,12 +102,7 @@
             <p class="text-xs text-white/40">Optional &mdash; if you forgot to clock in or out, enter the actual times so HR can update your record accurately.</p>
             <div>
                 <x-input-label for="request_reason" value="Reason" />
-                <select wire:model="request_reason" id="request_reason" class="input-glass">
-                    <option value="">Select a reason...</option>
-                    @foreach (\App\Livewire\Hr\AttendanceIndex::REASONS as $reasonOption)
-                        <option value="{{ $reasonOption }}">{{ $reasonOption }}</option>
-                    @endforeach
-                </select>
+                <textarea wire:model="request_reason" id="request_reason" rows="3" class="input-glass" placeholder="e.g. My login was delayed due to a network outage."></textarea>
                 <x-input-error :messages="$errors->get('request_reason')" class="mt-1" />
             </div>
             <div class="flex justify-end gap-3 pt-2">

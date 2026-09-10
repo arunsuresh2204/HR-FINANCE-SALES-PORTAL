@@ -16,16 +16,16 @@ class AttendanceIndex extends Component
 {
     use WithPagination;
 
-    public const REASONS = ['Forgot to clockin', 'Forgot to clockout', 'Onsite duty', 'Business travel'];
+    public const REASON_CATEGORIES = ['Forgot to clockin', 'Forgot to clockout', 'Onsite duty', 'Business travel'];
 
     public ?int $requestingAttendanceId = null;
 
     public bool $showRequestForm = false;
 
-    #[Validate('required|in:present,late,absent,on_leave')]
-    public string $requested_status = 'present';
-
     #[Validate('required|in:Forgot to clockin,Forgot to clockout,Onsite duty,Business travel')]
+    public string $reason_category = '';
+
+    #[Validate('required|string|max:1000')]
     public string $request_reason = '';
 
     #[Validate('nullable|date_format:H:i')]
@@ -101,7 +101,7 @@ class AttendanceIndex extends Component
         }
 
         $this->requestingAttendanceId = $attendanceId;
-        $this->requested_status = $attendance->status;
+        $this->reason_category = '';
         $this->request_reason = '';
         $this->requested_clock_in = $attendance->clock_in?->format('H:i') ?? '';
         $this->requested_clock_out = $attendance->clock_out?->format('H:i') ?? '';
@@ -111,7 +111,7 @@ class AttendanceIndex extends Component
 
     public function cancelRequestForm(): void
     {
-        $this->reset(['requestingAttendanceId', 'request_reason', 'requested_clock_in', 'requested_clock_out', 'showRequestForm']);
+        $this->reset(['requestingAttendanceId', 'reason_category', 'request_reason', 'requested_clock_in', 'requested_clock_out', 'showRequestForm']);
     }
 
     public function submitStatusRequest(): void
@@ -129,7 +129,10 @@ class AttendanceIndex extends Component
         AttendanceStatusRequest::create([
             'attendance_id' => $attendance->id,
             'user_id' => Auth::id(),
-            'requested_status' => $this->requested_status,
+            // Every reason category here is the employee asserting they were working that
+            // day, just without a proper clock event — so the target status is always Present.
+            'requested_status' => 'present',
+            'reason_category' => $this->reason_category,
             'requested_clock_in' => $this->requested_clock_in ?: null,
             'requested_clock_out' => $this->requested_clock_out ?: null,
             'reason' => $this->request_reason,
@@ -143,7 +146,7 @@ class AttendanceIndex extends Component
             route('hradmin.attendance')
         );
 
-        $this->reset(['requestingAttendanceId', 'request_reason', 'requested_clock_in', 'requested_clock_out', 'showRequestForm']);
+        $this->reset(['requestingAttendanceId', 'reason_category', 'request_reason', 'requested_clock_in', 'requested_clock_out', 'showRequestForm']);
         $this->dispatch('toast', message: 'Request sent to HR for review.', type: 'success');
     }
 
