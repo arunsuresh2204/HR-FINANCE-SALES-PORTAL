@@ -29,14 +29,21 @@
                 </div>
                 <div class="space-y-2">
                     @forelse ($projects as $project)
-                        <div class="glass-inset flex items-center justify-between p-3">
-                            <div>
+                        <div class="glass-inset p-3">
+                            <div class="flex items-center justify-between">
                                 <p class="text-sm font-medium text-white">{{ $project->name }}</p>
-                                @if ($project->description)
-                                    <p class="mt-0.5 text-xs text-white/45">{{ $project->description }}</p>
+                                <x-status-pill :status="$project->status" />
+                            </div>
+                            @if ($project->description)
+                                <p class="mt-0.5 text-xs text-white/45">{{ $project->description }}</p>
+                            @endif
+                            <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-white/40">
+                                <span>Assigned to: {{ $project->assignedTo->name ?? '—' }}</span>
+                                <span>Developers: {{ $project->developers->pluck('name')->join(', ') ?: 'None assigned' }}</span>
+                                @if ($canManageProjects)
+                                    <button wire:click="openDeveloperForm({{ $project->id }})" class="font-semibold text-gold-300 hover:text-gold-200">Assign Developers</button>
                                 @endif
                             </div>
-                            <x-status-pill :status="$project->status" />
                         </div>
                     @empty
                         <p class="text-sm text-white/40">No projects created yet.</p>
@@ -140,9 +147,45 @@
                 <x-input-label for="project_description" value="Description (optional)" />
                 <textarea wire:model="project_description" id="project_description" rows="2" class="input-glass"></textarea>
             </div>
+            <div>
+                <x-input-label for="assigned_to" :value="$canManageProjects ? 'Assign To (optional)' : 'Assign To (Manager or Owner)'" />
+                <select wire:model="assigned_to" id="assigned_to" class="input-glass">
+                    @if ($canManageProjects)
+                        <option value="">— Keep assigned to me —</option>
+                    @else
+                        <option value="">— Select a manager or owner —</option>
+                    @endif
+                    @foreach ($managersAndOwners as $mgr)
+                        <option value="{{ $mgr->id }}">{{ $mgr->name }}{{ $mgr->designation ? ' ('.$mgr->designation.')' : '' }}</option>
+                    @endforeach
+                </select>
+                @unless ($canManageProjects)
+                    <p class="mt-1 text-xs text-white/35">Every project must be handed off to a manager or an owner to oversee.</p>
+                @endunless
+                <x-input-error :messages="$errors->get('assigned_to')" class="mt-1" />
+            </div>
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
                 <x-primary-button>Create Project</x-primary-button>
+            </div>
+        </form>
+    </x-modal-glass>
+
+    <x-modal-glass wire-model="showDeveloperForm" title="Assign Developers" max-width="sm">
+        <form wire:submit="saveDevelopers" class="space-y-4">
+            <div class="max-h-64 space-y-2 overflow-y-auto">
+                @forelse ($developersList as $dev)
+                    <label class="glass-inset flex items-center gap-2 p-3 text-sm text-white/80">
+                        <input type="checkbox" wire:model="developer_ids" value="{{ $dev->id }}" class="rounded border-white/20 bg-white/5 text-gold-400 focus:ring-gold-400/40">
+                        {{ $dev->name }}
+                    </label>
+                @empty
+                    <p class="text-sm text-white/40">No developers on file yet.</p>
+                @endforelse
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
+                <x-primary-button>Save</x-primary-button>
             </div>
         </form>
     </x-modal-glass>

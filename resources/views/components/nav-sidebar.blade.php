@@ -70,7 +70,7 @@
                             @if (auth()->user()->canManageLeads())
                                 <a href="{{ route('sales.leads') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('sales.leads*') ? 'active' : '' }}"><x-icon name="target" class="h-4 w-4 shrink-0" />Leads Pipeline</a>
                             @endif
-                            @if (auth()->user()->isSalesExec())
+                            @if (auth()->user()->isSalesExec() || auth()->user()->isManager())
                                 <a href="{{ route('sales.clients') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('sales.clients*') ? 'active' : '' }}"><x-icon name="briefcase" class="h-4 w-4 shrink-0" />Clients</a>
                             @endif
                             @if (auth()->user()->isSalesExec() || auth()->user()->isManager())

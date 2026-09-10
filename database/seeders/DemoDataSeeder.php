@@ -13,6 +13,7 @@ use App\Models\Lead;
 use App\Models\LeaveRequest;
 use App\Models\MarketingLog;
 use App\Models\PolicyDocument;
+use App\Models\Project;
 use App\Models\SalesTarget;
 use App\Models\Timesheet;
 use App\Models\User;
@@ -220,6 +221,19 @@ class DemoDataSeeder extends Seeder
             'client_id' => $client1->id, 'created_by' => $sales1->id, 'amount' => 4000,
             'milestone_description' => '50% on delivery', 'status' => 'pending',
         ]);
+
+        // Projects for PawCare Co.: one assigned to a manager, one assigned to an owner, each staffed with developers
+        $project1 = Project::create([
+            'client_id' => $client1->id, 'created_by' => $sales1->id, 'assigned_to' => $owner4->id,
+            'name' => 'PawCare Storefront Build', 'description' => 'Full e-commerce site for pet supplies.', 'status' => 'active',
+        ]);
+        $project1->developers()->attach([$dev1->id, $dev2->id]);
+
+        $project2 = Project::create([
+            'client_id' => $client1->id, 'created_by' => $owner1->id, 'assigned_to' => $owner1->id,
+            'name' => 'PawCare Mobile Companion App', 'description' => 'Follow-on mobile app once the storefront ships.', 'status' => 'on_hold',
+        ]);
+        $project2->developers()->attach([$dev2->id]);
 
         // Vishnu's pipeline: 20 leads, 10 of which are won and converted to clients
         $vishnuLeads = [

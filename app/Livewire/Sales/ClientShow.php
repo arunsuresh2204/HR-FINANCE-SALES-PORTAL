@@ -5,6 +5,7 @@ namespace App\Livewire\Sales;
 use App\Models\BillingRequest;
 use App\Models\Client;
 use App\Models\Project;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Validate;
@@ -35,6 +36,14 @@ class ClientShow extends Component
 
     #[Validate('nullable|string|max:1000')]
     public string $project_description = '';
+
+    public ?int $assigned_to = null;
+
+    public bool $showDeveloperForm = false;
+
+    public ?int $managingProjectId = null;
+
+    public array $developer_ids = [];
 
     public bool $showBillingForm = false;
 
@@ -83,20 +92,36 @@ class ClientShow extends Component
     public function openProjectForm(): void
     {
         $this->reset(['project_name', 'project_description']);
+        $this->assigned_to = Auth::user()->isManager() || Auth::user()->isSuperAdmin() ? Auth::id() : null;
         $this->resetValidation();
         $this->showProjectForm = true;
     }
 
     public function submitProject(): void
     {
+        $authUser = Auth::user();
+        $canManage = $authUser->isManager() || $authUser->isSuperAdmin();
+
         $this->validate([
             'project_name' => 'required|string|max:255',
             'project_description' => 'nullable|string|max:1000',
+            'assigned_to' => $canManage ? 'nullable|exists:users,id' : 'required|exists:users,id',
         ]);
+
+        if ($this->assigned_to) {
+            $assignee = User::findOrFail($this->assigned_to);
+
+            if (! $assignee->isManager() && ! $assignee->isSuperAdmin()) {
+                $this->addError('assigned_to', 'Projects can only be assigned to a manager or an owner.');
+
+                return;
+            }
+        }
 
         Project::create([
             'client_id' => $this->client->id,
             'created_by' => Auth::id(),
+            'assigned_to' => $this->assigned_to ?: ($canManage ? Auth::id() : null),
             'name' => $this->project_name,
             'description' => $this->project_description,
             'status' => 'active',
@@ -104,6 +129,37 @@ class ClientShow extends Component
 
         $this->showProjectForm = false;
         $this->dispatch('toast', message: 'Project created.', type: 'success');
+    }
+
+    public function openDeveloperForm(int $projectId): void
+    {
+        $authUser = Auth::user();
+
+        if (! $authUser->isManager() && ! $authUser->isSuperAdmin()) {
+            return;
+        }
+
+        $project = Project::findOrFail($projectId);
+
+        $this->managingProjectId = $projectId;
+        $this->developer_ids = $project->developers()->pluck('users.id')->all();
+        $this->resetValidation();
+        $this->showDeveloperForm = true;
+    }
+
+    public function saveDevelopers(): void
+    {
+        $authUser = Auth::user();
+
+        if (! $authUser->isManager() && ! $authUser->isSuperAdmin()) {
+            return;
+        }
+
+        $project = Project::findOrFail($this->managingProjectId);
+        $project->developers()->sync($this->developer_ids);
+
+        $this->showDeveloperForm = false;
+        $this->dispatch('toast', message: 'Developers assigned.', type: 'success');
     }
 
     public function openBillingForm(): void
@@ -192,12 +248,17 @@ class ClientShow extends Component
 
     public function render()
     {
+        $authUser = Auth::user();
+
         return view('livewire.sales.client-show', [
-            'projects' => $this->client->projects()->latest()->get(),
+            'projects' => $this->client->projects()->with(['assignedTo', 'developers'])->latest()->get(),
             'billingRequests' => $this->client->billingRequests()->with('tasks', 'project')->latest()->get(),
             'invoices' => $this->client->invoices()->latest()->get(),
             'totalHours' => $this->client->timesheets()->sum('hours'),
             'billableHours' => $this->client->billableHours(),
+            'canManageProjects' => $authUser->isManager() || $authUser->isSuperAdmin(),
+            'managersAndOwners' => User::role(['manager', 'super_admin'])->orderBy('name')->get(),
+            'developersList' => User::role('programmer')->orderBy('name')->get(),
         ]);
     }
 }

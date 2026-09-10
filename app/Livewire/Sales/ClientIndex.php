@@ -31,7 +31,7 @@ class ClientIndex extends Component
 
         $query = Client::with(['salesPerson', 'invoices'])->latest();
 
-        if (! $user->isSuperAdmin() && ! $user->isFinanceAdmin()) {
+        if (! $user->isSuperAdmin() && ! $user->isFinanceAdmin() && ! $user->isManager()) {
             $query->where('sales_person_id', $user->id);
         }
 

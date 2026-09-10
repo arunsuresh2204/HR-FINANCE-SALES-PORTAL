@@ -52,7 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             })->name('leads.show');
         });
 
-        Route::middleware(['role:sales_exec|super_admin'])->group(function () {
+        Route::middleware(['role:sales_exec|manager|super_admin'])->group(function () {
             Route::view('clients', 'pages.sales.client-index')->name('clients');
             Route::get('clients/{client}', function (Client $client) {
                 return view('pages.sales.client-show', compact('client'));
