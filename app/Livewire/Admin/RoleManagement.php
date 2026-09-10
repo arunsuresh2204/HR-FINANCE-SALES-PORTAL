@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Support\FeatureCatalog;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Validate;
@@ -67,17 +68,45 @@ class RoleManagement extends Component
         $this->dispatch('toast', message: 'Role deleted.', type: 'success');
     }
 
+    public function togglePermission(int $roleId, string $permission): void
+    {
+        if (! array_key_exists($permission, FeatureCatalog::FEATURES)) {
+            return;
+        }
+
+        $role = Role::findOrFail($roleId);
+
+        // The super_admin role must always keep access to the Super Admin
+        // section itself — otherwise an admin could lock everyone
+        // (including themselves) out of this very screen with no UI path
+        // back in.
+        if ($role->name === 'super_admin' && $permission === 'access_super_admin') {
+            $this->dispatch('toast', message: 'Super Admin must always keep Super Admin access.', type: 'error');
+
+            return;
+        }
+
+        if ($role->hasPermissionTo($permission)) {
+            $role->revokePermissionTo($permission);
+        } else {
+            $role->givePermissionTo($permission);
+        }
+    }
+
     public function render()
     {
-        $roles = Role::orderBy('name')->get()->map(function (Role $role) {
+        $roles = Role::with('permissions')->orderBy('name')->get()->map(function (Role $role) {
             $role->userCount = $role->users()->count();
             $role->isCore = in_array($role->name, RoleSeeder::ROLES, true);
+            $role->grantedPermissions = $role->permissions->pluck('name')->all();
 
             return $role;
         });
 
         return view('livewire.admin.role-management', [
             'roles' => $roles,
+            'features' => FeatureCatalog::FEATURES,
+            'featureDescriptions' => FeatureCatalog::FEATURE_DESCRIPTIONS,
         ]);
     }
 }

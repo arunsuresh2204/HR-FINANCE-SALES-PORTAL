@@ -8,15 +8,15 @@
         <x-stat-card label="Pending Expenses" :value="$pendingExpenses" icon="receipt" accent="violet" :href="route('hr.expenses')" />
     </div>
 
-    @if (auth()->user()->isProgrammer() || auth()->user()->isMarketer() || auth()->user()->canManageLeads())
+    @if (auth()->user()->can('access_timesheets') || auth()->user()->can('access_marketing_logs') || auth()->user()->can('access_sales_leads') || auth()->user()->isSalesExec())
         <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            @if (auth()->user()->isProgrammer())
+            @if (auth()->user()->can('access_timesheets'))
                 <x-stat-card label="Hours Logged Today" :value="number_format($todayHours ?? 0, 1)" icon="code" accent="sky" hint="{{ number_format($weekHours ?? 0, 1) }}h this week" :href="route('work.timesheets')" />
             @endif
-            @if (auth()->user()->isMarketer())
+            @if (auth()->user()->can('access_marketing_logs'))
                 <x-stat-card label="Marketing Hours Today" :value="number_format($todayMarketingHours ?? 0, 1)" icon="megaphone" accent="violet" :href="route('work.marketing-logs')" />
             @endif
-            @if (auth()->user()->canManageLeads())
+            @if (auth()->user()->can('access_sales_leads'))
                 <x-stat-card label="Open Leads" :value="$myLeadsOpen" icon="target" accent="sky" :href="route('sales.leads')" />
                 <x-stat-card label="Won This Month" :value="$myLeadsWonThisMonth" icon="briefcase" accent="emerald" :href="route('sales.leads')" />
             @endif
@@ -26,15 +26,15 @@
         </div>
     @endif
 
-    @if (auth()->user()->isHrAdmin() || auth()->user()->isFinanceAdmin() || auth()->user()->isSuperAdmin())
+    @if (auth()->user()->can('access_hr_admin') || auth()->user()->can('access_finance_admin') || auth()->user()->isSuperAdmin())
         <h2 class="mb-3 mt-8 text-xs font-bold uppercase tracking-widest text-white/40">Admin Overview</h2>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            @if (auth()->user()->isHrAdmin())
+            @if (auth()->user()->can('access_hr_admin'))
                 <x-stat-card label="Active Headcount" :value="$headcount" icon="users" accent="emerald" :href="route('hradmin.employees')" />
                 <x-stat-card label="Pending Leave Approvals" :value="$pendingLeaveApprovals" icon="calendar" accent="gold" :href="route('hradmin.leave-approvals')" />
                 <x-stat-card label="Pending Resignations" :value="$pendingResignations" icon="exit" accent="rose" :href="route('hradmin.resignations')" />
             @endif
-            @if (auth()->user()->isFinanceAdmin())
+            @if (auth()->user()->can('access_finance_admin'))
                 <x-stat-card label="Pending Billing Requests" :value="$pendingBillingRequests" icon="inbox" accent="sky" :href="route('finance.billing-requests')" />
                 <x-stat-card label="Outstanding Invoices" value="${{ number_format($outstandingInvoices, 2) }}" icon="cash" accent="rose" :href="route('finance.invoices')" />
                 <x-stat-card label="Pending Expense Approvals" :value="$pendingExpenseApprovals" icon="receipt" accent="violet" :href="route('finance.expenses')" />

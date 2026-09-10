@@ -32,16 +32,16 @@ class Dashboard extends Component
             'announcements' => Announcement::latest()->limit(3)->get(),
         ];
 
-        if ($user->isProgrammer()) {
+        if ($user->can('access_timesheets')) {
             $data['todayHours'] = Timesheet::where('user_id', $user->id)->whereDate('work_date', $today)->sum('hours');
             $data['weekHours'] = Timesheet::where('user_id', $user->id)->whereBetween('work_date', [now()->startOfWeek(), now()->endOfWeek()])->sum('hours');
         }
 
-        if ($user->isMarketer()) {
+        if ($user->can('access_marketing_logs')) {
             $data['todayMarketingHours'] = MarketingLog::where('user_id', $user->id)->whereDate('work_date', $today)->sum('hours');
         }
 
-        if ($user->canManageLeads()) {
+        if ($user->can('access_sales_leads')) {
             $data['myLeadsOpen'] = Lead::where('sales_person_id', $user->id)->whereNotIn('status', Lead::CLOSED_STATUSES)->count();
             $data['myLeadsWonThisMonth'] = Lead::where('sales_person_id', $user->id)->where('status', 'won')->whereMonth('updated_at', now()->month)->whereYear('updated_at', now()->year)->count();
         }
@@ -52,13 +52,13 @@ class Dashboard extends Component
             $data['salesAchieved'] = $target?->achievedAmount() ?? 0;
         }
 
-        if ($user->isHrAdmin()) {
+        if ($user->can('access_hr_admin')) {
             $data['headcount'] = User::where('employment_status', 'active')->count();
             $data['pendingLeaveApprovals'] = LeaveRequest::where('status', 'pending')->count();
             $data['pendingResignations'] = Resignation::where('status', 'pending')->count();
         }
 
-        if ($user->isFinanceAdmin()) {
+        if ($user->can('access_finance_admin')) {
             $data['pendingBillingRequests'] = \App\Models\BillingRequest::where('status', 'pending')->count();
             $data['outstandingInvoices'] = Invoice::whereIn('status', ['sent', 'partially_paid', 'overdue'])->get()->sum(fn ($i) => $i->balanceDue());
             $data['pendingExpenseApprovals'] = Expense::where('status', 'pending')->count();

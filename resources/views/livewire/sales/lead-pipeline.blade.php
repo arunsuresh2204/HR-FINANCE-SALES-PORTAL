@@ -1,7 +1,7 @@
 <div>
     <x-page-header title="Leads Pipeline" subtitle="Log cold-outreach contacts and track responses.">
         <x-slot:actions>
-            @if (auth()->user()->isSalesExec())
+            @if (auth()->user()->can('access_sales_clients'))
                 <a href="{{ route('sales.clients') }}" wire:navigate class="btn-glass-secondary"><x-icon name="briefcase" class="h-4 w-4" /> Clients</a>
             @endif
         </x-slot:actions>

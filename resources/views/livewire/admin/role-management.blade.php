@@ -1,5 +1,5 @@
 <div>
-    <x-page-header title="Functional Roles" subtitle="Create new roles that can be assigned to employees from system settings — no code deploy needed.">
+    <x-page-header title="Functional Roles" subtitle="Create roles and control exactly which parts of the platform each one can access.">
         <x-slot:actions>
             <button wire:click="openAddForm" class="btn-glass-primary"><x-icon name="plus" class="h-4 w-4" /> Add Role</button>
         </x-slot:actions>
@@ -7,9 +7,8 @@
 
     <div class="glass-card mb-6">
         <p class="text-sm text-white/60">
-            A new role becomes assignable straight away from <span class="font-semibold text-white/80">Users &amp; Roles</span>.
-            It won't automatically unlock a dedicated dashboard, nav section, or route access on its own — those still need a follow-up code change.
-            It's most useful for tagging employees (e.g. reporting, filtering) or layering onto an existing permission-gated area.
+            A new role becomes assignable straight away from an employee's <span class="font-semibold text-white/80">Functional Roles</span> section.
+            Use the <span class="font-semibold text-white/80">Feature Access</span> grid below to decide what that role — or any existing role — can actually see and use. Checking a box grants access immediately; no code changes or deploys needed.
         </p>
     </div>
 
@@ -48,6 +47,54 @@
                     @empty
                         <tr><td colspan="4" class="py-8 text-center text-white/40">No roles yet.</td></tr>
                     @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="glass-panel relative mt-6 overflow-hidden">
+        <div class="glass-sheen"></div>
+        <div class="p-4">
+            <h2 class="text-base font-bold text-white">Feature Access</h2>
+            <p class="mt-1 text-xs text-white/40">Check a box to grant that role access to a feature area; uncheck to revoke it. Changes apply immediately to every user with that role.</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="table-glass">
+                <thead>
+                    <tr>
+                        <th class="sticky left-0 z-10 bg-ink-950">Role</th>
+                        @foreach ($features as $key => $label)
+                            <th class="whitespace-nowrap text-center" title="{{ $featureDescriptions[$key] }}">{{ $label }}</th>
+                        @endforeach
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($roles as $role)
+                        <tr wire:key="perm-role-{{ $role->id }}">
+                            <td class="sticky left-0 z-10 whitespace-nowrap bg-ink-950 font-medium text-white">
+                                {{ $role->name }}
+                                @if ($role->isCore)
+                                    <span class="ml-1 text-[10px] font-normal text-white/30">core</span>
+                                @endif
+                            </td>
+                            @foreach ($features as $key => $label)
+                                @php
+                                    $granted = in_array($key, $role->grantedPermissions, true);
+                                    $locked = $role->name === 'super_admin' && $key === 'access_super_admin';
+                                @endphp
+                                <td class="text-center">
+                                    <input
+                                        type="checkbox"
+                                        @checked($granted)
+                                        @disabled($locked)
+                                        title="{{ $locked ? 'Super Admin must always keep Super Admin access.' : $featureDescriptions[$key] }}"
+                                        wire:click="togglePermission({{ $role->id }}, '{{ $key }}')"
+                                        class="h-4 w-4 rounded border-white/20 bg-white/5 text-gold-400 focus:ring-gold-400/40 disabled:opacity-40"
+                                    >
+                                </td>
+                            @endforeach
+                        </tr>
+                    @endforeach
                 </tbody>
             </table>
         </div>

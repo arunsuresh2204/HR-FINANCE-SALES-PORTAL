@@ -1,6 +1,6 @@
 <div>
     <x-page-header title="Company Announcements" subtitle="Stay up to date with company news.">
-        @if (auth()->user()->isHrAdmin())
+        @if (auth()->user()->can('access_hr_admin'))
             <x-slot:actions>
                 <button wire:click="openForm" class="btn-glass-primary"><x-icon name="plus" class="h-4 w-4" /> Post Announcement</button>
             </x-slot:actions>
@@ -21,7 +21,7 @@
                         <p class="mt-2 text-sm text-white/60">{{ $a->body }}</p>
                         <p class="mt-3 text-xs text-white/35">{{ $a->poster->name }} &middot; {{ $a->created_at->format('M j, Y g:i A') }}</p>
                     </div>
-                    @if (auth()->user()->isHrAdmin())
+                    @if (auth()->user()->can('access_hr_admin'))
                         <button wire:click="delete({{ $a->id }})" wire:confirm="Delete this announcement?" class="shrink-0 text-white/30 hover:text-rose-300">
                             <x-icon name="trash" class="h-4 w-4" />
                         </button>

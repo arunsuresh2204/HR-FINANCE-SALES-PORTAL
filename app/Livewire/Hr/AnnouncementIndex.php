@@ -30,7 +30,7 @@ class AnnouncementIndex extends Component
 
     public function submit(): void
     {
-        abort_unless(Auth::user()->isHrAdmin(), 403);
+        abort_unless(Auth::user()->can('access_hr_admin'), 403);
 
         $this->validate();
 
@@ -47,7 +47,7 @@ class AnnouncementIndex extends Component
 
     public function delete(Announcement $announcement): void
     {
-        abort_unless(Auth::user()->isHrAdmin(), 403);
+        abort_unless(Auth::user()->can('access_hr_admin'), 403);
 
         $announcement->delete();
         $this->dispatch('toast', message: 'Announcement removed.', type: 'success');

@@ -40,7 +40,7 @@
                     </div>
                 </div>
 
-                @if (auth()->user()->isManager() || auth()->user()->isHrAdmin())
+                @if (auth()->user()->can('access_org_chart'))
                     <div>
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">Team</p>
                         <div class="mt-2 space-y-1">
@@ -49,38 +49,38 @@
                     </div>
                 @endif
 
-                @if (auth()->user()->isProgrammer() || auth()->user()->isMarketer())
+                @if (auth()->user()->can('access_timesheets') || auth()->user()->can('access_marketing_logs'))
                     <div>
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">Daily Log</p>
                         <div class="mt-2 space-y-1">
-                            @if (auth()->user()->isProgrammer())
+                            @if (auth()->user()->can('access_timesheets'))
                                 <a href="{{ route('work.timesheets') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('work.timesheets') ? 'active' : '' }}"><x-icon name="code" class="h-4 w-4 shrink-0" />Timesheet</a>
                             @endif
-                            @if (auth()->user()->isMarketer())
+                            @if (auth()->user()->can('access_marketing_logs'))
                                 <a href="{{ route('work.marketing-logs') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('work.marketing-logs') ? 'active' : '' }}"><x-icon name="megaphone" class="h-4 w-4 shrink-0" />Marketing Log</a>
                             @endif
                         </div>
                     </div>
                 @endif
 
-                @if (auth()->user()->canManageLeads() || auth()->user()->isManager())
+                @if (auth()->user()->can('access_sales_leads') || auth()->user()->can('access_sales_clients') || auth()->user()->can('access_sales_targets'))
                     <div>
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">Sales</p>
                         <div class="mt-2 space-y-1">
-                            @if (auth()->user()->canManageLeads())
+                            @if (auth()->user()->can('access_sales_leads'))
                                 <a href="{{ route('sales.leads') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('sales.leads*') ? 'active' : '' }}"><x-icon name="target" class="h-4 w-4 shrink-0" />Leads Pipeline</a>
                             @endif
-                            @if (auth()->user()->isSalesExec() || auth()->user()->isManager())
+                            @if (auth()->user()->can('access_sales_clients'))
                                 <a href="{{ route('sales.clients') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('sales.clients*') ? 'active' : '' }}"><x-icon name="briefcase" class="h-4 w-4 shrink-0" />Clients</a>
                             @endif
-                            @if (auth()->user()->isSalesExec() || auth()->user()->isManager())
+                            @if (auth()->user()->can('access_sales_targets'))
                                 <a href="{{ route('sales.targets') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('sales.targets') ? 'active' : '' }}"><x-icon name="chart" class="h-4 w-4 shrink-0" />Sales Targets</a>
                             @endif
                         </div>
                     </div>
                 @endif
 
-                @if (auth()->user()->isHrAdmin())
+                @if (auth()->user()->can('access_hr_admin'))
                     <div>
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">HR Admin</p>
                         <div class="mt-2 space-y-1">
@@ -95,7 +95,7 @@
                     </div>
                 @endif
 
-                @if (auth()->user()->isFinanceAdmin())
+                @if (auth()->user()->can('access_finance_admin'))
                     <div>
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">Finance Admin</p>
                         <div class="mt-2 space-y-1">
@@ -108,7 +108,7 @@
                     </div>
                 @endif
 
-                @if (auth()->user()->isSuperAdmin())
+                @if (auth()->user()->can('access_super_admin'))
                     <div>
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">System</p>
                         <div class="mt-2 space-y-1">

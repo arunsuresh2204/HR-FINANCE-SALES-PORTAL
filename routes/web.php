@@ -32,35 +32,35 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('announcements', 'pages.hr.announcement-index')->name('hr.announcements');
     Route::view('resignation', 'pages.hr.resignation-index')->name('hr.resignation');
 
-    Route::middleware(['role:manager|hr_admin|super_admin'])->group(function () {
+    Route::middleware(['permission:access_org_chart'])->group(function () {
         Route::view('org-chart', 'pages.company.org-chart')->name('org-chart');
     });
 
     // Role-specific daily logs
-    Route::middleware(['role:programmer|super_admin'])->group(function () {
+    Route::middleware(['permission:access_timesheets'])->group(function () {
         Route::view('timesheets', 'pages.work.timesheet-index')->name('work.timesheets');
     });
-    Route::middleware(['role:marketer|super_admin'])->group(function () {
+    Route::middleware(['permission:access_marketing_logs'])->group(function () {
         Route::view('marketing-logs', 'pages.work.marketing-log-index')->name('work.marketing-logs');
     });
 
     // Sales
     Route::prefix('sales')->name('sales.')->group(function () {
-        Route::middleware(['role:sales_exec|marketer|super_admin'])->group(function () {
+        Route::middleware(['permission:access_sales_leads'])->group(function () {
             Route::view('leads', 'pages.sales.lead-pipeline')->name('leads');
             Route::get('leads/{lead}', function (Lead $lead) {
                 return view('pages.sales.lead-show', compact('lead'));
             })->name('leads.show');
         });
 
-        Route::middleware(['role:sales_exec|manager|super_admin'])->group(function () {
+        Route::middleware(['permission:access_sales_clients'])->group(function () {
             Route::view('clients', 'pages.sales.client-index')->name('clients');
             Route::get('clients/{client}', function (Client $client) {
                 return view('pages.sales.client-show', compact('client'));
             })->name('clients.show');
         });
 
-        Route::middleware(['role:sales_exec|manager|super_admin'])->group(function () {
+        Route::middleware(['permission:access_sales_targets'])->group(function () {
             Route::view('targets', 'pages.sales.target-dashboard')->name('targets');
             Route::get('targets/{user}/report/{year}/{month}', function (User $user, int $year, int $month) {
                 return view('pages.sales.target-report', compact('user', 'year', 'month'));
@@ -69,7 +69,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // HR Admin
-    Route::middleware(['role:hr_admin|super_admin'])->prefix('hr-admin')->name('hradmin.')->group(function () {
+    Route::middleware(['permission:access_hr_admin'])->prefix('hr-admin')->name('hradmin.')->group(function () {
         Route::view('employees', 'pages.hr-admin.employee-index')->name('employees');
         Route::get('employees/{user}', function (User $user) {
             return view('pages.hr-admin.employee-show', compact('user'));
@@ -83,7 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Finance Admin
-    Route::middleware(['role:finance_admin|super_admin'])->prefix('finance')->name('finance.')->group(function () {
+    Route::middleware(['permission:access_finance_admin'])->prefix('finance')->name('finance.')->group(function () {
         Route::view('billing-requests', 'pages.finance.billing-request-index')->name('billing-requests');
         Route::view('invoices', 'pages.finance.invoice-index')->name('invoices');
         Route::get('invoices/{invoice}', function (Invoice $invoice) {
@@ -99,7 +99,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Super Admin
-    Route::middleware(['role:super_admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware(['permission:access_super_admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::view('users', 'pages.admin.user-management')->name('users');
         Route::view('settings/lead-sources', 'pages.admin.lead-source-management')->name('lead-sources');
         Route::view('settings/roles', 'pages.admin.role-management')->name('roles');
