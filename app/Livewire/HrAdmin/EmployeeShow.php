@@ -31,6 +31,8 @@ class EmployeeShow extends Component
 
     public ?float $monthly_salary = null;
 
+    public string $date_of_joining = '';
+
     public ?int $manager_id = null;
 
     public array $additional_manager_ids = [];
@@ -83,6 +85,7 @@ class EmployeeShow extends Component
         $this->designation = $user->designation ?? '';
         $this->department = $user->department ?? '';
         $this->monthly_salary = $user->monthly_salary ? (float) $user->monthly_salary : null;
+        $this->date_of_joining = $user->date_of_joining ? $user->date_of_joining->toDateString() : '';
         $this->manager_id = $user->manager_id;
         $this->additional_manager_ids = $user->additionalManagers()->pluck('users.id')->all();
         $this->scheduled_login_time = $user->scheduled_login_time ? substr($user->scheduled_login_time, 0, 5) : '';
@@ -123,6 +126,7 @@ class EmployeeShow extends Component
             'designation' => 'nullable|string|max:255',
             'department' => 'nullable|string|max:255',
             'monthly_salary' => 'nullable|numeric|min:0',
+            'date_of_joining' => 'nullable|date',
             'scheduled_login_time' => 'nullable|date_format:H:i',
             'scheduled_logoff_time' => 'nullable|date_format:H:i',
         ]);
@@ -133,6 +137,7 @@ class EmployeeShow extends Component
             'designation' => $this->designation,
             'department' => $this->department,
             'monthly_salary' => $this->monthly_salary,
+            'date_of_joining' => $this->date_of_joining ?: null,
             'scheduled_login_time' => $this->scheduled_login_time ?: null,
             'scheduled_logoff_time' => $this->scheduled_logoff_time ?: null,
         ]);

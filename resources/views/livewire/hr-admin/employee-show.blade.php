@@ -45,6 +45,11 @@
                             <x-input-label for="monthly_salary" value="Monthly Salary (₹)" />
                             <x-text-input wire:model="monthly_salary" id="monthly_salary" type="number" step="0.01" class="mt-0" />
                         </div>
+                        <div>
+                            <x-input-label for="date_of_joining" value="Date of Joining" />
+                            <x-text-input wire:model="date_of_joining" id="date_of_joining" type="date" class="mt-0" />
+                            <x-input-error :messages="$errors->get('date_of_joining')" class="mt-1" />
+                        </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
