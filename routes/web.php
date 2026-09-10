@@ -61,6 +61,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::middleware(['role:sales_exec|manager|super_admin'])->group(function () {
             Route::view('targets', 'pages.sales.target-dashboard')->name('targets');
+            Route::get('targets/{user}/report/{year}/{month}', function (User $user, int $year, int $month) {
+                return view('pages.sales.target-report', compact('user', 'year', 'month'));
+            })->name('targets.report');
         });
     });
 

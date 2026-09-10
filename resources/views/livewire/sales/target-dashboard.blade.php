@@ -23,9 +23,9 @@
                 <div class="space-y-2">
                     @foreach ($row['months'] as $m)
                         <div class="glass-inset flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
-                            <button type="button" wire:click="viewReport({{ $row['user']->id }}, {{ $m['month'] }}, {{ $m['year'] }})" class="text-left text-sm font-semibold text-white hover:text-gold-300 sm:w-36 sm:shrink-0">
+                            <a href="{{ route('sales.targets.report', [$row['user'], $m['year'], $m['month']]) }}" wire:navigate class="text-left text-sm font-semibold text-white hover:text-gold-300 sm:w-36 sm:shrink-0">
                                 {{ $m['label'] }}
-                            </button>
+                            </a>
 
                             <div class="flex flex-1 items-center gap-4">
                                 @if ($m['target'])
@@ -78,93 +78,5 @@
                 <x-primary-button>Save Target</x-primary-button>
             </div>
         </form>
-    </x-modal-glass>
-
-    <x-modal-glass wire-model="showReportModal" title="Monthly Sales Report" max-width="2xl">
-        @if ($report)
-            <div class="space-y-5">
-                <div>
-                    <p class="text-lg font-bold text-white">{{ $report['user']->name }}</p>
-                    <p class="text-sm text-white/40">{{ $report['period']->format('F Y') }}</p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div class="glass-inset p-3 text-center">
-                        <p class="text-xl font-extrabold text-white">{{ $report['totalClients'] }}</p>
-                        <p class="text-[11px] text-white/40">Clients Acquired</p>
-                    </div>
-                    <div class="glass-inset p-3 text-center">
-                        <p class="text-xl font-extrabold text-white">{{ $report['totalProjects'] }}</p>
-                        <p class="text-[11px] text-white/40">Projects</p>
-                    </div>
-                    <div class="glass-inset p-3 text-center">
-                        <p class="text-xl font-extrabold text-white">{{ $report['totalContacts'] }}</p>
-                        <p class="text-[11px] text-white/40">Contacts Logged</p>
-                    </div>
-                    <div class="glass-inset p-3 text-center">
-                        <p class="text-xl font-extrabold text-gold-300">${{ number_format($report['totalDealValue']) }}</p>
-                        <p class="text-[11px] text-white/40">Total Deal Value</p>
-                    </div>
-                </div>
-
-                <div>
-                    <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-white/40">Clients Won This Month</p>
-                    <div class="overflow-x-auto">
-                        <table class="table-glass">
-                            <thead>
-                                <tr>
-                                    <th>Client</th>
-                                    <th>Deal Value</th>
-                                    <th>Source</th>
-                                    <th>Contacts</th>
-                                    <th>Projects</th>
-                                    <th>Project Billing</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse ($report['rows'] as $row)
-                                    <tr>
-                                        <td>
-                                            <p class="font-medium text-white">{{ $row['lead']->client_name }}</p>
-                                            @if ($row['lead']->company_name)
-                                                <p class="text-xs text-white/40">{{ $row['lead']->company_name }}</p>
-                                            @endif
-                                        </td>
-                                        <td class="whitespace-nowrap font-semibold text-gold-300">${{ number_format($row['lead']->budget ?? 0) }}</td>
-                                        <td class="text-white/60">{{ $row['lead']->source }}</td>
-                                        <td class="text-white/60">{{ $row['contacts'] }}</td>
-                                        <td class="text-white/60">
-                                            @forelse ($row['projects'] as $project)
-                                                <p>{{ $project->name }}</p>
-                                            @empty
-                                                <span class="text-white/25">None yet</span>
-                                            @endforelse
-                                        </td>
-                                        <td class="text-white/60">
-                                            @forelse ($row['projects'] as $project)
-                                                @php
-                                                    $byCurrency = $project->billingRequests->groupBy('currency');
-                                                @endphp
-                                                @if ($byCurrency->isEmpty())
-                                                    <p class="text-white/25">—</p>
-                                                @else
-                                                    @foreach ($byCurrency as $currency => $requests)
-                                                        <p>{{ \App\Support\Currency::format($requests->sum('amount'), $currency) }}</p>
-                                                    @endforeach
-                                                @endif
-                                            @empty
-                                                <span class="text-white/25">—</span>
-                                            @endforelse
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr><td colspan="6" class="py-6 text-center text-white/40">No clients won this month.</td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        @endif
     </x-modal-glass>
 </div>
