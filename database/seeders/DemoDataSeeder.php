@@ -214,6 +214,100 @@ class DemoDataSeeder extends Seeder
             'review_notes' => 'Understood, but still outside the grace window — keeping as late this time.',
         ]);
 
+        // Sneha Reddy: 30-day attendance history with a full variety of scenarios,
+        // replacing the generic 5-day rows the loop above gave her.
+        Attendance::where('user_id', $dev1->id)->delete();
+
+        LeaveRequest::create([
+            'user_id' => $dev1->id, 'type' => 'vacation', 'start_date' => now()->subDays(15),
+            'end_date' => now()->subDays(13), 'days' => 3, 'reason' => 'Family wedding out of town', 'status' => 'approved',
+            'reviewed_by' => $owner1->id, 'reviewed_at' => now()->subDays(16),
+        ]);
+        LeaveRequest::create([
+            'user_id' => $dev1->id, 'type' => 'sick', 'start_date' => now()->subDays(21),
+            'end_date' => now()->subDays(21), 'days' => 1, 'reason' => 'Migraine', 'status' => 'approved',
+            'reviewed_by' => $owner1->id, 'reviewed_at' => now()->subDays(21),
+        ]);
+
+        $snehaScenarios = [
+            1 => ['type' => 'on_time'],
+            2 => ['type' => 'severe', 'minutes' => 55, 'dispute' => 'rejected'],
+            3 => ['type' => 'grace', 'minutes' => 12],
+            6 => ['type' => 'absent'],
+            7 => ['type' => 'no_clock_out'],
+            8 => ['type' => 'on_time'],
+            9 => ['type' => 'grace', 'minutes' => 22],
+            10 => ['type' => 'on_time'],
+            16 => ['type' => 'early_out'],
+            17 => ['type' => 'severe', 'minutes' => 40],
+            20 => ['type' => 'grace', 'minutes' => 8],
+            22 => ['type' => 'on_time'],
+            23 => ['type' => 'on_time'],
+            24 => ['type' => 'absent', 'dispute' => 'pending'],
+            27 => ['type' => 'grace', 'minutes' => 27],
+            28 => ['type' => 'on_time'],
+            29 => ['type' => 'on_time'],
+            30 => ['type' => 'on_time'],
+        ];
+        // Offsets 13-15 and 21 are covered by the leave requests above and intentionally skipped here.
+
+        foreach ($snehaScenarios as $offset => $scenario) {
+            $date = now()->subDays($offset);
+            $scheduledAt = $date->copy()->setTime(9, 0);
+
+            if ($scenario['type'] === 'absent') {
+                $attendance = Attendance::create([
+                    'user_id' => $dev1->id,
+                    'work_date' => $date->toDateString(),
+                    'scheduled_login_time' => '09:00',
+                    'status' => 'absent',
+                ]);
+
+                if (($scenario['dispute'] ?? null) === 'pending') {
+                    AttendanceStatusRequest::create([
+                        'attendance_id' => $attendance->id,
+                        'user_id' => $dev1->id,
+                        'requested_status' => 'present',
+                        'reason' => 'Our office VPN was down all morning (IT ticket #4471) — I was working from my personal laptop but couldn\'t reach the portal to clock in.',
+                        'status' => 'pending',
+                    ]);
+                }
+
+                continue;
+            }
+
+            $clockIn = match ($scenario['type']) {
+                'grace', 'severe' => $scheduledAt->copy()->addMinutes($scenario['minutes']),
+                default => $scheduledAt->copy()->addMinutes(random_int(-10, 0)),
+            };
+            $clockOut = match ($scenario['type']) {
+                'early_out' => $date->copy()->setTime(14, 0),
+                default => $date->copy()->setTime(18, random_int(0, 20)),
+            };
+
+            $attendance = Attendance::create([
+                'user_id' => $dev1->id,
+                'work_date' => $date->toDateString(),
+                'scheduled_login_time' => '09:00',
+                'clock_in' => $clockIn,
+                'clock_out' => $scenario['type'] === 'no_clock_out' ? null : $clockOut,
+                'status' => $clockIn->lte($scheduledAt) ? 'present' : 'late',
+            ]);
+
+            if (($scenario['dispute'] ?? null) === 'rejected') {
+                AttendanceStatusRequest::create([
+                    'attendance_id' => $attendance->id,
+                    'user_id' => $dev1->id,
+                    'requested_status' => 'present',
+                    'reason' => 'Train delay on my commute — only a little past the window.',
+                    'status' => 'rejected',
+                    'reviewed_by' => $owner1->id,
+                    'reviewed_at' => $date->copy()->addDay(),
+                    'review_notes' => 'Understood, but this was well past the grace period — keeping as late.',
+                ]);
+            }
+        }
+
         // Leave requests
         LeaveRequest::create([
             'user_id' => $dev1->id, 'type' => 'vacation', 'start_date' => now()->addDays(10),
