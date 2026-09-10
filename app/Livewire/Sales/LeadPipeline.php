@@ -56,6 +56,8 @@ class LeadPipeline extends Component
 
     public array $comments = [];
 
+    public array $entryDates = [];
+
     public function mount(): void
     {
         $this->anchorDate = now()->toDateString();
@@ -156,6 +158,21 @@ class LeadPipeline extends Component
         $lead->update(['comment' => $value]);
     }
 
+    public function updatedEntryDates($value, $key): void
+    {
+        $lead = Lead::find($key);
+
+        if (! $lead || (! Auth::user()->isSuperAdmin() && $lead->sales_person_id !== Auth::id())) {
+            return;
+        }
+
+        if (! $value) {
+            return;
+        }
+
+        $lead->update(['contacted_date' => $value]);
+    }
+
     public function render()
     {
         $user = Auth::user();
@@ -196,6 +213,7 @@ class LeadPipeline extends Component
 
         $this->statuses = $leads->pluck('status', 'id')->all();
         $this->comments = $leads->pluck('comment', 'id')->map(fn ($c) => $c ?? '')->all();
+        $this->entryDates = $leads->pluck('contacted_date', 'id')->map(fn ($d) => $d?->toDateString() ?? '')->all();
 
         return view('livewire.sales.lead-pipeline', [
             'leads' => $leads,
