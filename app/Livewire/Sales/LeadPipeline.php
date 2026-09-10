@@ -52,28 +52,34 @@ class LeadPipeline extends Component
     #[Validate('nullable|string|max:255')]
     public string $contact_link = '';
 
+    #[Validate('required|date')]
+    public string $contacted_date = '';
+
     public array $statuses = [];
 
     public array $comments = [];
-
-    public array $entryDates = [];
 
     public function mount(): void
     {
         $this->anchorDate = now()->toDateString();
         $this->monthPicker = now()->format('Y-m');
+        $this->contacted_date = now()->toDateString();
     }
 
     public function setRange(string $range): void
     {
-        $this->range = in_array($range, ['week', 'month'], true) ? $range : 'week';
+        $this->range = in_array($range, ['day', 'week', 'month'], true) ? $range : 'week';
         $this->resetPage();
     }
 
     public function prevPeriod(): void
     {
         $date = Carbon::parse($this->anchorDate);
-        $this->anchorDate = $this->range === 'week' ? $date->subWeek()->toDateString() : $date->subMonthNoOverflow()->toDateString();
+        $this->anchorDate = match ($this->range) {
+            'day' => $date->subDay()->toDateString(),
+            'week' => $date->subWeek()->toDateString(),
+            default => $date->subMonthNoOverflow()->toDateString(),
+        };
         $this->monthPicker = Carbon::parse($this->anchorDate)->format('Y-m');
         $this->resetPage();
     }
@@ -81,7 +87,11 @@ class LeadPipeline extends Component
     public function nextPeriod(): void
     {
         $date = Carbon::parse($this->anchorDate);
-        $this->anchorDate = $this->range === 'week' ? $date->addWeek()->toDateString() : $date->addMonthNoOverflow()->toDateString();
+        $this->anchorDate = match ($this->range) {
+            'day' => $date->addDay()->toDateString(),
+            'week' => $date->addWeek()->toDateString(),
+            default => $date->addMonthNoOverflow()->toDateString(),
+        };
         $this->monthPicker = Carbon::parse($this->anchorDate)->format('Y-m');
         $this->resetPage();
     }
@@ -117,10 +127,11 @@ class LeadPipeline extends Component
             'source' => $this->source,
             'contact_link' => $this->contact_link ?: null,
             'status' => 'pending',
-            'contacted_date' => now()->toDateString(),
+            'contacted_date' => $this->contacted_date ?: now()->toDateString(),
         ]);
 
         $this->reset(['client_name', 'company_name', 'country', 'requirement', 'contact_link']);
+        $this->contacted_date = now()->toDateString();
         $this->resetValidation();
         $this->resetPage();
         $this->dispatch('toast', message: 'Lead added.', type: 'success');
@@ -158,21 +169,6 @@ class LeadPipeline extends Component
         $lead->update(['comment' => $value]);
     }
 
-    public function updatedEntryDates($value, $key): void
-    {
-        $lead = Lead::find($key);
-
-        if (! $lead || (! Auth::user()->isSuperAdmin() && $lead->sales_person_id !== Auth::id())) {
-            return;
-        }
-
-        if (! $value) {
-            return;
-        }
-
-        $lead->update(['contacted_date' => $value]);
-    }
-
     public function render()
     {
         $user = Auth::user();
@@ -197,7 +193,11 @@ class LeadPipeline extends Component
 
         $anchor = Carbon::parse($this->anchorDate ?: now());
 
-        if ($this->range === 'week') {
+        if ($this->range === 'day') {
+            $rangeStart = $anchor->copy()->startOfDay();
+            $rangeEnd = $anchor->copy()->endOfDay();
+            $rangeLabel = $rangeStart->format('l, M j, Y');
+        } elseif ($this->range === 'week') {
             $rangeStart = $anchor->copy()->startOfWeek(Carbon::MONDAY);
             $rangeEnd = $anchor->copy()->endOfWeek(Carbon::SUNDAY);
             $rangeLabel = $rangeStart->format('M j').' – '.$rangeEnd->format('M j, Y');
@@ -207,13 +207,15 @@ class LeadPipeline extends Component
             $rangeLabel = $rangeStart->format('F Y');
         }
 
-        $query->whereBetween('contacted_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()]);
+        // contacted_date is stored with a time component, so compare against full
+        // start/end-of-day bounds rather than bare date strings — otherwise a lead
+        // dated exactly on the range's last day gets excluded by string comparison.
+        $query->whereBetween('contacted_date', [$rangeStart->copy()->startOfDay(), $rangeEnd->copy()->endOfDay()]);
 
         $leads = $query->paginate(25);
 
         $this->statuses = $leads->pluck('status', 'id')->all();
         $this->comments = $leads->pluck('comment', 'id')->map(fn ($c) => $c ?? '')->all();
-        $this->entryDates = $leads->pluck('contacted_date', 'id')->map(fn ($d) => $d?->toDateString() ?? '')->all();
 
         return view('livewire.sales.lead-pipeline', [
             'leads' => $leads,

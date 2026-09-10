@@ -45,8 +45,12 @@
                 </select>
                 <x-input-error :messages="$errors->get('source')" class="mt-1" />
             </div>
-            <div class="md:col-span-5">
+            <div class="md:col-span-4">
                 <x-text-input wire:model="contact_link" type="text" class="mt-0" placeholder="Contact (LinkedIn URL, email, phone...)" />
+            </div>
+            <div class="md:col-span-1">
+                <x-text-input wire:model="contacted_date" type="date" class="mt-0" title="Date entered" />
+                <x-input-error :messages="$errors->get('contacted_date')" class="mt-1" />
             </div>
             <div class="md:col-span-1">
                 <button class="btn-glass-primary w-full justify-center"><x-icon name="plus" class="h-4 w-4" /> Add Lead</button>
@@ -56,6 +60,7 @@
 
     <div class="mb-4 flex flex-wrap items-center gap-3">
         <div class="inline-flex rounded-xl border border-white/10 bg-white/5 p-1">
+            <button type="button" wire:click="setRange('day')" class="rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $range === 'day' ? 'bg-gold-400 text-ink-950' : 'text-white/50 hover:text-white' }}">Day</button>
             <button type="button" wire:click="setRange('week')" class="rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $range === 'week' ? 'bg-gold-400 text-ink-950' : 'text-white/50 hover:text-white' }}">Week</button>
             <button type="button" wire:click="setRange('month')" class="rounded-lg px-3 py-1.5 text-xs font-semibold transition {{ $range === 'month' ? 'bg-gold-400 text-ink-950' : 'text-white/50 hover:text-white' }}">Month</button>
         </div>
@@ -112,9 +117,7 @@
                 <tbody>
                     @forelse ($leads as $lead)
                         <tr wire:key="lead-row-{{ $lead->id }}" onclick="if (!event.target.closest('a, button, select, input')) { Livewire.navigate('{{ route('sales.leads.show', $lead) }}') }" class="cursor-pointer">
-                            <td class="min-w-[8.5rem]">
-                                <input wire:model.live="entryDates.{{ $lead->id }}" type="date" class="input-glass !py-1.5 text-xs">
-                            </td>
+                            <td class="whitespace-nowrap text-white/60">{{ $lead->contacted_date?->format('M j, Y') ?? $lead->created_at->format('M j, Y') }}</td>
                             <td class="max-w-[10rem]">
                                 <button type="button" wire:click="viewRequirement({{ $lead->id }})" class="block text-left">
                                     <p class="truncate font-medium text-white hover:text-gold-300">{{ $lead->client_name }}</p>
