@@ -11,6 +11,19 @@ use Livewire\Component;
 
 class FinancialReports extends Component
 {
+    public string $monthPicker = '';
+
+    public function updatedMonthPicker(string $value): void
+    {
+        if (! $value) {
+            return;
+        }
+
+        $period = \Carbon\Carbon::createFromFormat('Y-m', $value);
+
+        $this->redirect(route('finance.reports.month', ['year' => $period->year, 'month' => $period->month]), navigate: true);
+    }
+
     public function render()
     {
         $revenueByClient = Client::withSum('invoices as revenue', 'amount_paid')

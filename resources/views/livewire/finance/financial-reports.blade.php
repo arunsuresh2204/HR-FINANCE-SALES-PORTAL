@@ -9,7 +9,13 @@
     </div>
 
     <div class="glass-card mt-6">
-        <h2 class="mb-4 text-base font-bold text-white">Recent Months</h2>
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-base font-bold text-white">Recent Months</h2>
+            <div class="flex items-center gap-2">
+                <label for="monthPicker" class="text-xs text-white/40">Review a past month</label>
+                <input wire:model.live="monthPicker" id="monthPicker" type="month" max="{{ now()->format('Y-m') }}" class="input-glass w-40">
+            </div>
+        </div>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
             @foreach ($recentMonths as $m)
                 <a href="{{ route('finance.reports.month', ['year' => $m['year'], 'month' => $m['month']]) }}" wire:navigate class="glass-inset flex items-center justify-between p-4 transition hover:bg-white/[0.06]">
