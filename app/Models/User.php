@@ -44,6 +44,8 @@ class User extends Authenticatable
         'employment_status',
         'employment_type',
         'manager_id',
+        'scheduled_login_time',
+        'scheduled_logoff_time',
     ];
 
     /**
@@ -80,6 +82,20 @@ class User extends Authenticatable
     public function leaveRequests(): HasMany
     {
         return $this->hasMany(LeaveRequest::class);
+    }
+
+    public function attendanceStatusRequests(): HasMany
+    {
+        return $this->hasMany(AttendanceStatusRequest::class);
+    }
+
+    public function hasApprovedLeaveOn(string $date): bool
+    {
+        return $this->leaveRequests()
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $date)
+            ->whereDate('end_date', '>=', $date)
+            ->exists();
     }
 
     public function timesheets(): HasMany

@@ -46,6 +46,19 @@
                             <x-text-input wire:model="monthly_salary" id="monthly_salary" type="number" step="0.01" class="mt-0" />
                         </div>
                     </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <x-input-label for="scheduled_login_time" value="Scheduled Login Time" />
+                            <x-text-input wire:model="scheduled_login_time" id="scheduled_login_time" type="time" class="mt-0" />
+                            <x-input-error :messages="$errors->get('scheduled_login_time')" class="mt-1" />
+                        </div>
+                        <div>
+                            <x-input-label for="scheduled_logoff_time" value="Scheduled Logoff Time" />
+                            <x-text-input wire:model="scheduled_logoff_time" id="scheduled_logoff_time" type="time" class="mt-0" />
+                            <x-input-error :messages="$errors->get('scheduled_logoff_time')" class="mt-1" />
+                        </div>
+                    </div>
+                    <p class="text-xs text-white/40">Used to track late logins: a clock-in within 30 minutes of the scheduled time shows as a grace-period warning, later than that shows as a late warning, and no clock-in after 6 hours auto-marks the day absent.</p>
                     <div class="flex justify-end">
                         <x-primary-button>Save Details</x-primary-button>
                     </div>
@@ -282,7 +295,7 @@
                     @forelse ($recentAttendance as $att)
                         <div class="flex items-center justify-between text-sm">
                             <span class="text-white/60">{{ $att->work_date->format('M j') }}</span>
-                            <x-status-pill :status="$att->status" />
+                            <x-attendance-status-pill :info="\App\Models\Attendance::computeStatus($user, $att->work_date->toDateString(), $att)" />
                         </div>
                     @empty
                         <p class="text-sm text-white/40">No attendance records.</p>

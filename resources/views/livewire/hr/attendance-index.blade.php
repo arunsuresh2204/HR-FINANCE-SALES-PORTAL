@@ -16,7 +16,7 @@
                     @endif
                 </p>
                 @if ($todayAttendance)
-                    <div class="mt-2"><x-status-pill :status="$todayAttendance->status" /></div>
+                    <div class="mt-2"><x-attendance-status-pill :info="$statusFor($todayAttendance)" /></div>
                 @endif
             </div>
             <div class="flex gap-3">
@@ -41,6 +41,7 @@
                         <th>Clock Out</th>
                         <th>Hours</th>
                         <th>Status</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -50,14 +51,51 @@
                             <td>{{ $record->clock_in?->format('g:i A') ?? '—' }}</td>
                             <td>{{ $record->clock_out?->format('g:i A') ?? '—' }}</td>
                             <td>{{ $record->clock_in && $record->clock_out ? number_format($record->clock_in->diffInMinutes($record->clock_out) / 60, 1).'h' : '—' }}</td>
-                            <td><x-status-pill :status="$record->status" /></td>
+                            <td><x-attendance-status-pill :info="$statusFor($record)" /></td>
+                            <td class="text-right">
+                                @php $existingRequest = $latestRequests->get($record->id); @endphp
+                                @if ($existingRequest && $existingRequest->status === 'pending')
+                                    <span class="badge-glass !border-amber-400/25 !bg-amber-400/10 !text-amber-200">Review Pending</span>
+                                @elseif ($existingRequest && $existingRequest->status === 'approved')
+                                    <span class="badge-glass !border-emerald-400/25 !bg-emerald-400/10 !text-emerald-200">Request Approved</span>
+                                @elseif ($existingRequest && $existingRequest->status === 'rejected')
+                                    <button wire:click="openRequestForm({{ $record->id }})" class="text-xs font-semibold text-white/40 hover:text-white">Request Declined &middot; Resubmit</button>
+                                @else
+                                    <button wire:click="openRequestForm({{ $record->id }})" class="text-xs font-semibold text-gold-300 hover:text-gold-200">Request Change</button>
+                                @endif
+                            </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="py-8 text-center text-white/40">No attendance records yet.</td></tr>
+                        <tr><td colspan="6" class="py-8 text-center text-white/40">No attendance records yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
         <div class="p-4">{{ $history->links() }}</div>
     </div>
+
+    <x-modal-glass wire-model="showRequestForm" title="Request Status Change">
+        <form wire:submit="submitStatusRequest" class="space-y-4">
+            <p class="text-sm text-white/50">Ask HR to review and correct this day's attendance status.</p>
+            <div>
+                <x-input-label for="requested_status" value="What should it be?" />
+                <select wire:model="requested_status" id="requested_status" class="input-glass">
+                    <option value="present">Present</option>
+                    <option value="late">Late</option>
+                    <option value="absent">Absent</option>
+                    <option value="on_leave">On Leave</option>
+                </select>
+                <x-input-error :messages="$errors->get('requested_status')" class="mt-1" />
+            </div>
+            <div>
+                <x-input-label for="request_reason" value="Reason" />
+                <textarea wire:model="request_reason" id="request_reason" rows="3" class="input-glass" placeholder="e.g. My login was delayed due to a network outage."></textarea>
+                <x-input-error :messages="$errors->get('request_reason')" class="mt-1" />
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
+                <x-primary-button>Submit Request</x-primary-button>
+            </div>
+        </form>
+    </x-modal-glass>
 </div>

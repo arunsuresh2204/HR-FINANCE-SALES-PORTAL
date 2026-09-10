@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Announcement;
 use App\Models\Asset;
 use App\Models\Attendance;
+use App\Models\AttendanceStatusRequest;
 use App\Models\BillingRequest;
 use App\Models\Client;
 use App\Models\Expense;
@@ -32,7 +33,7 @@ class DemoDataSeeder extends Seeder
             'employee_code' => 'EMP-0001', 'name' => 'Arun Suresh', 'email' => 'arun@nexstarc.com',
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Co-Founder / Lead Developer',
             'department' => 'Engineering', 'date_of_joining' => '2021-01-01', 'employment_status' => 'active',
-            'monthly_salary' => 4000,
+            'monthly_salary' => 4000, 'scheduled_login_time' => '09:00', 'scheduled_logoff_time' => '18:00',
         ]);
         $owner1->assignRole(['super_admin', 'programmer']);
 
@@ -40,7 +41,7 @@ class DemoDataSeeder extends Seeder
             'employee_code' => 'EMP-0002', 'name' => 'Rahul Menon', 'email' => 'rahul@nexstarc.com',
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Co-Founder / Developer',
             'department' => 'Engineering', 'date_of_joining' => '2021-01-01', 'employment_status' => 'active',
-            'monthly_salary' => 4000,
+            'monthly_salary' => 4000, 'scheduled_login_time' => '09:00', 'scheduled_logoff_time' => '18:00',
         ]);
         $owner2->assignRole(['super_admin', 'programmer']);
 
@@ -48,7 +49,7 @@ class DemoDataSeeder extends Seeder
             'employee_code' => 'EMP-0003', 'name' => 'Priya Nair', 'email' => 'priya@nexstarc.com',
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Co-Founder / Sales & Finance',
             'department' => 'Sales', 'date_of_joining' => '2021-01-01', 'employment_status' => 'active',
-            'monthly_salary' => 4500,
+            'monthly_salary' => 4500, 'scheduled_login_time' => '09:30', 'scheduled_logoff_time' => '18:30',
         ]);
         $owner3->assignRole(['super_admin', 'sales_exec', 'finance_admin', 'manager']);
 
@@ -56,7 +57,7 @@ class DemoDataSeeder extends Seeder
             'employee_code' => 'EMP-0004', 'name' => 'Karthik Iyer', 'email' => 'karthik@nexstarc.com',
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Co-Founder / Sales & HR',
             'department' => 'Sales', 'date_of_joining' => '2021-01-01', 'employment_status' => 'active',
-            'monthly_salary' => 4500,
+            'monthly_salary' => 4500, 'scheduled_login_time' => '09:30', 'scheduled_logoff_time' => '18:30',
         ]);
         $owner4->assignRole(['super_admin', 'sales_exec', 'hr_admin', 'manager']);
 
@@ -65,6 +66,7 @@ class DemoDataSeeder extends Seeder
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Full Stack Developer',
             'department' => 'Engineering', 'date_of_joining' => '2022-03-15', 'employment_status' => 'active',
             'monthly_salary' => 2200, 'manager_id' => $owner1->id,
+            'scheduled_login_time' => '09:00', 'scheduled_logoff_time' => '18:00',
         ]);
         $dev1->assignRole('programmer');
 
@@ -73,6 +75,7 @@ class DemoDataSeeder extends Seeder
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Mobile App Developer',
             'department' => 'Engineering', 'date_of_joining' => '2022-06-01', 'employment_status' => 'active',
             'monthly_salary' => 2200, 'manager_id' => $owner1->id,
+            'scheduled_login_time' => '10:00', 'scheduled_logoff_time' => '19:00',
         ]);
         $dev2->assignRole('programmer');
 
@@ -81,6 +84,7 @@ class DemoDataSeeder extends Seeder
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Social Media Marketer',
             'department' => 'Marketing', 'date_of_joining' => '2022-09-01', 'employment_status' => 'active',
             'monthly_salary' => 1800, 'manager_id' => $owner3->id,
+            'scheduled_login_time' => '10:00', 'scheduled_logoff_time' => '19:00',
         ]);
         $marketer1->assignRole('marketer');
 
@@ -89,6 +93,7 @@ class DemoDataSeeder extends Seeder
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Sales Team Lead',
             'department' => 'Sales', 'date_of_joining' => '2023-01-10', 'employment_status' => 'active',
             'monthly_salary' => 2000, 'manager_id' => $owner4->id,
+            'scheduled_login_time' => '09:00', 'scheduled_logoff_time' => '18:00',
         ]);
         $sales1->assignRole(['sales_exec', 'team_lead']);
 
@@ -97,6 +102,7 @@ class DemoDataSeeder extends Seeder
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Sales Executive',
             'department' => 'Sales', 'date_of_joining' => '2023-04-20', 'employment_status' => 'active',
             'monthly_salary' => 2000, 'manager_id' => $sales1->id,
+            'scheduled_login_time' => '09:00', 'scheduled_logoff_time' => '18:00',
         ]);
         $sales2->assignRole('sales_exec');
 
@@ -105,6 +111,7 @@ class DemoDataSeeder extends Seeder
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Sales Executive',
             'department' => 'Sales', 'date_of_joining' => now()->subMonths(2)->startOfMonth(), 'employment_status' => 'active',
             'monthly_salary' => 2000, 'manager_id' => $sales1->id,
+            'scheduled_login_time' => '09:30', 'scheduled_logoff_time' => '18:30',
         ]);
         $sales3->assignRole('sales_exec');
         $sales3->additionalManagers()->attach($owner3->id);
@@ -130,23 +137,82 @@ class DemoDataSeeder extends Seeder
             'description' => 'Annual leave entitlement and approval process.', 'file_path' => 'policies/leave-policy.pdf',
         ]);
 
-        // Attendance (last 5 working days) for all employees
+        // Attendance (last 5 working days) for all employees, clocking in around their scheduled time
         $employees = [$owner1, $owner2, $owner3, $owner4, $dev1, $dev2, $marketer1, $sales1, $sales2, $sales3];
         foreach ($employees as $emp) {
+            [$schedHour, $schedMinute] = array_map('intval', explode(':', $emp->scheduled_login_time));
+
             for ($i = 1; $i <= 5; $i++) {
                 $date = now()->subDays($i);
                 if ($date->isWeekend()) {
                     continue;
                 }
+
+                $scheduledAt = $date->copy()->setTime($schedHour, $schedMinute);
+                $clockIn = $scheduledAt->copy()->addMinutes(random_int(-10, 15));
+
                 Attendance::create([
                     'user_id' => $emp->id,
                     'work_date' => $date->toDateString(),
-                    'clock_in' => $date->copy()->setTime(9, random_int(0, 20)),
+                    'scheduled_login_time' => $emp->scheduled_login_time,
+                    'clock_in' => $clockIn,
                     'clock_out' => $date->copy()->setTime(18, random_int(0, 30)),
-                    'status' => 'present',
+                    'status' => $clockIn->lte($scheduledAt) ? 'present' : 'late',
                 ]);
             }
         }
+
+        // A few explicit examples so every late-tier and the leave override show up in the Attendance Oversight list
+        $twoDaysAgo = now()->subDays(2);
+        Attendance::where('user_id', $sales2->id)->whereDate('work_date', $twoDaysAgo->toDateString())->delete();
+        $sales2GraceScheduledAt = $twoDaysAgo->copy()->setTime(9, 0);
+        $sales2AttendanceGrace = Attendance::create([
+            'user_id' => $sales2->id,
+            'work_date' => $twoDaysAgo->toDateString(),
+            'scheduled_login_time' => $sales2->scheduled_login_time,
+            'clock_in' => $sales2GraceScheduledAt->copy()->addMinutes(18),
+            'clock_out' => $twoDaysAgo->copy()->setTime(18, 5),
+            'status' => 'late',
+        ]);
+
+        Attendance::where('user_id', $dev2->id)->whereDate('work_date', $twoDaysAgo->toDateString())->delete();
+        $dev2SevereScheduledAt = $twoDaysAgo->copy()->setTime(10, 0);
+        Attendance::create([
+            'user_id' => $dev2->id,
+            'work_date' => $twoDaysAgo->toDateString(),
+            'scheduled_login_time' => $dev2->scheduled_login_time,
+            'clock_in' => $dev2SevereScheduledAt->copy()->addMinutes(55),
+            'clock_out' => $twoDaysAgo->copy()->setTime(19, 10),
+            'status' => 'late',
+        ]);
+
+        // Vishnu never clocked in two days ago and has no leave on file for it — auto-mark absent
+        Attendance::where('user_id', $sales3->id)->whereDate('work_date', $twoDaysAgo->toDateString())->delete();
+        $sales3AbsentAttendance = Attendance::create([
+            'user_id' => $sales3->id,
+            'work_date' => $twoDaysAgo->toDateString(),
+            'scheduled_login_time' => $sales3->scheduled_login_time,
+            'status' => 'absent',
+        ]);
+
+        AttendanceStatusRequest::create([
+            'attendance_id' => $sales3AbsentAttendance->id,
+            'user_id' => $sales3->id,
+            'requested_status' => 'present',
+            'reason' => "Had a power outage at home and my phone was dead — I called Rohan but couldn't reach the portal to clock in. I was working from a café by 11am.",
+            'status' => 'pending',
+        ]);
+
+        AttendanceStatusRequest::create([
+            'attendance_id' => $sales2AttendanceGrace->id,
+            'user_id' => $sales2->id,
+            'requested_status' => 'present',
+            'reason' => 'Traffic due to road work near my place, only a few minutes late.',
+            'status' => 'rejected',
+            'reviewed_by' => $owner4->id,
+            'reviewed_at' => now()->subDay(),
+            'review_notes' => 'Understood, but still outside the grace window — keeping as late this time.',
+        ]);
 
         // Leave requests
         LeaveRequest::create([

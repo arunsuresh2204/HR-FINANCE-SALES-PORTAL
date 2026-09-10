@@ -35,6 +35,10 @@ class EmployeeShow extends Component
 
     public array $additional_manager_ids = [];
 
+    public string $scheduled_login_time = '';
+
+    public string $scheduled_logoff_time = '';
+
     public bool $showAssetForm = false;
 
     #[Validate('required|string|max:255')]
@@ -76,6 +80,8 @@ class EmployeeShow extends Component
         $this->monthly_salary = $user->monthly_salary ? (float) $user->monthly_salary : null;
         $this->manager_id = $user->manager_id;
         $this->additional_manager_ids = $user->additionalManagers()->pluck('users.id')->all();
+        $this->scheduled_login_time = $user->scheduled_login_time ? substr($user->scheduled_login_time, 0, 5) : '';
+        $this->scheduled_logoff_time = $user->scheduled_logoff_time ? substr($user->scheduled_logoff_time, 0, 5) : '';
     }
 
     public function saveReporting(): void
@@ -112,6 +118,8 @@ class EmployeeShow extends Component
             'designation' => 'nullable|string|max:255',
             'department' => 'nullable|string|max:255',
             'monthly_salary' => 'nullable|numeric|min:0',
+            'scheduled_login_time' => 'nullable|date_format:H:i',
+            'scheduled_logoff_time' => 'nullable|date_format:H:i',
         ]);
 
         $this->user->update([
@@ -120,6 +128,8 @@ class EmployeeShow extends Component
             'designation' => $this->designation,
             'department' => $this->department,
             'monthly_salary' => $this->monthly_salary,
+            'scheduled_login_time' => $this->scheduled_login_time ?: null,
+            'scheduled_logoff_time' => $this->scheduled_logoff_time ?: null,
         ]);
 
         $this->dispatch('toast', message: 'Employee details updated.', type: 'success');

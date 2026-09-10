@@ -85,6 +85,7 @@
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">HR Admin</p>
                         <div class="mt-2 space-y-1">
                             <a href="{{ route('hradmin.employees') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.employees*') ? 'active' : '' }}"><x-icon name="users" class="h-4 w-4 shrink-0" />Employees</a>
+                            <a href="{{ route('hradmin.attendance') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.attendance') ? 'active' : '' }}"><x-icon name="clock" class="h-4 w-4 shrink-0" />Attendance</a>
                             <a href="{{ route('hradmin.leave-approvals') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.leave-approvals') ? 'active' : '' }}"><x-icon name="check" class="h-4 w-4 shrink-0" />Leave Approvals</a>
                             <a href="{{ route('hradmin.holidays') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.holidays') ? 'active' : '' }}"><x-icon name="calendar" class="h-4 w-4 shrink-0" />Holiday Calendar</a>
                             <a href="{{ route('hradmin.resignations') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.resignations') ? 'active' : '' }}"><x-icon name="exit" class="h-4 w-4 shrink-0" />Offboarding</a>
