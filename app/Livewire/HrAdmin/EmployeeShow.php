@@ -49,6 +49,8 @@ class EmployeeShow extends Component
 
     public bool $showPromotionForm = false;
 
+    public ?int $editingPromotionId = null;
+
     #[Validate('required|string|max:255')]
     public string $new_designation = '';
 
@@ -160,12 +162,31 @@ class EmployeeShow extends Component
 
     public function openPromotionForm(): void
     {
-        $this->reset(['new_designation', 'new_department', 'effective_date', 'promotion_notes', 'promotionCertificate']);
+        $this->reset(['editingPromotionId', 'new_designation', 'new_department', 'effective_date', 'promotion_notes', 'promotionCertificate']);
         $this->new_designation = $this->user->designation ?? '';
         $this->new_department = $this->user->department ?? '';
         $this->effective_date = now()->toDateString();
         $this->resetValidation();
         $this->showPromotionForm = true;
+    }
+
+    public function editPromotion(int $promotionId): void
+    {
+        $promotion = Promotion::where('user_id', $this->user->id)->findOrFail($promotionId);
+
+        $this->editingPromotionId = $promotionId;
+        $this->new_designation = $promotion->new_designation;
+        $this->new_department = $promotion->new_department ?? '';
+        $this->effective_date = $promotion->effective_date->toDateString();
+        $this->promotion_notes = $promotion->notes ?? '';
+        $this->promotionCertificate = null;
+        $this->resetValidation();
+        $this->showPromotionForm = true;
+    }
+
+    public function cancelPromotionForm(): void
+    {
+        $this->reset(['showPromotionForm', 'editingPromotionId', 'new_designation', 'new_department', 'effective_date', 'promotion_notes', 'promotionCertificate']);
     }
 
     public function addPromotion(): void
@@ -200,6 +221,46 @@ class EmployeeShow extends Component
 
         $this->showPromotionForm = false;
         $this->dispatch('toast', message: 'Promotion recorded and designation updated.', type: 'success');
+    }
+
+    public function updatePromotion(): void
+    {
+        $promotion = Promotion::where('user_id', $this->user->id)->findOrFail($this->editingPromotionId);
+
+        $this->validate([
+            'new_designation' => 'required|string|max:255',
+            'new_department' => 'nullable|string|max:255',
+            'effective_date' => 'required|date',
+            'promotion_notes' => 'nullable|string|max:500',
+            'promotionCertificate' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf',
+        ]);
+
+        $promotion->update([
+            'new_designation' => $this->new_designation,
+            'new_department' => $this->new_department ?: $promotion->new_department,
+            'effective_date' => $this->effective_date,
+            'notes' => $this->promotion_notes,
+            'certificate_path' => $this->promotionCertificate
+                ? $this->promotionCertificate->store('promotion-certificates', 'public')
+                : $promotion->certificate_path,
+        ]);
+
+        // Keep the employee's live designation/department in sync only when we just
+        // edited their most recent promotion — an older record shouldn't overwrite it.
+        $latest = $this->user->promotions()->first();
+
+        if ($latest && $latest->id === $promotion->id) {
+            $this->user->update([
+                'designation' => $promotion->new_designation,
+                'department' => $promotion->new_department,
+            ]);
+            $this->user->refresh();
+            $this->designation = $this->user->designation ?? '';
+            $this->department = $this->user->department ?? '';
+        }
+
+        $this->cancelPromotionForm();
+        $this->dispatch('toast', message: 'Promotion updated.', type: 'success');
     }
 
     public function submitOfferLetter(): void

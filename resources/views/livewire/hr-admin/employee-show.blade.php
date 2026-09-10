@@ -167,9 +167,12 @@
                                     <p class="mt-1 text-xs text-white/50">{{ $promo->notes }}</p>
                                 @endif
                             </div>
-                            @if ($promo->certificate_path)
-                                <a href="{{ Storage::url($promo->certificate_path) }}" target="_blank" class="shrink-0 text-xs font-semibold text-gold-300 hover:text-gold-200">Certificate</a>
-                            @endif
+                            <div class="flex shrink-0 items-center gap-3">
+                                @if ($promo->certificate_path)
+                                    <a href="{{ Storage::url($promo->certificate_path) }}" target="_blank" class="text-xs font-semibold text-gold-300 hover:text-gold-200">Certificate</a>
+                                @endif
+                                <button wire:click="editPromotion({{ $promo->id }})" class="text-xs font-semibold text-white/50 hover:text-white">Edit</button>
+                            </div>
                         </div>
                     @empty
                         <p class="text-sm text-white/40">No promotions recorded yet.</p>
@@ -177,7 +180,8 @@
                 </div>
 
                 @if ($showPromotionForm)
-                    <form wire:submit="addPromotion" class="mt-4 space-y-4 border-t border-white/10 pt-4">
+                    <form wire:submit="{{ $editingPromotionId ? 'updatePromotion' : 'addPromotion' }}" class="mt-4 space-y-4 border-t border-white/10 pt-4">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-white/40">{{ $editingPromotionId ? 'Editing Promotion' : 'New Promotion' }}</p>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <x-input-label for="new_designation" value="New Designation" />
@@ -198,6 +202,10 @@
                             <div>
                                 <x-input-label for="promotionCertificate" value="Certificate (optional)" />
                                 <input wire:model="promotionCertificate" id="promotionCertificate" type="file" class="input-glass file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white/80" />
+                                @php $editingPromotion = $editingPromotionId ? $promotions->firstWhere('id', $editingPromotionId) : null; @endphp
+                                @if ($editingPromotion?->certificate_path)
+                                    <p class="mt-1 text-xs text-white/40">Current: <a href="{{ Storage::url($editingPromotion->certificate_path) }}" target="_blank" class="text-gold-300 hover:text-gold-200">View certificate</a> &mdash; upload a file to replace it.</p>
+                                @endif
                                 <x-input-error :messages="$errors->get('promotionCertificate')" class="mt-1" />
                             </div>
                         </div>
@@ -206,8 +214,8 @@
                             <textarea wire:model="promotion_notes" id="promotion_notes" rows="2" class="input-glass"></textarea>
                         </div>
                         <div class="flex justify-end gap-3">
-                            <x-secondary-button type="button" wire:click="$set('showPromotionForm', false)">Cancel</x-secondary-button>
-                            <x-primary-button>Save Promotion</x-primary-button>
+                            <x-secondary-button type="button" wire:click="cancelPromotionForm">Cancel</x-secondary-button>
+                            <x-primary-button>{{ $editingPromotionId ? 'Update Promotion' : 'Save Promotion' }}</x-primary-button>
                         </div>
                     </form>
                 @endif

@@ -17,6 +17,8 @@ class PayrollRun extends Component
 
     public ?int $editingPayrollId = null;
 
+    public bool $editingHasPayslip = false;
+
     public bool $showEditForm = false;
 
     #[Validate('required|numeric|min:0')]
@@ -79,11 +81,12 @@ class PayrollRun extends Component
     {
         $payroll = Payroll::find($payrollId);
 
-        if (! $payroll || $payroll->status !== 'draft') {
+        if (! $payroll) {
             return;
         }
 
         $this->editingPayrollId = $payrollId;
+        $this->editingHasPayslip = (bool) $payroll->payslip_file;
         $this->basic_salary = (string) $payroll->basic_salary;
         $this->hra = (string) $payroll->hra;
         $this->da = (string) $payroll->da;
@@ -100,7 +103,7 @@ class PayrollRun extends Component
     public function cancelEdit(): void
     {
         $this->reset([
-            'editingPayrollId', 'showEditForm', 'basic_salary', 'hra', 'da', 'other_allowances',
+            'editingPayrollId', 'editingHasPayslip', 'showEditForm', 'basic_salary', 'hra', 'da', 'other_allowances',
             'income_tax', 'provident_fund', 'loss_of_pay', 'other_deductions', 'lop_days',
         ]);
     }
@@ -111,8 +114,8 @@ class PayrollRun extends Component
 
         $payroll = Payroll::find($this->editingPayrollId);
 
-        if (! $payroll || $payroll->status !== 'draft') {
-            $this->dispatch('toast', message: 'This payslip can no longer be edited.', type: 'error');
+        if (! $payroll) {
+            $this->dispatch('toast', message: 'This payslip could not be found.', type: 'error');
 
             return;
         }
@@ -131,18 +134,35 @@ class PayrollRun extends Component
         $payroll->recalculateTotals();
         $payroll->save();
 
+        // A payslip was already generated for this record — regenerate the PDF in place
+        // so the file finance/the employee sees always reflects the latest figures.
+        if ($payroll->payslip_file) {
+            $this->generatePayslipPdf($payroll);
+            $this->cancelEdit();
+            $this->dispatch('toast', message: 'Payslip components updated and payslip resubmitted.', type: 'success');
+
+            return;
+        }
+
         $this->cancelEdit();
         $this->dispatch('toast', message: 'Payslip components updated.', type: 'success');
     }
 
     public function process(Payroll $payroll): void
     {
+        $this->generatePayslipPdf($payroll);
+
+        $payroll->update(['status' => 'processed', 'processed_by' => Auth::id()]);
+        $this->dispatch('toast', message: 'Payslip generated.', type: 'success');
+    }
+
+    private function generatePayslipPdf(Payroll $payroll): void
+    {
         $pdf = Pdf::loadView('pdf.payslip', ['payroll' => $payroll->load('user')]);
         $path = 'payslips/payslip-'.$payroll->id.'.pdf';
         \Illuminate\Support\Facades\Storage::disk('public')->put($path, $pdf->output());
 
-        $payroll->update(['status' => 'processed', 'payslip_file' => $path, 'processed_by' => Auth::id()]);
-        $this->dispatch('toast', message: 'Payslip generated.', type: 'success');
+        $payroll->update(['payslip_file' => $path]);
     }
 
     public function markPaid(Payroll $payroll): void

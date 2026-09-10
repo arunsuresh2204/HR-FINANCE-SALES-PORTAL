@@ -29,19 +29,17 @@
                             <td class="font-semibold text-white">{{ \App\Support\Currency::format($p->net_salary, 'INR') }}</td>
                             <td><x-status-pill :status="$p->status" /></td>
                             <td class="text-right">
-                                @if ($p->status === 'draft')
-                                    <div class="flex justify-end gap-3">
-                                        <button wire:click="openEditForm({{ $p->id }})" class="text-xs font-semibold text-white/50 hover:text-white">Edit</button>
+                                <div class="flex justify-end items-center gap-3">
+                                    <button wire:click="openEditForm({{ $p->id }})" class="text-xs font-semibold text-white/50 hover:text-white">Edit</button>
+                                    @if ($p->status === 'draft')
                                         <button wire:click="process({{ $p->id }})" class="rounded-lg bg-sky-400/15 px-2.5 py-1 text-xs font-semibold text-sky-300 hover:bg-sky-400/25">Generate Payslip</button>
-                                    </div>
-                                @elseif ($p->status === 'processed')
-                                    <div class="flex justify-end gap-2">
+                                    @elseif ($p->status === 'processed')
                                         <a href="{{ Storage::url($p->payslip_file) }}" target="_blank" class="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/70 hover:bg-white/15">View</a>
                                         <button wire:click="markPaid({{ $p->id }})" class="rounded-lg bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-300 hover:bg-emerald-400/25">Mark Paid</button>
-                                    </div>
-                                @else
-                                    <a href="{{ Storage::url($p->payslip_file) }}" target="_blank" class="text-xs font-semibold text-gold-300 hover:text-gold-200">View Payslip</a>
-                                @endif
+                                    @else
+                                        <a href="{{ Storage::url($p->payslip_file) }}" target="_blank" class="text-xs font-semibold text-gold-300 hover:text-gold-200">View Payslip</a>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -132,9 +130,12 @@
                 </div>
             </div>
 
+            @if ($editingHasPayslip)
+                <p class="text-xs text-white/40">This payslip was already generated &mdash; saving will resubmit it with the updated figures.</p>
+            @endif
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
-                <x-primary-button>Save Components</x-primary-button>
+                <x-primary-button>{{ $editingHasPayslip ? 'Save & Resubmit Payslip' : 'Save Components' }}</x-primary-button>
             </div>
         </form>
     </x-modal-glass>
