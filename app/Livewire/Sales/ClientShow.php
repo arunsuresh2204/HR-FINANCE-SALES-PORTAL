@@ -262,7 +262,7 @@ class ClientShow extends Component
             'totalHours' => $this->client->timesheets()->sum('hours'),
             'billableHours' => $this->client->billableHours(),
             'canManageProjects' => $authUser->isManager() || $authUser->isSuperAdmin(),
-            'managersAndOwners' => User::role(['manager', 'super_admin'])->orderBy('name')->get(),
+            'managersAndOwners' => User::role(['manager_engineering', 'super_admin'])->orderBy('name')->get(),
             'developersList' => User::role('programmer')->orderBy('name')->get(),
         ]);
     }

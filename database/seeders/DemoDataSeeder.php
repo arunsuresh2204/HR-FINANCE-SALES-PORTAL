@@ -52,7 +52,7 @@ class DemoDataSeeder extends Seeder
             'department' => 'Sales', 'date_of_joining' => '2021-01-01', 'employment_status' => 'active',
             'monthly_salary' => 4500, 'scheduled_login_time' => '09:30', 'scheduled_logoff_time' => '18:30',
         ]);
-        $owner3->assignRole(['super_admin', 'sales_exec', 'finance_admin', 'manager']);
+        $owner3->assignRole(['super_admin', 'sales_exec', 'finance_admin', 'manager_engineering']);
 
         $owner4 = User::create([
             'employee_code' => 'EMP-0004', 'name' => 'Karthik Iyer', 'email' => 'karthik@nexstarc.com',
@@ -60,7 +60,7 @@ class DemoDataSeeder extends Seeder
             'department' => 'Sales', 'date_of_joining' => '2021-01-01', 'employment_status' => 'active',
             'monthly_salary' => 4500, 'scheduled_login_time' => '09:30', 'scheduled_logoff_time' => '18:30',
         ]);
-        $owner4->assignRole(['super_admin', 'sales_exec', 'hr_admin', 'manager']);
+        $owner4->assignRole(['super_admin', 'sales_exec', 'hr_admin', 'manager_engineering']);
 
         $dev1 = User::create([
             'employee_code' => 'EMP-0005', 'name' => 'Sneha Reddy', 'email' => 'sneha@nexstarc.com',

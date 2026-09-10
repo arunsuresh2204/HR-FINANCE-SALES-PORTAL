@@ -362,7 +362,7 @@ class User extends Authenticatable
 
     public function isManager(): bool
     {
-        return $this->hasAnyRole(['manager', 'super_admin']);
+        return $this->hasAnyRole(['manager_engineering', 'super_admin']);
     }
 
     public function isTeamLead(): bool
@@ -372,7 +372,7 @@ class User extends Authenticatable
 
     public function canSetSalesTargets(): bool
     {
-        return $this->hasAnyRole(['manager', 'super_admin']);
+        return $this->hasAnyRole(['manager_engineering', 'super_admin']);
     }
 
     public function initials(): string

@@ -46,7 +46,7 @@ class FeatureCatalog
             'access_sales_leads', 'access_sales_clients', 'access_sales_targets',
             'access_hr_admin', 'access_finance_admin', 'access_super_admin',
         ],
-        'manager' => ['access_org_chart', 'access_sales_clients', 'access_sales_targets'],
+        'manager_engineering' => ['access_org_chart', 'access_sales_clients', 'access_sales_targets'],
         'hr_admin' => ['access_org_chart', 'access_hr_admin'],
         'finance_admin' => ['access_finance_admin'],
         'sales_exec' => ['access_sales_leads', 'access_sales_clients', 'access_sales_targets'],
