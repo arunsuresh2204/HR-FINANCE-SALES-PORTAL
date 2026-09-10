@@ -64,7 +64,8 @@ class DocumentIndex extends Component
             'policies' => PolicyDocument::latest()->get(),
             'promotions' => $user->promotions,
             'offerLetter' => $user->offerLetter(),
-            'requiredMissing' => collect(EmployeeDocument::requiredKeys())->diff($documents->keys())->count(),
+            'requiredMissing' => collect(EmployeeDocument::requiredKeys())->diff($documents->keys())->count()
+                + ($user->hasCompleteBankDetails() ? 0 : 1),
         ]);
     }
 }

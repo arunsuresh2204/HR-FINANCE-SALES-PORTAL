@@ -39,6 +39,21 @@ class EmployeeShow extends Component
 
     public string $scheduled_logoff_time = '';
 
+    #[Validate('nullable|string|max:255')]
+    public string $bank_account_holder_name = '';
+
+    #[Validate('nullable|string|max:255')]
+    public string $bank_name = '';
+
+    #[Validate('nullable|string|max:100')]
+    public string $bank_account_number = '';
+
+    #[Validate('nullable|string|max:50')]
+    public string $bank_ifsc = '';
+
+    #[Validate('nullable|string|max:255')]
+    public string $bank_branch = '';
+
     public bool $showAssetForm = false;
 
     #[Validate('required|string|max:255')]
@@ -87,6 +102,11 @@ class EmployeeShow extends Component
         $this->additional_manager_ids = $user->additionalManagers()->pluck('users.id')->all();
         $this->scheduled_login_time = $user->scheduled_login_time ? substr($user->scheduled_login_time, 0, 5) : '';
         $this->scheduled_logoff_time = $user->scheduled_logoff_time ? substr($user->scheduled_logoff_time, 0, 5) : '';
+        $this->bank_account_holder_name = $user->bank_account_holder_name ?? '';
+        $this->bank_name = $user->bank_name ?? '';
+        $this->bank_account_number = $user->bank_account_number ?? '';
+        $this->bank_ifsc = $user->bank_ifsc ?? '';
+        $this->bank_branch = $user->bank_branch ?? '';
     }
 
     public function saveReporting(): void
@@ -138,6 +158,28 @@ class EmployeeShow extends Component
         ]);
 
         $this->dispatch('toast', message: 'Employee details updated.', type: 'success');
+    }
+
+    public function saveBankDetails(): void
+    {
+        $this->validate([
+            'bank_account_holder_name' => 'nullable|string|max:255',
+            'bank_name' => 'nullable|string|max:255',
+            'bank_account_number' => 'nullable|string|max:100',
+            'bank_ifsc' => 'nullable|string|max:50',
+            'bank_branch' => 'nullable|string|max:255',
+        ]);
+
+        $this->user->update([
+            'bank_account_holder_name' => $this->bank_account_holder_name ?: null,
+            'bank_name' => $this->bank_name ?: null,
+            'bank_account_number' => $this->bank_account_number ?: null,
+            'bank_ifsc' => $this->bank_ifsc ?: null,
+            'bank_branch' => $this->bank_branch ?: null,
+        ]);
+        $this->user->refresh();
+
+        $this->dispatch('toast', message: 'Bank account details updated.', type: 'success');
     }
 
     public function assignAsset(): void
@@ -306,7 +348,8 @@ class EmployeeShow extends Component
             'recentAttendance' => $this->user->attendances()->orderByDesc('work_date')->limit(5)->get(),
             'catalog' => EmployeeDocument::CATALOG,
             'documents' => $documents,
-            'requiredMissing' => collect(EmployeeDocument::requiredKeys())->diff($documents->keys())->count(),
+            'requiredMissing' => collect(EmployeeDocument::requiredKeys())->diff($documents->keys())->count()
+                + ($this->user->hasCompleteBankDetails() ? 0 : 1),
             'promotions' => $this->user->promotions,
             'offerLetter' => $this->user->offerLetter(),
         ]);

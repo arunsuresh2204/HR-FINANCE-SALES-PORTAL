@@ -69,9 +69,27 @@
         </div>
 
         <div class="mt-6 space-y-6">
-            @foreach ($catalog as $group)
+            @foreach ($catalog as $groupKey => $group)
                 <div>
                     <h3 class="mb-3 text-xs font-semibold uppercase tracking-wide text-white/40">{{ $group['label'] }}</h3>
+
+                    @if ($groupKey === 'banking_statutory')
+                        @php $user = auth()->user(); @endphp
+                        <div class="glass-inset mb-2 p-3">
+                            <div class="mb-2 flex items-center justify-between">
+                                <p class="text-sm font-medium text-white">Bank Account Details</p>
+                                <span class="text-xs {{ $user->hasCompleteBankDetails() ? 'text-white/35' : 'text-rose-300/70' }}">{{ $user->hasCompleteBankDetails() ? 'On file' : 'Required · incomplete — contact HR' }}</span>
+                            </div>
+                            <dl class="grid gap-x-4 gap-y-1.5 text-xs sm:grid-cols-2">
+                                <div class="flex justify-between gap-2"><dt class="text-white/40">Account Holder</dt><dd class="text-white/80">{{ $user->bank_account_holder_name ?: 'Not on file' }}</dd></div>
+                                <div class="flex justify-between gap-2"><dt class="text-white/40">Bank Name</dt><dd class="text-white/80">{{ $user->bank_name ?: 'Not on file' }}</dd></div>
+                                <div class="flex justify-between gap-2"><dt class="text-white/40">Account Number</dt><dd class="text-white/80">{{ $user->bank_account_number ?: 'Not on file' }}</dd></div>
+                                <div class="flex justify-between gap-2"><dt class="text-white/40">IFSC Code</dt><dd class="text-white/80">{{ $user->bank_ifsc ?: 'Not on file' }}</dd></div>
+                                <div class="flex justify-between gap-2"><dt class="text-white/40">Branch</dt><dd class="text-white/80">{{ $user->bank_branch ?: 'Not on file' }}</dd></div>
+                            </dl>
+                        </div>
+                    @endif
+
                     <div class="grid gap-2 sm:grid-cols-2">
                         @foreach ($group['items'] as $key => $item)
                             @php $doc = $documents->get($key); @endphp

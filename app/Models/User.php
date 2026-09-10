@@ -37,9 +37,11 @@ class User extends Authenticatable
         'address',
         'emergency_contact_name',
         'emergency_contact_phone',
+        'bank_account_holder_name',
         'bank_name',
         'bank_account_number',
         'bank_ifsc',
+        'bank_branch',
         'monthly_salary',
         'employment_status',
         'employment_type',
@@ -171,6 +173,15 @@ class User extends Authenticatable
     public function offerLetter(): ?CompanyDocument
     {
         return $this->companyDocuments()->where('type', CompanyDocument::TYPE_OFFER_LETTER)->latest()->first();
+    }
+
+    public function hasCompleteBankDetails(): bool
+    {
+        return filled($this->bank_account_holder_name)
+            && filled($this->bank_name)
+            && filled($this->bank_account_number)
+            && filled($this->bank_ifsc)
+            && filled($this->bank_branch);
     }
 
     public function manager(): BelongsTo

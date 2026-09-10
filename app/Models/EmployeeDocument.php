@@ -37,7 +37,6 @@ class EmployeeDocument extends Model
         'banking_statutory' => [
             'label' => 'Banking & Statutory',
             'items' => [
-                'bank_details' => ['label' => 'Bank Account Details', 'required' => true],
                 'pf_uan' => ['label' => 'PF Account Number / UAN', 'required' => false],
                 'esi_details' => ['label' => 'ESI Details', 'required' => false],
             ],
