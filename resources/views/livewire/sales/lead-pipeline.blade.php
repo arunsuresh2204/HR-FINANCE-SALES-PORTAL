@@ -106,7 +106,7 @@
                 </thead>
                 <tbody>
                     @forelse ($leads as $lead)
-                        <tr wire:key="lead-row-{{ $lead->id }}">
+                        <tr wire:key="lead-row-{{ $lead->id }}" onclick="if (!event.target.closest('a, button, select, input')) { Livewire.navigate('{{ route('sales.leads.show', $lead) }}') }" class="cursor-pointer">
                             <td class="whitespace-nowrap text-white/60">{{ $lead->contacted_date?->format('M j') ?? $lead->created_at->format('M j') }}</td>
                             <td class="max-w-[10rem]">
                                 <button type="button" wire:click="viewRequirement({{ $lead->id }})" class="block text-left">

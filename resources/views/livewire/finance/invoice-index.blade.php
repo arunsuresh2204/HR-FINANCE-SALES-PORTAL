@@ -20,7 +20,7 @@
                 <thead><tr><th>Invoice #</th><th>Client</th><th>Currency</th><th>Amount</th><th>Paid</th><th>Due Date</th><th>Status</th><th></th></tr></thead>
                 <tbody>
                     @forelse ($invoices as $invoice)
-                        <tr>
+                        <tr onclick="if (!event.target.closest('a')) { Livewire.navigate('{{ route('finance.invoices.show', $invoice) }}') }" class="cursor-pointer">
                             <td class="font-medium text-white">{{ $invoice->invoice_number }}</td>
                             <td>{{ $invoice->client->business_name }}</td>
                             <td><span class="badge-glass">{{ $invoice->currency }}</span></td>

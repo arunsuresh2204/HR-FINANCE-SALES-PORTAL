@@ -27,7 +27,7 @@
                 <thead><tr><th>Employee</th><th>Department</th><th>Roles</th><th>Status</th><th>Joined</th><th></th></tr></thead>
                 <tbody>
                     @forelse ($employees as $emp)
-                        <tr>
+                        <tr onclick="if (!event.target.closest('a')) { Livewire.navigate('{{ route('hradmin.employees.show', $emp) }}') }" class="cursor-pointer">
                             <td>
                                 <div class="flex items-center gap-3">
                                     <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gold-400/20 text-xs font-bold text-gold-300">{{ $emp->initials() }}</span>

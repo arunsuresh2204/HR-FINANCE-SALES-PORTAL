@@ -54,7 +54,7 @@
                     </thead>
                     <tbody>
                         @forelse ($clients as $client)
-                            <tr wire:key="client-row-{{ $client->id }}">
+                            <tr wire:key="client-row-{{ $client->id }}" onclick="if (!event.target.closest('a')) { Livewire.navigate('{{ route('sales.clients.show', $client) }}') }" class="cursor-pointer">
                                 <td class="font-medium text-white">{{ $client->business_name }}</td>
                                 <td class="text-white/60">{{ $client->business_type ?? '—' }}</td>
                                 <td class="text-white/60">{{ $client->salesPerson->name }}</td>
