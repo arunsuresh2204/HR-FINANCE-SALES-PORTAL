@@ -14,6 +14,7 @@ use App\Models\Lead;
 use App\Models\LeadActivity;
 use App\Models\LeaveRequest;
 use App\Models\MarketingLog;
+use App\Models\Payroll;
 use App\Models\PolicyDocument;
 use App\Models\Project;
 use App\Models\SalesTarget;
@@ -367,6 +368,45 @@ class DemoDataSeeder extends Seeder
             'end_date' => now()->subDays(2), 'days' => 2, 'reason' => 'Fever', 'status' => 'approved',
             'reviewed_by' => $owner4->id, 'reviewed_at' => now()->subDays(3),
         ]);
+
+        // Payroll: itemized payslips demonstrating the earnings/deductions breakdown
+        $vishnuPayroll = new Payroll([
+            'user_id' => $sales3->id, 'processed_by' => $owner3->id,
+            'month' => 9, 'year' => 2026,
+            'basic_salary' => 10000, 'hra' => 5000, 'da' => 5000,
+            'loss_of_pay' => 1000, 'lop_days' => 1,
+            'status' => 'paid',
+        ]);
+        $vishnuPayroll->recalculateTotals();
+        $vishnuPayroll->save();
+        $vishnuPdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.payslip', ['payroll' => $vishnuPayroll->load('user')]);
+        $vishnuPath = 'payslips/payslip-'.$vishnuPayroll->id.'.pdf';
+        \Illuminate\Support\Facades\Storage::disk('public')->put($vishnuPath, $vishnuPdf->output());
+        $vishnuPayroll->update(['payslip_file' => $vishnuPath]);
+
+        $snehaPayroll = new Payroll([
+            'user_id' => $dev1->id, 'processed_by' => $owner1->id,
+            'month' => 9, 'year' => 2026,
+            'basic_salary' => 1200, 'hra' => 600, 'da' => 400,
+            'income_tax' => 150, 'provident_fund' => 144,
+            'status' => 'processed',
+        ]);
+        $snehaPayroll->recalculateTotals();
+        $snehaPayroll->save();
+        $snehaPdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.payslip', ['payroll' => $snehaPayroll->load('user')]);
+        $snehaPath = 'payslips/payslip-'.$snehaPayroll->id.'.pdf';
+        \Illuminate\Support\Facades\Storage::disk('public')->put($snehaPath, $snehaPdf->output());
+        $snehaPayroll->update(['payslip_file' => $snehaPath]);
+
+        // A draft payroll for the current month, left unedited so Finance can demo the itemized edit flow
+        $divyaPayroll = new Payroll([
+            'user_id' => $sales2->id, 'processed_by' => $owner4->id,
+            'month' => now()->month, 'year' => now()->year,
+            'basic_salary' => $sales2->monthly_salary,
+            'status' => 'draft',
+        ]);
+        $divyaPayroll->recalculateTotals();
+        $divyaPayroll->save();
 
         // Timesheets
         Timesheet::create([

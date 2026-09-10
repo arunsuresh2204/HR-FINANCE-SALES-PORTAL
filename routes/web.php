@@ -25,6 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('attendance', 'pages.hr.attendance-index')->name('hr.attendance');
     Route::view('leave', 'pages.hr.leave-index')->name('hr.leave');
     Route::view('payslips', 'pages.hr.payslip-index')->name('hr.payslips');
+    Route::get('payslips/{payroll}/download', \App\Http\Controllers\PayslipPdfController::class)->name('payslips.download');
     Route::view('expenses', 'pages.hr.expense-index')->name('hr.expenses');
     Route::view('assets', 'pages.hr.asset-index')->name('hr.assets');
     Route::view('documents', 'pages.hr.document-index')->name('hr.documents');

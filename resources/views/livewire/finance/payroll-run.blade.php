@@ -25,18 +25,15 @@
                         <tr id="payslip-{{ $p->id }}">
                             <td class="font-medium text-white">{{ $p->user->name }}</td>
                             <td>{{ \App\Support\Currency::format($p->gross_salary, 'INR') }}</td>
-                            <td>
-                                @if ($p->status === 'draft')
-                                    <input type="number" step="0.01" value="{{ $p->deductions }}" wire:change="updateDeduction({{ $p->id }}, $event.target.value)" class="input-glass w-28 py-1">
-                                @else
-                                    {{ \App\Support\Currency::format($p->deductions, 'INR') }}
-                                @endif
-                            </td>
+                            <td>{{ \App\Support\Currency::format($p->deductions, 'INR') }}</td>
                             <td class="font-semibold text-white">{{ \App\Support\Currency::format($p->net_salary, 'INR') }}</td>
                             <td><x-status-pill :status="$p->status" /></td>
                             <td class="text-right">
                                 @if ($p->status === 'draft')
-                                    <button wire:click="process({{ $p->id }})" class="rounded-lg bg-sky-400/15 px-2.5 py-1 text-xs font-semibold text-sky-300 hover:bg-sky-400/25">Generate Payslip</button>
+                                    <div class="flex justify-end gap-3">
+                                        <button wire:click="openEditForm({{ $p->id }})" class="text-xs font-semibold text-white/50 hover:text-white">Edit</button>
+                                        <button wire:click="process({{ $p->id }})" class="rounded-lg bg-sky-400/15 px-2.5 py-1 text-xs font-semibold text-sky-300 hover:bg-sky-400/25">Generate Payslip</button>
+                                    </div>
                                 @elseif ($p->status === 'processed')
                                     <div class="flex justify-end gap-2">
                                         <a href="{{ Storage::url($p->payslip_file) }}" target="_blank" class="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/70 hover:bg-white/15">View</a>
@@ -54,4 +51,91 @@
             </table>
         </div>
     </div>
+
+    <x-modal-glass wire-model="showEditForm" title="Edit Payslip Components" max-width="xl">
+        <form wire:submit="saveEdit" class="space-y-5">
+            <div>
+                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-white/40">Earnings</p>
+                <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <div>
+                        <x-input-label for="basic_salary" value="Basic Salary" />
+                        <x-text-input wire:model.live="basic_salary" id="basic_salary" type="number" step="0.01" class="mt-0" />
+                        <x-input-error :messages="$errors->get('basic_salary')" class="mt-1" />
+                    </div>
+                    <div>
+                        <x-input-label for="hra" value="House Rent Allowance" />
+                        <x-text-input wire:model.live="hra" id="hra" type="number" step="0.01" class="mt-0" />
+                        <x-input-error :messages="$errors->get('hra')" class="mt-1" />
+                    </div>
+                    <div>
+                        <x-input-label for="da" value="Dearness Allowance" />
+                        <x-text-input wire:model.live="da" id="da" type="number" step="0.01" class="mt-0" />
+                        <x-input-error :messages="$errors->get('da')" class="mt-1" />
+                    </div>
+                    <div>
+                        <x-input-label for="other_allowances" value="Other Allowances" />
+                        <x-text-input wire:model.live="other_allowances" id="other_allowances" type="number" step="0.01" class="mt-0" />
+                        <x-input-error :messages="$errors->get('other_allowances')" class="mt-1" />
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-white/40">Deductions</p>
+                <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <div>
+                        <x-input-label for="income_tax" value="Income Tax / TDS" />
+                        <x-text-input wire:model.live="income_tax" id="income_tax" type="number" step="0.01" class="mt-0" />
+                        <x-input-error :messages="$errors->get('income_tax')" class="mt-1" />
+                    </div>
+                    <div>
+                        <x-input-label for="provident_fund" value="Provident Fund" />
+                        <x-text-input wire:model.live="provident_fund" id="provident_fund" type="number" step="0.01" class="mt-0" />
+                        <x-input-error :messages="$errors->get('provident_fund')" class="mt-1" />
+                    </div>
+                    <div>
+                        <x-input-label for="loss_of_pay" value="Loss of Pay" />
+                        <x-text-input wire:model.live="loss_of_pay" id="loss_of_pay" type="number" step="0.01" class="mt-0" />
+                        <x-input-error :messages="$errors->get('loss_of_pay')" class="mt-1" />
+                    </div>
+                    <div>
+                        <x-input-label for="other_deductions" value="Other Deductions" />
+                        <x-text-input wire:model.live="other_deductions" id="other_deductions" type="number" step="0.01" class="mt-0" />
+                        <x-input-error :messages="$errors->get('other_deductions')" class="mt-1" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="max-w-[10rem]">
+                <x-input-label for="lop_days" value="LOP Days" />
+                <x-text-input wire:model.live="lop_days" id="lop_days" type="number" step="1" min="0" class="mt-0" />
+                <x-input-error :messages="$errors->get('lop_days')" class="mt-1" />
+            </div>
+
+            @php
+                $previewGross = (float) $basic_salary + (float) $hra + (float) $da + (float) $other_allowances;
+                $previewDeductions = (float) $income_tax + (float) $provident_fund + (float) $loss_of_pay + (float) $other_deductions;
+                $previewNet = $previewGross - $previewDeductions;
+            @endphp
+            <div class="grid grid-cols-3 gap-4 rounded-xl border border-white/10 bg-white/5 p-4 text-center">
+                <div>
+                    <p class="text-xs text-white/40">Gross Earnings</p>
+                    <p class="mt-1 text-sm font-bold text-white">{{ \App\Support\Currency::format($previewGross, 'INR') }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-white/40">Total Deductions</p>
+                    <p class="mt-1 text-sm font-bold text-white">{{ \App\Support\Currency::format($previewDeductions, 'INR') }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-white/40">Net Pay</p>
+                    <p class="mt-1 text-sm font-bold text-gold-300">{{ \App\Support\Currency::format($previewNet, 'INR') }}</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
+                <x-primary-button>Save Components</x-primary-button>
+            </div>
+        </form>
+    </x-modal-glass>
 </div>
