@@ -25,7 +25,7 @@ class FeatureCatalog
      */
     public const FEATURE_DESCRIPTIONS = [
         'access_org_chart' => 'Company org chart and reporting lines',
-        'access_timesheets' => 'Programmer daily timesheet logs',
+        'access_timesheets' => 'Daily timesheet logs; managers with this also see their team\'s entries',
         'access_marketing_logs' => 'Marketer daily activity logs',
         'access_sales_leads' => 'Leads pipeline (add/track cold-outreach contacts)',
         'access_sales_clients' => 'Client list and client detail pages',
@@ -36,9 +36,8 @@ class FeatureCatalog
     ];
 
     /**
-     * Starting permission set per seeded role, matching the access each
-     * role already had under the old hardcoded route:role|role middleware
-     * so switching over doesn't change anyone's access.
+     * Starting permission set per seeded role. Re-run only for initial
+     * setup — it overwrites any manual Feature Access customization.
      */
     public const DEFAULT_ROLE_PERMISSIONS = [
         'super_admin' => [
@@ -46,7 +45,7 @@ class FeatureCatalog
             'access_sales_leads', 'access_sales_clients', 'access_sales_targets',
             'access_hr_admin', 'access_finance_admin', 'access_super_admin',
         ],
-        'manager_engineering' => ['access_org_chart', 'access_sales_clients', 'access_sales_targets'],
+        'manager_engineering' => ['access_org_chart', 'access_sales_clients', 'access_timesheets'],
         'hr_admin' => ['access_org_chart', 'access_hr_admin'],
         'finance_admin' => ['access_finance_admin'],
         'sales_exec' => ['access_sales_leads', 'access_sales_clients', 'access_sales_targets'],

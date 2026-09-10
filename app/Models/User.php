@@ -310,6 +310,18 @@ class User extends Authenticatable
         return $this->directReports->concat($this->additionalReports)->unique('id');
     }
 
+    /**
+     * Every report under this user's reporting line, at any depth
+     * (e.g. a manager's team leads and, in turn, those leads' programmers).
+     */
+    public function allDescendants()
+    {
+        return $this->allReports()->reduce(
+            fn ($descendants, User $report) => $descendants->push($report)->merge($report->allDescendants()),
+            collect()
+        )->unique('id');
+    }
+
     public function isManagerOf(User $user): bool
     {
         return $user->manager_id === $this->id || $user->additionalManagers->contains('id', $this->id);
@@ -372,7 +384,11 @@ class User extends Authenticatable
 
     public function canSetSalesTargets(): bool
     {
-        return $this->hasAnyRole(['manager_engineering', 'super_admin']);
+        // Sales-target authority belongs to sales leadership, not engineering
+        // management — no functional role currently covers that (Manager –
+        // Sales is planned but not yet built), so it's Super Admin-only for
+        // now.
+        return $this->isSuperAdmin();
     }
 
     public function initials(): string

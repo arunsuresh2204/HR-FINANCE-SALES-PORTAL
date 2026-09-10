@@ -62,23 +62,27 @@ class DemoDataSeeder extends Seeder
         ]);
         $owner4->assignRole(['super_admin', 'sales_exec', 'hr_admin', 'manager_engineering']);
 
+        // Vikram leads the mobile team under Arun (Manager - Engineering);
+        // Sneha reports to Vikram, demonstrating the manager -> team lead ->
+        // programmer chain that Manager - Engineering's team timesheet view
+        // needs to walk.
+        $dev2 = User::create([
+            'employee_code' => 'EMP-0006', 'name' => 'Vikram Shah', 'email' => 'vikram@nexstarc.com',
+            'password' => $password, 'email_verified_at' => now(), 'designation' => 'Mobile Team Lead',
+            'department' => 'Engineering', 'date_of_joining' => '2022-06-01', 'employment_status' => 'active',
+            'monthly_salary' => 2600, 'manager_id' => $owner1->id,
+            'scheduled_login_time' => '10:00', 'scheduled_logoff_time' => '19:00',
+        ]);
+        $dev2->assignRole(['programmer', 'team_lead']);
+
         $dev1 = User::create([
             'employee_code' => 'EMP-0005', 'name' => 'Sneha Reddy', 'email' => 'sneha@nexstarc.com',
             'password' => $password, 'email_verified_at' => now(), 'designation' => 'Full Stack Developer',
             'department' => 'Engineering', 'date_of_joining' => '2022-03-15', 'employment_status' => 'active',
-            'monthly_salary' => 2200, 'manager_id' => $owner1->id,
+            'monthly_salary' => 2200, 'manager_id' => $dev2->id,
             'scheduled_login_time' => '09:00', 'scheduled_logoff_time' => '18:00',
         ]);
         $dev1->assignRole('programmer');
-
-        $dev2 = User::create([
-            'employee_code' => 'EMP-0006', 'name' => 'Vikram Shah', 'email' => 'vikram@nexstarc.com',
-            'password' => $password, 'email_verified_at' => now(), 'designation' => 'Mobile App Developer',
-            'department' => 'Engineering', 'date_of_joining' => '2022-06-01', 'employment_status' => 'active',
-            'monthly_salary' => 2200, 'manager_id' => $owner1->id,
-            'scheduled_login_time' => '10:00', 'scheduled_logoff_time' => '19:00',
-        ]);
-        $dev2->assignRole('programmer');
 
         $marketer1 = User::create([
             'employee_code' => 'EMP-0007', 'name' => 'Anjali Verma', 'email' => 'anjali@nexstarc.com',

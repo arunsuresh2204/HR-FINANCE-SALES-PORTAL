@@ -4,7 +4,7 @@
     $children = $users->where('manager_id', $user->id)->values();
 
     $tier = $user->isSuperAdmin() ? ['Owner', 'bg-gold-400/15 text-gold-300 border-gold-400/20']
-        : ($user->isManager() ? ['Manager', 'bg-sky-400/15 text-sky-300 border-sky-400/20']
+        : ($user->isManager() ? ['Manager – Engineering', 'bg-sky-400/15 text-sky-300 border-sky-400/20']
         : ($user->isTeamLead() ? ['Team Lead', 'bg-violet-400/15 text-violet-300 border-violet-400/20']
         : ['Employee', 'bg-white/10 text-white/50 border-white/15']));
 @endphp

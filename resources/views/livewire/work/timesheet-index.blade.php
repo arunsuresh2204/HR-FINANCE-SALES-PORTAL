@@ -5,19 +5,48 @@
         </x-slot:actions>
     </x-page-header>
 
+    @if ($canViewTeam)
+        <div class="mb-4 flex gap-2">
+            <button wire:click="setTab('mine')" class="rounded-lg px-3 py-1.5 text-sm font-semibold transition {{ $tab === 'mine' ? 'bg-gold-400/15 text-gold-200' : 'text-white/50 hover:text-white/80' }}">My Timesheets</button>
+            <button wire:click="setTab('team')" class="rounded-lg px-3 py-1.5 text-sm font-semibold transition {{ $tab === 'team' ? 'bg-gold-400/15 text-gold-200' : 'text-white/50 hover:text-white/80' }}">My Team</button>
+        </div>
+    @endif
+
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <x-stat-card label="Hours This Week" :value="number_format($weekHours, 1)" icon="clock" accent="sky" />
-        <x-stat-card label="Hours This Month" :value="number_format($monthHours, 1)" icon="chart" accent="emerald" />
+        <x-stat-card :label="$tab === 'team' ? 'Team Hours This Week' : 'Hours This Week'" :value="number_format($weekHours, 1)" icon="clock" accent="sky" />
+        <x-stat-card :label="$tab === 'team' ? 'Team Hours This Month' : 'Hours This Month'" :value="number_format($monthHours, 1)" icon="chart" accent="emerald" />
     </div>
 
     <div class="glass-panel relative mt-6 overflow-hidden">
         <div class="glass-sheen"></div>
+
+        @if ($tab === 'team')
+            <div class="flex flex-wrap items-center gap-3 p-4">
+                <select wire:model.live="memberFilter" class="input-glass !w-auto">
+                    <option value="">All team members</option>
+                    @foreach ($teamMembers as $member)
+                        <option value="{{ $member->id }}">{{ $member->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        @endif
+
         <div class="overflow-x-auto">
             <table class="table-glass">
-                <thead><tr><th>Date</th><th>Project</th><th>Task</th><th>Hours</th><th>Status</th></tr></thead>
+                <thead>
+                    <tr>
+                        @if ($tab === 'team')
+                            <th>Employee</th>
+                        @endif
+                        <th>Date</th><th>Project</th><th>Task</th><th>Hours</th><th>Status</th>
+                    </tr>
+                </thead>
                 <tbody>
                     @forelse ($entries as $entry)
                         <tr>
+                            @if ($tab === 'team')
+                                <td class="text-white">{{ $entry->user->name }}</td>
+                            @endif
                             <td>{{ $entry->work_date->format('M j, Y') }}</td>
                             <td class="text-white">{{ $entry->client->business_name ?? $entry->project_name ?? '—' }}</td>
                             <td class="max-w-sm truncate">{{ $entry->task_description }}</td>
@@ -25,7 +54,7 @@
                             <td><x-status-pill :status="$entry->status" /></td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="py-8 text-center text-white/40">No timesheet entries yet.</td></tr>
+                        <tr><td colspan="{{ $tab === 'team' ? 6 : 5 }}" class="py-8 text-center text-white/40">{{ $tab === 'team' ? 'No team timesheet entries yet.' : 'No timesheet entries yet.' }}</td></tr>
                     @endforelse
                 </tbody>
             </table>
