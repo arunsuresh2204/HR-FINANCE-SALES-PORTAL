@@ -78,15 +78,38 @@
                         <div class="glass-inset mb-2 p-3">
                             <div class="mb-2 flex items-center justify-between">
                                 <p class="text-sm font-medium text-white">Bank Account Details</p>
-                                <span class="text-xs {{ $user->hasCompleteBankDetails() ? 'text-white/35' : 'text-rose-300/70' }}">{{ $user->hasCompleteBankDetails() ? 'On file' : 'Required · incomplete — contact HR' }}</span>
+                                <span class="text-xs {{ $user->hasCompleteBankDetails() ? 'text-white/35' : 'text-rose-300/70' }}">{{ $user->hasCompleteBankDetails() ? 'On file' : 'Required' }}</span>
                             </div>
-                            <dl class="grid gap-x-4 gap-y-1.5 text-xs sm:grid-cols-2">
-                                <div class="flex justify-between gap-2"><dt class="text-white/40">Account Holder</dt><dd class="text-white/80">{{ $user->bank_account_holder_name ?: 'Not on file' }}</dd></div>
-                                <div class="flex justify-between gap-2"><dt class="text-white/40">Bank Name</dt><dd class="text-white/80">{{ $user->bank_name ?: 'Not on file' }}</dd></div>
-                                <div class="flex justify-between gap-2"><dt class="text-white/40">Account Number</dt><dd class="text-white/80">{{ $user->bank_account_number ?: 'Not on file' }}</dd></div>
-                                <div class="flex justify-between gap-2"><dt class="text-white/40">IFSC Code</dt><dd class="text-white/80">{{ $user->bank_ifsc ?: 'Not on file' }}</dd></div>
-                                <div class="flex justify-between gap-2"><dt class="text-white/40">Branch</dt><dd class="text-white/80">{{ $user->bank_branch ?: 'Not on file' }}</dd></div>
-                            </dl>
+                            <form wire:submit="saveBankDetails" class="grid gap-2 sm:grid-cols-2">
+                                <div>
+                                    <x-input-label for="bank_account_holder_name" value="Account Holder Name" class="!text-[11px]" />
+                                    <x-text-input wire:model="bank_account_holder_name" id="bank_account_holder_name" type="text" class="mt-0.5 !text-xs" />
+                                    <x-input-error :messages="$errors->get('bank_account_holder_name')" class="mt-1" />
+                                </div>
+                                <div>
+                                    <x-input-label for="bank_name" value="Bank Name" class="!text-[11px]" />
+                                    <x-text-input wire:model="bank_name" id="bank_name" type="text" class="mt-0.5 !text-xs" />
+                                    <x-input-error :messages="$errors->get('bank_name')" class="mt-1" />
+                                </div>
+                                <div>
+                                    <x-input-label for="bank_account_number" value="Account Number" class="!text-[11px]" />
+                                    <x-text-input wire:model="bank_account_number" id="bank_account_number" type="text" class="mt-0.5 !text-xs" />
+                                    <x-input-error :messages="$errors->get('bank_account_number')" class="mt-1" />
+                                </div>
+                                <div>
+                                    <x-input-label for="bank_ifsc" value="IFSC Code" class="!text-[11px]" />
+                                    <x-text-input wire:model="bank_ifsc" id="bank_ifsc" type="text" class="mt-0.5 !text-xs" />
+                                    <x-input-error :messages="$errors->get('bank_ifsc')" class="mt-1" />
+                                </div>
+                                <div>
+                                    <x-input-label for="bank_branch" value="Branch" class="!text-[11px]" />
+                                    <x-text-input wire:model="bank_branch" id="bank_branch" type="text" class="mt-0.5 !text-xs" />
+                                    <x-input-error :messages="$errors->get('bank_branch')" class="mt-1" />
+                                </div>
+                                <div class="flex items-end">
+                                    <x-primary-button type="submit" class="!py-1.5 !text-xs">Save Bank Details</x-primary-button>
+                                </div>
+                            </form>
                         </div>
                     @endif
 
