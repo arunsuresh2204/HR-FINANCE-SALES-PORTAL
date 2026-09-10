@@ -37,6 +37,9 @@ class ClientShow extends Component
     #[Validate('nullable|string|max:1000')]
     public string $project_description = '';
 
+    #[Validate('nullable|file|max:10240')]
+    public $project_requirement_file = null;
+
     public ?int $assigned_to = null;
 
     public bool $showDeveloperForm = false;
@@ -91,7 +94,7 @@ class ClientShow extends Component
 
     public function openProjectForm(): void
     {
-        $this->reset(['project_name', 'project_description']);
+        $this->reset(['project_name', 'project_description', 'project_requirement_file']);
         $this->assigned_to = Auth::user()->isManager() || Auth::user()->isSuperAdmin() ? Auth::id() : null;
         $this->resetValidation();
         $this->showProjectForm = true;
@@ -105,6 +108,7 @@ class ClientShow extends Component
         $this->validate([
             'project_name' => 'required|string|max:255',
             'project_description' => 'nullable|string|max:1000',
+            'project_requirement_file' => 'nullable|file|max:10240',
             'assigned_to' => $canManage ? 'nullable|exists:users,id' : 'required|exists:users,id',
         ]);
 
@@ -124,6 +128,7 @@ class ClientShow extends Component
             'assigned_to' => $this->assigned_to ?: ($canManage ? Auth::id() : null),
             'name' => $this->project_name,
             'description' => $this->project_description,
+            'requirement_file' => $this->project_requirement_file?->store('project-requirements', 'public'),
             'status' => 'active',
         ]);
 

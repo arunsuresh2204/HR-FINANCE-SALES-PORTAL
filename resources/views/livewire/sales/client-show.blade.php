@@ -40,6 +40,9 @@
                             <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-white/40">
                                 <span>Assigned to: {{ $project->assignedTo->name ?? '—' }}</span>
                                 <span>Developers: {{ $project->developers->pluck('name')->join(', ') ?: 'None assigned' }}</span>
+                                @if ($project->requirement_file)
+                                    <a href="{{ Storage::url($project->requirement_file) }}" target="_blank" class="font-semibold text-gold-300 hover:text-gold-200">View Requirement</a>
+                                @endif
                                 @if ($canManageProjects)
                                     <button wire:click="openDeveloperForm({{ $project->id }})" class="font-semibold text-gold-300 hover:text-gold-200">Assign Developers</button>
                                 @endif
@@ -146,6 +149,12 @@
             <div>
                 <x-input-label for="project_description" value="Description (optional)" />
                 <textarea wire:model="project_description" id="project_description" rows="2" class="input-glass"></textarea>
+            </div>
+            <div>
+                <x-input-label for="project_requirement_file" value="Requirement File (optional)" />
+                <input wire:model="project_requirement_file" id="project_requirement_file" type="file" class="input-glass file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white/80">
+                <div wire:loading wire:target="project_requirement_file" class="mt-1 text-xs text-white/40">Uploading&hellip;</div>
+                <x-input-error :messages="$errors->get('project_requirement_file')" class="mt-1" />
             </div>
             <div>
                 <x-input-label for="assigned_to" :value="$canManageProjects ? 'Assign To (optional)' : 'Assign To (Manager or Owner)'" />
