@@ -58,22 +58,22 @@
                 <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-white/40">Earnings</p>
                 <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
                     <div>
-                        <x-input-label for="basic_salary" value="Basic Salary" />
+                        <x-input-label for="basic_salary" value="Basic Salary" class="flex min-h-[2rem] items-end" />
                         <x-text-input wire:model.live="basic_salary" id="basic_salary" type="number" step="0.01" class="mt-0" />
                         <x-input-error :messages="$errors->get('basic_salary')" class="mt-1" />
                     </div>
                     <div>
-                        <x-input-label for="hra" value="House Rent Allowance" />
+                        <x-input-label for="hra" value="House Rent Allowance" class="flex min-h-[2rem] items-end" />
                         <x-text-input wire:model.live="hra" id="hra" type="number" step="0.01" class="mt-0" />
                         <x-input-error :messages="$errors->get('hra')" class="mt-1" />
                     </div>
                     <div>
-                        <x-input-label for="da" value="Dearness Allowance" />
+                        <x-input-label for="da" value="Dearness Allowance" class="flex min-h-[2rem] items-end" />
                         <x-text-input wire:model.live="da" id="da" type="number" step="0.01" class="mt-0" />
                         <x-input-error :messages="$errors->get('da')" class="mt-1" />
                     </div>
                     <div>
-                        <x-input-label for="other_allowances" value="Other Allowances" />
+                        <x-input-label for="other_allowances" value="Other Allowances" class="flex min-h-[2rem] items-end" />
                         <x-text-input wire:model.live="other_allowances" id="other_allowances" type="number" step="0.01" class="mt-0" />
                         <x-input-error :messages="$errors->get('other_allowances')" class="mt-1" />
                     </div>
@@ -84,22 +84,22 @@
                 <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-white/40">Deductions</p>
                 <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
                     <div>
-                        <x-input-label for="income_tax" value="Income Tax / TDS" />
+                        <x-input-label for="income_tax" value="Income Tax / TDS" class="flex min-h-[2rem] items-end" />
                         <x-text-input wire:model.live="income_tax" id="income_tax" type="number" step="0.01" class="mt-0" />
                         <x-input-error :messages="$errors->get('income_tax')" class="mt-1" />
                     </div>
                     <div>
-                        <x-input-label for="provident_fund" value="Provident Fund" />
+                        <x-input-label for="provident_fund" value="Provident Fund" class="flex min-h-[2rem] items-end" />
                         <x-text-input wire:model.live="provident_fund" id="provident_fund" type="number" step="0.01" class="mt-0" />
                         <x-input-error :messages="$errors->get('provident_fund')" class="mt-1" />
                     </div>
                     <div>
-                        <x-input-label for="loss_of_pay" value="Loss of Pay" />
+                        <x-input-label for="loss_of_pay" value="Loss of Pay" class="flex min-h-[2rem] items-end" />
                         <x-text-input wire:model.live="loss_of_pay" id="loss_of_pay" type="number" step="0.01" class="mt-0" />
                         <x-input-error :messages="$errors->get('loss_of_pay')" class="mt-1" />
                     </div>
                     <div>
-                        <x-input-label for="other_deductions" value="Other Deductions" />
+                        <x-input-label for="other_deductions" value="Other Deductions" class="flex min-h-[2rem] items-end" />
                         <x-text-input wire:model.live="other_deductions" id="other_deductions" type="number" step="0.01" class="mt-0" />
                         <x-input-error :messages="$errors->get('other_deductions')" class="mt-1" />
                     </div>
