@@ -112,6 +112,8 @@
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">System</p>
                         <div class="mt-2 space-y-1">
                             <a href="{{ route('admin.users') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('admin.users*') ? 'active' : '' }}"><x-icon name="shield" class="h-4 w-4 shrink-0" />Users &amp; Roles</a>
+                            <a href="{{ route('admin.lead-sources') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('admin.lead-sources*') ? 'active' : '' }}"><x-icon name="filter" class="h-4 w-4 shrink-0" />Lead Sources</a>
+                            <a href="{{ route('admin.roles') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('admin.roles*') ? 'active' : '' }}"><x-icon name="users" class="h-4 w-4 shrink-0" />Functional Roles</a>
                         </div>
                     </div>
                 @endif

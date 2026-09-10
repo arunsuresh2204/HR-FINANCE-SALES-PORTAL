@@ -3,6 +3,7 @@
 namespace App\Livewire\Sales;
 
 use App\Models\Lead;
+use App\Models\LeadSource;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -45,7 +46,7 @@ class LeadPipeline extends Component
     #[Validate('required|string|max:100')]
     public string $service_type = '';
 
-    #[Validate('required|string|max:255')]
+    #[Validate('required|string|max:255|exists:lead_sources,name')]
     public string $source = '';
 
     #[Validate('nullable|string|max:255')]
@@ -202,6 +203,7 @@ class LeadPipeline extends Component
             'statusOptions' => Lead::STATUSES,
             'rangeLabel' => $rangeLabel,
             'viewingLead' => $this->viewingLeadId ? Lead::find($this->viewingLeadId) : null,
+            'leadSources' => LeadSource::where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 }

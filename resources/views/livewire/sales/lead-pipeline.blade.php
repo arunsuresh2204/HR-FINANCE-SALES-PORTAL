@@ -37,7 +37,12 @@
                 <x-input-error :messages="$errors->get('service_type')" class="mt-1" />
             </div>
             <div class="md:col-span-1">
-                <x-text-input wire:model="source" type="text" class="mt-0" placeholder="Source (Upwork, FK...)" />
+                <select wire:model="source" class="input-glass mt-0">
+                    <option value="">Source...</option>
+                    @foreach ($leadSources as $leadSource)
+                        <option value="{{ $leadSource->name }}">{{ $leadSource->name }}</option>
+                    @endforeach
+                </select>
                 <x-input-error :messages="$errors->get('source')" class="mt-1" />
             </div>
             <div class="md:col-span-5">

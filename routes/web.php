@@ -96,6 +96,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Super Admin
     Route::middleware(['role:super_admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::view('users', 'pages.admin.user-management')->name('users');
+        Route::view('settings/lead-sources', 'pages.admin.lead-source-management')->name('lead-sources');
+        Route::view('settings/roles', 'pages.admin.role-management')->name('roles');
     });
 });
 
