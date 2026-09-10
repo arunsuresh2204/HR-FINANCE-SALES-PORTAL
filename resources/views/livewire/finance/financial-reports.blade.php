@@ -12,8 +12,17 @@
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-base font-bold text-white">Recent Months</h2>
             <div class="flex items-center gap-2">
-                <label for="monthPicker" class="text-xs text-white/40">Review a past month</label>
-                <input wire:model.live="monthPicker" id="monthPicker" type="month" max="{{ now()->format('Y-m') }}" class="input-glass w-40">
+                <select wire:model="pickerMonth" class="input-glass w-36">
+                    @foreach (range(1, 12) as $m)
+                        <option value="{{ $m }}">{{ \Carbon\Carbon::create(null, $m, 1)->format('F') }}</option>
+                    @endforeach
+                </select>
+                <select wire:model="pickerYear" class="input-glass w-28">
+                    @foreach (range(now()->year - 1, now()->year + 1) as $y)
+                        <option value="{{ $y }}">{{ $y }}</option>
+                    @endforeach
+                </select>
+                <button wire:click="goToMonth" class="btn-glass-primary"><x-icon name="chart" class="h-4 w-4" /> View Report</button>
             </div>
         </div>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">

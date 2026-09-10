@@ -11,17 +11,19 @@ use Livewire\Component;
 
 class FinancialReports extends Component
 {
-    public string $monthPicker = '';
+    public int $pickerMonth;
 
-    public function updatedMonthPicker(string $value): void
+    public int $pickerYear;
+
+    public function mount(): void
     {
-        if (! $value) {
-            return;
-        }
+        $this->pickerMonth = now()->month;
+        $this->pickerYear = now()->year;
+    }
 
-        $period = \Carbon\Carbon::createFromFormat('Y-m', $value);
-
-        $this->redirect(route('finance.reports.month', ['year' => $period->year, 'month' => $period->month]), navigate: true);
+    public function goToMonth(): void
+    {
+        $this->redirect(route('finance.reports.month', ['year' => $this->pickerYear, 'month' => $this->pickerMonth]), navigate: true);
     }
 
     public function render()
