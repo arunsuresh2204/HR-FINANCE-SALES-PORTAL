@@ -93,6 +93,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::view('expenses', 'pages.finance.expense-approvals')->name('expenses');
         Route::view('payroll', 'pages.finance.payroll-run')->name('payroll');
         Route::view('reports', 'pages.finance.financial-reports')->name('reports');
+        Route::get('reports/{year}/{month}', function (int $year, int $month) {
+            return view('pages.finance.financial-report-month', compact('year', 'month'));
+        })->name('reports.month');
     });
 
     // Super Admin

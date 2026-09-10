@@ -28,6 +28,20 @@ class FinancialReports extends Component
         $wonDealsValue = Lead::where('status', 'won')->sum('budget');
         $invoicedValue = Invoice::sum('total_amount');
 
+        $recentMonths = collect(range(0, 2))->map(function (int $i) {
+            $period = now()->subMonthsNoOverflow($i)->startOfMonth();
+
+            return [
+                'year' => $period->year,
+                'month' => $period->month,
+                'label' => $period->format('F Y'),
+                'revenue' => Invoice::whereMonth('created_at', $period->month)->whereYear('created_at', $period->year)->sum('amount_paid'),
+                'net' => Invoice::whereMonth('created_at', $period->month)->whereYear('created_at', $period->year)->sum('amount_paid')
+                    - Expense::where('status', 'approved')->whereMonth('expense_date', $period->month)->whereYear('expense_date', $period->year)->sum('amount')
+                    - Payroll::where('month', $period->month)->where('year', $period->year)->sum('net_salary'),
+            ];
+        });
+
         return view('livewire.finance.financial-reports', [
             'revenueByClient' => $revenueByClient,
             'revenueThisMonth' => $revenueThisMonth,
@@ -38,6 +52,7 @@ class FinancialReports extends Component
             'totalOutstanding' => $agingInvoices->sum(fn ($i) => $i->balanceDue()),
             'wonDealsValue' => $wonDealsValue,
             'invoicedValue' => $invoicedValue,
+            'recentMonths' => $recentMonths,
         ]);
     }
 }
