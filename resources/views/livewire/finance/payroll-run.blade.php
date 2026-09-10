@@ -7,7 +7,7 @@
                 @endforeach
             </select>
             <select wire:model.live="year" class="input-glass w-28">
-                @foreach (range(now()->year - 1, now()->year + 1) as $y)
+                @foreach (array_reverse(range(now()->year - 10, now()->year + 1)) as $y)
                     <option value="{{ $y }}">{{ $y }}</option>
                 @endforeach
             </select>
