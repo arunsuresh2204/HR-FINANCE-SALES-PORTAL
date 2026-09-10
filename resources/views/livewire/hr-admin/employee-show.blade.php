@@ -155,19 +155,27 @@
             <div class="glass-card">
                 <div class="mb-4 flex items-center justify-between">
                     <h2 class="text-base font-bold text-white">Career &amp; Promotions</h2>
-                    <button wire:click="openPromotionForm" class="text-xs font-semibold text-gold-300 hover:text-gold-200">+ Record Promotion</button>
+                    <div class="flex items-center gap-3">
+                        <button wire:click="openSalaryHikeForm" class="text-xs font-semibold text-gold-300 hover:text-gold-200">+ Record Salary Hike</button>
+                        <button wire:click="openPromotionForm" class="text-xs font-semibold text-gold-300 hover:text-gold-200">+ Record Promotion</button>
+                    </div>
                 </div>
                 <div class="space-y-2">
                     @forelse ($promotions as $promo)
                         <div class="glass-inset flex items-start justify-between p-3">
                             <div>
-                                <p class="text-sm font-medium text-white">{{ $promo->new_designation }}@if ($promo->new_department) <span class="text-white/40">&middot; {{ $promo->new_department }}</span>@endif</p>
-                                <p class="text-xs text-white/40">
-                                    Effective {{ $promo->effective_date->format('M j, Y') }}
-                                    @if ($promo->previous_designation)
-                                        &middot; from {{ $promo->previous_designation }}
-                                    @endif
-                                </p>
+                                @if ($promo->isSalaryHikeOnly())
+                                    <p class="text-sm font-medium text-white">Salary Hike</p>
+                                    <p class="text-xs text-white/40">Effective {{ $promo->effective_date->format('M j, Y') }}</p>
+                                @else
+                                    <p class="text-sm font-medium text-white">{{ $promo->new_designation }}@if ($promo->new_department) <span class="text-white/40">&middot; {{ $promo->new_department }}</span>@endif</p>
+                                    <p class="text-xs text-white/40">
+                                        Effective {{ $promo->effective_date->format('M j, Y') }}
+                                        @if ($promo->previous_designation)
+                                            &middot; from {{ $promo->previous_designation }}
+                                        @endif
+                                    </p>
+                                @endif
                                 @if ($promo->hasSalaryHike())
                                     <p class="mt-1 text-xs font-medium {{ $promo->hikeAmount() >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
                                         {{ \App\Support\Currency::format($promo->previous_salary, 'INR') }} &rarr; {{ \App\Support\Currency::format($promo->new_salary, 'INR') }}
@@ -182,7 +190,11 @@
                                 @if ($promo->certificate_path)
                                     <a href="{{ Storage::url($promo->certificate_path) }}" target="_blank" class="text-xs font-semibold text-gold-300 hover:text-gold-200">Certificate</a>
                                 @endif
-                                <button wire:click="editPromotion({{ $promo->id }})" class="text-xs font-semibold text-white/50 hover:text-white">Edit</button>
+                                @if ($promo->isSalaryHikeOnly())
+                                    <button wire:click="editSalaryHike({{ $promo->id }})" class="text-xs font-semibold text-white/50 hover:text-white">Edit</button>
+                                @else
+                                    <button wire:click="editPromotion({{ $promo->id }})" class="text-xs font-semibold text-white/50 hover:text-white">Edit</button>
+                                @endif
                             </div>
                         </div>
                     @empty
@@ -211,14 +223,6 @@
                                 <x-input-error :messages="$errors->get('effective_date')" class="mt-1" />
                             </div>
                             <div>
-                                <x-input-label for="new_salary" value="New Monthly Salary (optional)" />
-                                <x-text-input wire:model="new_salary" id="new_salary" type="number" step="0.01" min="0" class="mt-0" placeholder="{{ $user->monthly_salary ? \App\Support\Currency::format($user->monthly_salary, 'INR') : 'e.g. 45000' }}" />
-                                <p class="mt-1 text-xs text-white/40">Current: {{ $user->monthly_salary ? \App\Support\Currency::format($user->monthly_salary, 'INR') : 'Not set' }}. Leave blank if this promotion has no salary hike.</p>
-                                <x-input-error :messages="$errors->get('new_salary')" class="mt-1" />
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
                                 <x-input-label for="promotionCertificate" value="Certificate (optional)" />
                                 <input wire:model="promotionCertificate" id="promotionCertificate" type="file" class="input-glass file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white/80" />
                                 @php $editingPromotion = $editingPromotionId ? $promotions->firstWhere('id', $editingPromotionId) : null; @endphp
@@ -232,9 +236,38 @@
                             <x-input-label for="promotion_notes" value="Notes" />
                             <textarea wire:model="promotion_notes" id="promotion_notes" rows="2" class="input-glass"></textarea>
                         </div>
+                        <p class="text-xs text-white/40">This records a change in designation or department only. Use "Record Salary Hike" separately for a pay raise, with or without a title change.</p>
                         <div class="flex justify-end gap-3">
                             <x-secondary-button type="button" wire:click="cancelPromotionForm">Cancel</x-secondary-button>
                             <x-primary-button>{{ $editingPromotionId ? 'Update Promotion' : 'Save Promotion' }}</x-primary-button>
+                        </div>
+                    </form>
+                @endif
+
+                @if ($showSalaryHikeForm)
+                    <form wire:submit="{{ $editingSalaryHikeId ? 'updateSalaryHike' : 'addSalaryHike' }}" class="mt-4 space-y-4 border-t border-white/10 pt-4">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-white/40">{{ $editingSalaryHikeId ? 'Editing Salary Hike' : 'New Salary Hike' }}</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <x-input-label for="hike_new_salary" value="New Monthly Salary (₹)" />
+                                <x-text-input wire:model="hike_new_salary" id="hike_new_salary" type="number" step="0.01" min="0" class="mt-0" placeholder="{{ $user->monthly_salary ? \App\Support\Currency::format($user->monthly_salary, 'INR') : 'e.g. 45000' }}" />
+                                <p class="mt-1 text-xs text-white/40">Current: {{ $user->monthly_salary ? \App\Support\Currency::format($user->monthly_salary, 'INR') : 'Not set' }}.</p>
+                                <x-input-error :messages="$errors->get('hike_new_salary')" class="mt-1" />
+                            </div>
+                            <div>
+                                <x-input-label for="hike_effective_date" value="Effective Date" />
+                                <x-text-input wire:model="hike_effective_date" id="hike_effective_date" type="date" class="mt-0" />
+                                <x-input-error :messages="$errors->get('hike_effective_date')" class="mt-1" />
+                            </div>
+                        </div>
+                        <div>
+                            <x-input-label for="hike_notes" value="Notes" />
+                            <textarea wire:model="hike_notes" id="hike_notes" rows="2" class="input-glass"></textarea>
+                        </div>
+                        <p class="text-xs text-white/40">This records a salary change only — designation and department stay unchanged.</p>
+                        <div class="flex justify-end gap-3">
+                            <x-secondary-button type="button" wire:click="cancelSalaryHikeForm">Cancel</x-secondary-button>
+                            <x-primary-button>{{ $editingSalaryHikeId ? 'Update Salary Hike' : 'Save Salary Hike' }}</x-primary-button>
                         </div>
                     </form>
                 @endif

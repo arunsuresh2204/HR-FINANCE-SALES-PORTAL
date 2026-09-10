@@ -59,9 +59,6 @@ class EmployeeShow extends Component
     #[Validate('nullable|string|max:255')]
     public string $new_department = '';
 
-    #[Validate('nullable|numeric|min:0')]
-    public string $new_salary = '';
-
     #[Validate('required|date')]
     public string $effective_date = '';
 
@@ -70,6 +67,19 @@ class EmployeeShow extends Component
 
     #[Validate('nullable|file|max:5120|mimes:jpg,jpeg,png,pdf')]
     public $promotionCertificate = null;
+
+    public bool $showSalaryHikeForm = false;
+
+    public ?int $editingSalaryHikeId = null;
+
+    #[Validate('required|numeric|min:0')]
+    public string $hike_new_salary = '';
+
+    #[Validate('required|date')]
+    public string $hike_effective_date = '';
+
+    #[Validate('nullable|string|max:500')]
+    public string $hike_notes = '';
 
     public bool $showOfferLetterForm = false;
 
@@ -170,32 +180,35 @@ class EmployeeShow extends Component
 
     public function openPromotionForm(): void
     {
-        $this->reset(['editingPromotionId', 'new_designation', 'new_department', 'new_salary', 'effective_date', 'promotion_notes', 'promotionCertificate']);
+        $this->reset(['editingPromotionId', 'new_designation', 'new_department', 'effective_date', 'promotion_notes', 'promotionCertificate']);
         $this->new_designation = $this->user->designation ?? '';
         $this->new_department = $this->user->department ?? '';
         $this->effective_date = now()->toDateString();
         $this->resetValidation();
+        $this->showSalaryHikeForm = false;
         $this->showPromotionForm = true;
     }
 
     public function editPromotion(int $promotionId): void
     {
-        $promotion = Promotion::where('user_id', $this->user->id)->findOrFail($promotionId);
+        $promotion = Promotion::where('user_id', $this->user->id)
+            ->where('type', Promotion::TYPE_PROMOTION)
+            ->findOrFail($promotionId);
 
         $this->editingPromotionId = $promotionId;
         $this->new_designation = $promotion->new_designation;
         $this->new_department = $promotion->new_department ?? '';
-        $this->new_salary = $promotion->new_salary !== null ? (string) $promotion->new_salary : '';
         $this->effective_date = $promotion->effective_date->toDateString();
         $this->promotion_notes = $promotion->notes ?? '';
         $this->promotionCertificate = null;
         $this->resetValidation();
+        $this->showSalaryHikeForm = false;
         $this->showPromotionForm = true;
     }
 
     public function cancelPromotionForm(): void
     {
-        $this->reset(['showPromotionForm', 'editingPromotionId', 'new_designation', 'new_department', 'new_salary', 'effective_date', 'promotion_notes', 'promotionCertificate']);
+        $this->reset(['showPromotionForm', 'editingPromotionId', 'new_designation', 'new_department', 'effective_date', 'promotion_notes', 'promotionCertificate']);
     }
 
     public function addPromotion(): void
@@ -203,7 +216,6 @@ class EmployeeShow extends Component
         $this->validate([
             'new_designation' => 'required|string|max:255',
             'new_department' => 'nullable|string|max:255',
-            'new_salary' => 'nullable|numeric|min:0',
             'effective_date' => 'required|date',
             'promotion_notes' => 'nullable|string|max:500',
             'promotionCertificate' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf',
@@ -212,12 +224,11 @@ class EmployeeShow extends Component
         Promotion::create([
             'user_id' => $this->user->id,
             'created_by' => Auth::id(),
+            'type' => Promotion::TYPE_PROMOTION,
             'previous_designation' => $this->user->designation,
             'new_designation' => $this->new_designation,
             'previous_department' => $this->user->department,
             'new_department' => $this->new_department ?: $this->user->department,
-            'previous_salary' => $this->user->monthly_salary,
-            'new_salary' => $this->new_salary !== '' ? $this->new_salary : null,
             'effective_date' => $this->effective_date,
             'notes' => $this->promotion_notes,
             'certificate_path' => $this->promotionCertificate?->store('promotion-certificates', 'public'),
@@ -226,12 +237,10 @@ class EmployeeShow extends Component
         $this->user->update([
             'designation' => $this->new_designation,
             'department' => $this->new_department ?: $this->user->department,
-            'monthly_salary' => $this->new_salary !== '' ? $this->new_salary : $this->user->monthly_salary,
         ]);
         $this->user->refresh();
         $this->designation = $this->user->designation ?? '';
         $this->department = $this->user->department ?? '';
-        $this->monthly_salary = $this->user->monthly_salary ? (float) $this->user->monthly_salary : null;
 
         $this->showPromotionForm = false;
         $this->dispatch('toast', message: 'Promotion recorded and designation updated.', type: 'success');
@@ -239,12 +248,13 @@ class EmployeeShow extends Component
 
     public function updatePromotion(): void
     {
-        $promotion = Promotion::where('user_id', $this->user->id)->findOrFail($this->editingPromotionId);
+        $promotion = Promotion::where('user_id', $this->user->id)
+            ->where('type', Promotion::TYPE_PROMOTION)
+            ->findOrFail($this->editingPromotionId);
 
         $this->validate([
             'new_designation' => 'required|string|max:255',
             'new_department' => 'nullable|string|max:255',
-            'new_salary' => 'nullable|numeric|min:0',
             'effective_date' => 'required|date',
             'promotion_notes' => 'nullable|string|max:500',
             'promotionCertificate' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf',
@@ -253,7 +263,6 @@ class EmployeeShow extends Component
         $promotion->update([
             'new_designation' => $this->new_designation,
             'new_department' => $this->new_department ?: $promotion->new_department,
-            'new_salary' => $this->new_salary !== '' ? $this->new_salary : null,
             'effective_date' => $this->effective_date,
             'notes' => $this->promotion_notes,
             'certificate_path' => $this->promotionCertificate
@@ -261,24 +270,113 @@ class EmployeeShow extends Component
                 : $promotion->certificate_path,
         ]);
 
-        // Keep the employee's live designation/department/salary in sync only when we
-        // just edited their most recent promotion — an older record shouldn't overwrite it.
+        // Keep the employee's live designation/department in sync only when we just
+        // edited their most recent promotion — an older record shouldn't overwrite it.
         $latest = $this->user->promotions()->first();
 
         if ($latest && $latest->id === $promotion->id) {
             $this->user->update([
                 'designation' => $promotion->new_designation,
                 'department' => $promotion->new_department,
-                'monthly_salary' => $promotion->new_salary !== null ? $promotion->new_salary : $this->user->monthly_salary,
             ]);
             $this->user->refresh();
             $this->designation = $this->user->designation ?? '';
             $this->department = $this->user->department ?? '';
-            $this->monthly_salary = $this->user->monthly_salary ? (float) $this->user->monthly_salary : null;
         }
 
         $this->cancelPromotionForm();
         $this->dispatch('toast', message: 'Promotion updated.', type: 'success');
+    }
+
+    public function openSalaryHikeForm(): void
+    {
+        $this->reset(['editingSalaryHikeId', 'hike_new_salary', 'hike_effective_date', 'hike_notes']);
+        $this->hike_effective_date = now()->toDateString();
+        $this->resetValidation();
+        $this->showPromotionForm = false;
+        $this->showSalaryHikeForm = true;
+    }
+
+    public function editSalaryHike(int $promotionId): void
+    {
+        $hike = Promotion::where('user_id', $this->user->id)
+            ->where('type', Promotion::TYPE_SALARY_HIKE)
+            ->findOrFail($promotionId);
+
+        $this->editingSalaryHikeId = $promotionId;
+        $this->hike_new_salary = $hike->new_salary !== null ? (string) $hike->new_salary : '';
+        $this->hike_effective_date = $hike->effective_date->toDateString();
+        $this->hike_notes = $hike->notes ?? '';
+        $this->resetValidation();
+        $this->showPromotionForm = false;
+        $this->showSalaryHikeForm = true;
+    }
+
+    public function cancelSalaryHikeForm(): void
+    {
+        $this->reset(['showSalaryHikeForm', 'editingSalaryHikeId', 'hike_new_salary', 'hike_effective_date', 'hike_notes']);
+    }
+
+    public function addSalaryHike(): void
+    {
+        $this->validate([
+            'hike_new_salary' => 'required|numeric|min:0',
+            'hike_effective_date' => 'required|date',
+            'hike_notes' => 'nullable|string|max:500',
+        ]);
+
+        Promotion::create([
+            'user_id' => $this->user->id,
+            'created_by' => Auth::id(),
+            'type' => Promotion::TYPE_SALARY_HIKE,
+            'previous_designation' => $this->user->designation,
+            'new_designation' => $this->user->designation ?? '',
+            'previous_department' => $this->user->department,
+            'new_department' => $this->user->department,
+            'previous_salary' => $this->user->monthly_salary,
+            'new_salary' => $this->hike_new_salary,
+            'effective_date' => $this->hike_effective_date,
+            'notes' => $this->hike_notes,
+        ]);
+
+        $this->user->update(['monthly_salary' => $this->hike_new_salary]);
+        $this->user->refresh();
+        $this->monthly_salary = $this->user->monthly_salary ? (float) $this->user->monthly_salary : null;
+
+        $this->showSalaryHikeForm = false;
+        $this->dispatch('toast', message: 'Salary hike recorded.', type: 'success');
+    }
+
+    public function updateSalaryHike(): void
+    {
+        $hike = Promotion::where('user_id', $this->user->id)
+            ->where('type', Promotion::TYPE_SALARY_HIKE)
+            ->findOrFail($this->editingSalaryHikeId);
+
+        $this->validate([
+            'hike_new_salary' => 'required|numeric|min:0',
+            'hike_effective_date' => 'required|date',
+            'hike_notes' => 'nullable|string|max:500',
+        ]);
+
+        $hike->update([
+            'new_salary' => $this->hike_new_salary,
+            'effective_date' => $this->hike_effective_date,
+            'notes' => $this->hike_notes,
+        ]);
+
+        // Keep the employee's live salary in sync only when we just edited their most
+        // recent career-history record (promotion or hike) — an older one shouldn't overwrite it.
+        $latest = $this->user->promotions()->first();
+
+        if ($latest && $latest->id === $hike->id) {
+            $this->user->update(['monthly_salary' => $hike->new_salary]);
+            $this->user->refresh();
+            $this->monthly_salary = $this->user->monthly_salary ? (float) $this->user->monthly_salary : null;
+        }
+
+        $this->cancelSalaryHikeForm();
+        $this->dispatch('toast', message: 'Salary hike updated.', type: 'success');
     }
 
     public function submitOfferLetter(): void

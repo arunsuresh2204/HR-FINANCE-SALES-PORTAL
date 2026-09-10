@@ -7,8 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Promotion extends Model
 {
+    public const TYPE_PROMOTION = 'promotion';
+
+    public const TYPE_SALARY_HIKE = 'salary_hike';
+
     protected $fillable = [
-        'user_id', 'created_by', 'previous_designation', 'new_designation',
+        'user_id', 'created_by', 'type', 'previous_designation', 'new_designation',
         'previous_department', 'new_department', 'previous_salary', 'new_salary',
         'effective_date', 'notes', 'certificate_path',
     ];
@@ -30,6 +34,11 @@ class Promotion extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function isSalaryHikeOnly(): bool
+    {
+        return $this->type === self::TYPE_SALARY_HIKE;
     }
 
     public function hasSalaryHike(): bool

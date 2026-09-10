@@ -17,13 +17,24 @@
                     <div class="glass-inset flex items-start gap-4 p-4">
                         <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-400/15 text-emerald-300"><x-icon name="check" class="h-4 w-4" /></span>
                         <div class="flex-1">
-                            <p class="text-sm font-semibold text-white">{{ $promo->new_designation }}@if ($promo->new_department) <span class="text-white/40">&middot; {{ $promo->new_department }}</span>@endif</p>
-                            <p class="mt-0.5 text-xs text-white/40">
-                                Effective {{ $promo->effective_date->format('M j, Y') }}
-                                @if ($promo->previous_designation)
-                                    &middot; promoted from {{ $promo->previous_designation }}
-                                @endif
-                            </p>
+                            @if ($promo->isSalaryHikeOnly())
+                                <p class="text-sm font-semibold text-white">Salary Hike</p>
+                                <p class="mt-0.5 text-xs text-white/40">Effective {{ $promo->effective_date->format('M j, Y') }}</p>
+                            @else
+                                <p class="text-sm font-semibold text-white">{{ $promo->new_designation }}@if ($promo->new_department) <span class="text-white/40">&middot; {{ $promo->new_department }}</span>@endif</p>
+                                <p class="mt-0.5 text-xs text-white/40">
+                                    Effective {{ $promo->effective_date->format('M j, Y') }}
+                                    @if ($promo->previous_designation)
+                                        &middot; promoted from {{ $promo->previous_designation }}
+                                    @endif
+                                </p>
+                            @endif
+                            @if ($promo->hasSalaryHike())
+                                <p class="mt-1 text-xs font-medium {{ $promo->hikeAmount() >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
+                                    {{ \App\Support\Currency::format($promo->previous_salary, 'INR') }} &rarr; {{ \App\Support\Currency::format($promo->new_salary, 'INR') }}
+                                    ({{ $promo->hikeAmount() >= 0 ? '+' : '' }}{{ \App\Support\Currency::format($promo->hikeAmount(), 'INR') }}@if ($promo->hikePercent() !== null), {{ $promo->hikeAmount() >= 0 ? '+' : '' }}{{ number_format($promo->hikePercent(), 1) }}%@endif)
+                                </p>
+                            @endif
                             @if ($promo->notes)
                                 <p class="mt-1.5 text-xs text-white/50">{{ $promo->notes }}</p>
                             @endif
