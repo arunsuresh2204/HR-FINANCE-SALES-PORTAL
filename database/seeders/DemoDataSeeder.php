@@ -199,6 +199,8 @@ class DemoDataSeeder extends Seeder
             'attendance_id' => $sales3AbsentAttendance->id,
             'user_id' => $sales3->id,
             'requested_status' => 'present',
+            'requested_clock_in' => '11:00',
+            'requested_clock_out' => '18:30',
             'reason' => "Had a power outage at home and my phone was dead — I called Rohan but couldn't reach the portal to clock in. I was working from a café by 11am.",
             'status' => 'pending',
         ]);
@@ -207,11 +209,54 @@ class DemoDataSeeder extends Seeder
             'attendance_id' => $sales2AttendanceGrace->id,
             'user_id' => $sales2->id,
             'requested_status' => 'present',
+            'requested_clock_in' => '09:05',
+            'requested_clock_out' => '18:05',
             'reason' => 'Traffic due to road work near my place, only a few minutes late.',
             'status' => 'rejected',
             'reviewed_by' => $owner4->id,
             'reviewed_at' => now()->subDay(),
             'review_notes' => 'Understood, but still outside the grace window — keeping as late this time.',
+        ]);
+
+        // Vishnu: two more historical disputes so he crosses the "frequent requester" threshold (3 in 30 days)
+        $vishnuOffset10 = now()->subDays(10);
+        $vishnuOffset10ScheduledAt = $vishnuOffset10->copy()->setTime(9, 30);
+        $vishnuAttendance10 = Attendance::create([
+            'user_id' => $sales3->id,
+            'work_date' => $vishnuOffset10->toDateString(),
+            'scheduled_login_time' => $sales3->scheduled_login_time,
+            'clock_in' => $vishnuOffset10ScheduledAt->copy()->addMinutes(48),
+            'clock_out' => $vishnuOffset10->copy()->setTime(18, 40),
+            'status' => 'late',
+        ]);
+        AttendanceStatusRequest::create([
+            'attendance_id' => $vishnuAttendance10->id,
+            'user_id' => $sales3->id,
+            'requested_status' => 'present',
+            'requested_clock_in' => '09:25',
+            'requested_clock_out' => '18:40',
+            'reason' => "The portal was slow to load that morning — I was actually at my desk on time, just couldn't get the clock-in to register.",
+            'status' => 'approved',
+            'reviewed_by' => $owner4->id,
+            'reviewed_at' => $vishnuOffset10->copy()->addHours(3),
+            'review_notes' => 'Checked with IT, there was a known slowdown that morning — approved.',
+        ]);
+
+        $vishnuOffset17 = now()->subDays(17);
+        $vishnuAttendance17 = Attendance::create([
+            'user_id' => $sales3->id,
+            'work_date' => $vishnuOffset17->toDateString(),
+            'scheduled_login_time' => $sales3->scheduled_login_time,
+            'status' => 'absent',
+        ]);
+        AttendanceStatusRequest::create([
+            'attendance_id' => $vishnuAttendance17->id,
+            'user_id' => $sales3->id,
+            'requested_status' => 'present',
+            'requested_clock_in' => '09:40',
+            'requested_clock_out' => '18:20',
+            'reason' => 'Forgot to clock in after a client call ran long — I was on-site with a client all day.',
+            'status' => 'pending',
         ]);
 
         // Sneha Reddy: 30-day attendance history with a full variety of scenarios,
@@ -268,6 +313,8 @@ class DemoDataSeeder extends Seeder
                         'attendance_id' => $attendance->id,
                         'user_id' => $dev1->id,
                         'requested_status' => 'present',
+                        'requested_clock_in' => '08:45',
+                        'requested_clock_out' => '18:10',
                         'reason' => 'Our office VPN was down all morning (IT ticket #4471) — I was working from my personal laptop but couldn\'t reach the portal to clock in.',
                         'status' => 'pending',
                     ]);
@@ -299,6 +346,8 @@ class DemoDataSeeder extends Seeder
                     'attendance_id' => $attendance->id,
                     'user_id' => $dev1->id,
                     'requested_status' => 'present',
+                    'requested_clock_in' => $clockIn->copy()->subMinutes(20)->format('H:i'),
+                    'requested_clock_out' => $clockOut->format('H:i'),
                     'reason' => 'Train delay on my commute — only a little past the window.',
                     'status' => 'rejected',
                     'reviewed_by' => $owner1->id,

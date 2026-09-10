@@ -4,6 +4,8 @@ namespace App\Livewire\Hr;
 
 use App\Models\Attendance;
 use App\Models\AttendanceStatusRequest;
+use App\Models\Notification;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Validate;
@@ -23,6 +25,12 @@ class AttendanceIndex extends Component
 
     #[Validate('required|string|max:1000')]
     public string $request_reason = '';
+
+    #[Validate('nullable|date_format:H:i')]
+    public string $requested_clock_in = '';
+
+    #[Validate('nullable|date_format:H:i')]
+    public string $requested_clock_out = '';
 
     public function clockIn(): void
     {
@@ -93,13 +101,15 @@ class AttendanceIndex extends Component
         $this->requestingAttendanceId = $attendanceId;
         $this->requested_status = $attendance->status;
         $this->request_reason = '';
+        $this->requested_clock_in = $attendance->clock_in?->format('H:i') ?? '';
+        $this->requested_clock_out = $attendance->clock_out?->format('H:i') ?? '';
         $this->resetValidation();
         $this->showRequestForm = true;
     }
 
     public function cancelRequestForm(): void
     {
-        $this->reset(['requestingAttendanceId', 'request_reason', 'showRequestForm']);
+        $this->reset(['requestingAttendanceId', 'request_reason', 'requested_clock_in', 'requested_clock_out', 'showRequestForm']);
     }
 
     public function submitStatusRequest(): void
@@ -118,10 +128,20 @@ class AttendanceIndex extends Component
             'attendance_id' => $attendance->id,
             'user_id' => Auth::id(),
             'requested_status' => $this->requested_status,
+            'requested_clock_in' => $this->requested_clock_in ?: null,
+            'requested_clock_out' => $this->requested_clock_out ?: null,
             'reason' => $this->request_reason,
         ]);
 
-        $this->reset(['requestingAttendanceId', 'request_reason', 'showRequestForm']);
+        Notification::sendToMany(
+            User::role(['hr_admin', 'super_admin'])->get(),
+            'attendance_request_submitted',
+            Auth::user()->name.' requested an attendance change',
+            'For '.$attendance->work_date->format('M j, Y').' — review it on the Attendance Oversight page.',
+            route('hradmin.attendance')
+        );
+
+        $this->reset(['requestingAttendanceId', 'request_reason', 'requested_clock_in', 'requested_clock_out', 'showRequestForm']);
         $this->dispatch('toast', message: 'Request sent to HR for review.', type: 'success');
     }
 

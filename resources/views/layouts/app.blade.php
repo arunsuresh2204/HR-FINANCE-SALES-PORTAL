@@ -59,6 +59,7 @@
                                 <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
                                 {{ now()->format('D, M j') }}
                             </span>
+                            <livewire:notification-bell />
                             <a href="{{ route('profile') }}" wire:navigate class="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 py-1.5 pl-1.5 pr-3 text-sm font-semibold text-white/80 transition hover:bg-white/10">
                                 <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-gold-400 text-xs font-extrabold text-ink-950">
                                     {{ auth()->user()->initials() }}

@@ -64,6 +64,18 @@
             <div class="p-4">{{ $rows->links() }}</div>
         </div>
     @else
+        @if ($frequentRequesters->isNotEmpty())
+            <div class="glass-card mb-6 !border-rose-400/25 !bg-rose-400/5">
+                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-rose-300">Frequent Requesters &mdash; last 30 days</p>
+                <p class="mb-3 text-sm text-white/60">These employees have submitted 3 or more attendance change requests in the last 30 days. Worth a conversation, or a warning if it's a pattern of missed logins.</p>
+                <div class="flex flex-wrap gap-2">
+                    @foreach ($frequentRequesters as $fr)
+                        <span class="badge-glass !border-rose-400/25 !bg-rose-400/10 !text-rose-200">{{ $fr['user']->name }} &middot; {{ $fr['count'] }} requests</span>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div class="mb-4">
             <select wire:model.live="requestFilter" class="input-glass max-w-xs">
                 <option value="pending">Pending</option>
@@ -82,6 +94,7 @@
                             <th>Employee</th>
                             <th>Date</th>
                             <th>Requested Status</th>
+                            <th>Reported Times</th>
                             <th>Reason</th>
                             <th>Status</th>
                             <th></th>
@@ -90,9 +103,25 @@
                     <tbody>
                         @forelse ($requests as $req)
                             <tr wire:key="req-{{ $req->id }}">
-                                <td class="font-medium text-white">{{ $req->user->name }}</td>
+                                <td>
+                                    <p class="font-medium text-white">{{ $req->user->name }}</p>
+                                    @if (($requestCounts[$req->user_id] ?? 0) >= 3)
+                                        <p class="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-rose-300">
+                                            <x-icon name="bell" class="h-3 w-3" /> {{ $requestCounts[$req->user_id] }} requests in 30 days
+                                        </p>
+                                    @endif
+                                </td>
                                 <td class="text-white/60">{{ $req->attendance->work_date->format('M j, Y') }}</td>
                                 <td><x-status-pill :status="$req->requested_status" /></td>
+                                <td class="text-white/60">
+                                    @if ($req->requested_clock_in || $req->requested_clock_out)
+                                        {{ $req->requested_clock_in ? \Carbon\Carbon::parse($req->requested_clock_in)->format('g:i A') : '—' }}
+                                        &ndash;
+                                        {{ $req->requested_clock_out ? \Carbon\Carbon::parse($req->requested_clock_out)->format('g:i A') : '—' }}
+                                    @else
+                                        <span class="text-white/30">Not reported</span>
+                                    @endif
+                                </td>
                                 <td class="max-w-xs text-white/60">{{ $req->reason }}</td>
                                 <td><x-status-pill :status="$req->status" /></td>
                                 <td class="text-right">
@@ -107,7 +136,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="py-8 text-center text-white/40">No requests found.</td></tr>
+                            <tr><td colspan="7" class="py-8 text-center text-white/40">No requests found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

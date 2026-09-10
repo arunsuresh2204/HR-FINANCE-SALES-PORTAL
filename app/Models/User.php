@@ -89,6 +89,16 @@ class User extends Authenticatable
         return $this->hasMany(AttendanceStatusRequest::class);
     }
 
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class)->latest();
+    }
+
+    public function unreadNotificationsCount(): int
+    {
+        return $this->notifications()->whereNull('read_at')->count();
+    }
+
     public function hasApprovedLeaveOn(string $date): bool
     {
         return $this->leaveRequests()

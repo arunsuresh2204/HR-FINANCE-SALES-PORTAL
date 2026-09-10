@@ -87,6 +87,19 @@
                 </select>
                 <x-input-error :messages="$errors->get('requested_status')" class="mt-1" />
             </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <x-input-label for="requested_clock_in" value="Actual Login Time" />
+                    <x-text-input wire:model="requested_clock_in" id="requested_clock_in" type="time" class="mt-0" />
+                    <x-input-error :messages="$errors->get('requested_clock_in')" class="mt-1" />
+                </div>
+                <div>
+                    <x-input-label for="requested_clock_out" value="Actual Logoff Time" />
+                    <x-text-input wire:model="requested_clock_out" id="requested_clock_out" type="time" class="mt-0" />
+                    <x-input-error :messages="$errors->get('requested_clock_out')" class="mt-1" />
+                </div>
+            </div>
+            <p class="text-xs text-white/40">Optional &mdash; if you forgot to clock in or out, enter the actual times so HR can update your record accurately.</p>
             <div>
                 <x-input-label for="request_reason" value="Reason" />
                 <textarea wire:model="request_reason" id="request_reason" rows="3" class="input-glass" placeholder="e.g. My login was delayed due to a network outage."></textarea>
