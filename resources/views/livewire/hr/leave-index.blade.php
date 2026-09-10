@@ -5,11 +5,43 @@
         </x-slot:actions>
     </x-page-header>
 
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <x-stat-card label="Annual Entitlement" :value="\App\Livewire\Hr\LeaveIndex::ANNUAL_ENTITLEMENT" icon="calendar" accent="sky" />
-        <x-stat-card label="Days Used (Approved)" :value="$usedDays" icon="calendar" accent="gold" />
-        <x-stat-card label="Days Remaining" :value="$remainingDays" icon="calendar" accent="emerald" />
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="glass-card">
+            <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-white/40">Casual Leave</p>
+            <div class="grid grid-cols-3 gap-3 text-center">
+                <div>
+                    <p class="text-xl font-bold text-white">{{ $casualAllotment }}</p>
+                    <p class="text-[11px] text-white/40">Allotted</p>
+                </div>
+                <div>
+                    <p class="text-xl font-bold text-gold-300">{{ $casualUsed }}</p>
+                    <p class="text-[11px] text-white/40">Used</p>
+                </div>
+                <div>
+                    <p class="text-xl font-bold text-emerald-400">{{ $casualRemaining }}</p>
+                    <p class="text-[11px] text-white/40">Remaining</p>
+                </div>
+            </div>
+        </div>
+        <div class="glass-card">
+            <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-white/40">Sick Leave</p>
+            <div class="grid grid-cols-3 gap-3 text-center">
+                <div>
+                    <p class="text-xl font-bold text-white">{{ $sickAllotment }}</p>
+                    <p class="text-[11px] text-white/40">Allotted</p>
+                </div>
+                <div>
+                    <p class="text-xl font-bold text-gold-300">{{ $sickUsed }}</p>
+                    <p class="text-[11px] text-white/40">Used</p>
+                </div>
+                <div>
+                    <p class="text-xl font-bold text-emerald-400">{{ $sickRemaining }}</p>
+                    <p class="text-[11px] text-white/40">Remaining</p>
+                </div>
+            </div>
+        </div>
     </div>
+    <p class="mt-3 text-xs text-white/30">Once your casual or sick balance is used up, further approved leave of that type is unpaid and automatically deducted from your payslip. Unpaid and Other leave don't draw from these balances.</p>
 
     @if ($upcomingHolidays->isNotEmpty())
         <div class="glass-card mt-6">
@@ -35,7 +67,7 @@
                 <tbody>
                     @forelse ($requests as $req)
                         <tr>
-                            <td class="font-medium capitalize text-white">{{ $req->type }}</td>
+                            <td class="font-medium text-white">{{ $req->typeLabel() }}</td>
                             <td>{{ $req->start_date->format('M j') }} – {{ $req->end_date->format('M j, Y') }}</td>
                             <td>{{ $req->days }}</td>
                             <td class="max-w-xs truncate">{{ $req->reason ?: '—' }}</td>
@@ -88,7 +120,7 @@
             <div>
                 <x-input-label for="type" value="Leave Type" />
                 <select wire:model.live="type" id="type" class="input-glass">
-                    <option value="vacation">Vacation</option>
+                    <option value="vacation">Casual</option>
                     <option value="sick">Sick</option>
                     <option value="unpaid">Unpaid</option>
                     <option value="other">Other</option>

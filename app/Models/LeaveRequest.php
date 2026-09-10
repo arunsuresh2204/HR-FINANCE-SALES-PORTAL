@@ -35,6 +35,16 @@ class LeaveRequest extends Model
         return $this->belongsTo(User::class, 'reviewed_by');
     }
 
+    public function typeLabel(): string
+    {
+        return match ($this->type) {
+            'vacation' => 'Casual',
+            'sick' => 'Sick',
+            'unpaid' => 'Unpaid',
+            default => 'Other',
+        };
+    }
+
     public function requiresCertificate(): bool
     {
         return $this->type === 'sick' && (float) $this->days >= self::CERTIFICATE_MIN_DAYS;

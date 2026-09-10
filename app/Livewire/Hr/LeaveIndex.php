@@ -31,8 +31,6 @@ class LeaveIndex extends Component
     #[Validate('nullable|file|max:5120|mimes:jpg,jpeg,png,pdf')]
     public $certificate = null;
 
-    public const ANNUAL_ENTITLEMENT = 18;
-
     public bool $showCertUploadForm = false;
 
     public ?int $certUploadTargetId = null;
@@ -114,8 +112,7 @@ class LeaveIndex extends Component
 
     public function render()
     {
-        $userId = Auth::id();
-        $usedDays = LeaveRequest::where('user_id', $userId)->where('status', 'approved')->whereYear('start_date', now()->year)->sum('days');
+        $user = Auth::user();
 
         $previewDays = ($this->start_date && $this->end_date)
             ? LeaveRequest::calculateBusinessDays($this->start_date, $this->end_date)
@@ -126,9 +123,13 @@ class LeaveIndex extends Component
             : collect();
 
         return view('livewire.hr.leave-index', [
-            'requests' => LeaveRequest::where('user_id', $userId)->latest()->paginate(10),
-            'usedDays' => $usedDays,
-            'remainingDays' => max(self::ANNUAL_ENTITLEMENT - $usedDays, 0),
+            'requests' => LeaveRequest::where('user_id', $user->id)->latest()->paginate(10),
+            'casualAllotment' => $user->annual_casual_leave,
+            'casualUsed' => $user->casualLeaveUsed(now()->year),
+            'casualRemaining' => $user->casualLeaveRemaining(now()->year),
+            'sickAllotment' => $user->annual_sick_leave,
+            'sickUsed' => $user->sickLeaveUsed(now()->year),
+            'sickRemaining' => $user->sickLeaveRemaining(now()->year),
             'previewDays' => $previewDays,
             'previewHolidays' => $previewHolidays,
             'showCertificateHint' => $this->type === 'sick' && $previewDays >= LeaveRequest::CERTIFICATE_MIN_DAYS && ! $this->certificate,

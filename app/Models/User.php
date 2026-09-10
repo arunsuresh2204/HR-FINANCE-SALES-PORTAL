@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -43,6 +44,12 @@ class User extends Authenticatable
         'bank_ifsc',
         'bank_branch',
         'monthly_salary',
+        'basic_pay',
+        'hra_percent',
+        'da_percent',
+        'other_allowances',
+        'annual_casual_leave',
+        'annual_sick_leave',
         'employment_status',
         'employment_type',
         'manager_id',
@@ -73,6 +80,12 @@ class User extends Authenticatable
             'date_of_birth' => 'date',
             'date_of_joining' => 'date',
             'monthly_salary' => 'decimal:2',
+            'basic_pay' => 'decimal:2',
+            'hra_percent' => 'decimal:2',
+            'da_percent' => 'decimal:2',
+            'other_allowances' => 'decimal:2',
+            'annual_casual_leave' => 'integer',
+            'annual_sick_leave' => 'integer',
         ];
     }
 
@@ -182,6 +195,89 @@ class User extends Authenticatable
             && filled($this->bank_account_number)
             && filled($this->bank_ifsc)
             && filled($this->bank_branch);
+    }
+
+    public function hasSalaryStructure(): bool
+    {
+        return $this->basic_pay !== null;
+    }
+
+    public function hraAmount(): float
+    {
+        return round((float) $this->basic_pay * (float) $this->hra_percent / 100, 2);
+    }
+
+    public function daAmount(): float
+    {
+        return round((float) $this->basic_pay * (float) $this->da_percent / 100, 2);
+    }
+
+    public function grossMonthlySalary(): float
+    {
+        return round((float) $this->basic_pay + $this->hraAmount() + $this->daAmount() + (float) $this->other_allowances, 2);
+    }
+
+    public function approvedLeaveDaysOfType(string $type, string $from, string $to): int
+    {
+        if ($to < $from) {
+            return 0;
+        }
+
+        return (int) $this->leaveRequests()
+            ->where('type', $type)
+            ->where('status', 'approved')
+            ->whereBetween('start_date', [$from, $to])
+            ->sum('days');
+    }
+
+    public function casualLeaveUsed(int $year): int
+    {
+        return $this->approvedLeaveDaysOfType('vacation', "{$year}-01-01", "{$year}-12-31");
+    }
+
+    public function sickLeaveUsed(int $year): int
+    {
+        return $this->approvedLeaveDaysOfType('sick', "{$year}-01-01", "{$year}-12-31");
+    }
+
+    public function casualLeaveRemaining(int $year): int
+    {
+        return max(0, ($this->annual_casual_leave ?? 0) - $this->casualLeaveUsed($year));
+    }
+
+    public function sickLeaveRemaining(int $year): int
+    {
+        return max(0, ($this->annual_sick_leave ?? 0) - $this->sickLeaveUsed($year));
+    }
+
+    /**
+     * Days of leave in the given month that should be unpaid: casual/sick days
+     * that pushed the employee past their annual allotment during this month,
+     * plus any leave explicitly requested as unpaid within the month.
+     */
+    public function unpaidLeaveDaysForMonth(int $year, int $month): int
+    {
+        $monthStart = Carbon::create($year, $month, 1)->startOfMonth();
+        $monthEnd = $monthStart->copy()->endOfMonth();
+        $yearStart = "{$year}-01-01";
+        $beforeMonth = $monthStart->copy()->subDay()->toDateString();
+
+        $casualAllotment = $this->annual_casual_leave ?? 0;
+        $sickAllotment = $this->annual_sick_leave ?? 0;
+
+        $casualUsedBefore = $this->approvedLeaveDaysOfType('vacation', $yearStart, $beforeMonth);
+        $sickUsedBefore = $this->approvedLeaveDaysOfType('sick', $yearStart, $beforeMonth);
+        $casualUsedThrough = $this->approvedLeaveDaysOfType('vacation', $yearStart, $monthEnd->toDateString());
+        $sickUsedThrough = $this->approvedLeaveDaysOfType('sick', $yearStart, $monthEnd->toDateString());
+
+        $excessBefore = max(0, $casualUsedBefore - $casualAllotment) + max(0, $sickUsedBefore - $sickAllotment);
+        $excessThrough = max(0, $casualUsedThrough - $casualAllotment) + max(0, $sickUsedThrough - $sickAllotment);
+
+        $balanceExceededDays = max(0, $excessThrough - $excessBefore);
+
+        $unpaidTypeDays = $this->approvedLeaveDaysOfType('unpaid', $monthStart->toDateString(), $monthEnd->toDateString());
+
+        return $balanceExceededDays + $unpaidTypeDays;
     }
 
     public function manager(): BelongsTo

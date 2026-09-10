@@ -41,6 +41,24 @@ class EmployeeShow extends Component
 
     public string $scheduled_logoff_time = '';
 
+    #[Validate('required|numeric|min:0')]
+    public string $basic_pay = '';
+
+    #[Validate('required|numeric|min:0')]
+    public string $hra_percent = '0';
+
+    #[Validate('required|numeric|min:0')]
+    public string $da_percent = '0';
+
+    #[Validate('nullable|numeric|min:0')]
+    public string $other_allowances = '0';
+
+    #[Validate('required|integer|min:0')]
+    public string $annual_casual_leave = '12';
+
+    #[Validate('required|integer|min:0')]
+    public string $annual_sick_leave = '12';
+
     public bool $showAssetForm = false;
 
     #[Validate('required|string|max:255')]
@@ -100,6 +118,12 @@ class EmployeeShow extends Component
         $this->additional_manager_ids = $user->additionalManagers()->pluck('users.id')->all();
         $this->scheduled_login_time = $user->scheduled_login_time ? substr($user->scheduled_login_time, 0, 5) : '';
         $this->scheduled_logoff_time = $user->scheduled_logoff_time ? substr($user->scheduled_logoff_time, 0, 5) : '';
+        $this->basic_pay = $user->basic_pay !== null ? (string) $user->basic_pay : '';
+        $this->hra_percent = $user->hra_percent !== null ? (string) $user->hra_percent : '0';
+        $this->da_percent = $user->da_percent !== null ? (string) $user->da_percent : '0';
+        $this->other_allowances = $user->other_allowances !== null ? (string) $user->other_allowances : '0';
+        $this->annual_casual_leave = (string) $user->annual_casual_leave;
+        $this->annual_sick_leave = (string) $user->annual_sick_leave;
     }
 
     public function saveReporting(): void
@@ -153,6 +177,42 @@ class EmployeeShow extends Component
         ]);
 
         $this->dispatch('toast', message: 'Employee details updated.', type: 'success');
+    }
+
+    public function saveSalaryStructure(): void
+    {
+        $this->validate([
+            'basic_pay' => 'required|numeric|min:0',
+            'hra_percent' => 'required|numeric|min:0',
+            'da_percent' => 'required|numeric|min:0',
+            'other_allowances' => 'nullable|numeric|min:0',
+        ]);
+
+        $this->user->update([
+            'basic_pay' => $this->basic_pay,
+            'hra_percent' => $this->hra_percent,
+            'da_percent' => $this->da_percent,
+            'other_allowances' => $this->other_allowances ?: 0,
+        ]);
+        $this->user->refresh();
+
+        $this->dispatch('toast', message: 'Salary structure updated.', type: 'success');
+    }
+
+    public function saveLeaveAllotment(): void
+    {
+        $this->validate([
+            'annual_casual_leave' => 'required|integer|min:0',
+            'annual_sick_leave' => 'required|integer|min:0',
+        ]);
+
+        $this->user->update([
+            'annual_casual_leave' => $this->annual_casual_leave,
+            'annual_sick_leave' => $this->annual_sick_leave,
+        ]);
+        $this->user->refresh();
+
+        $this->dispatch('toast', message: 'Leave allotment updated.', type: 'success');
     }
 
     public function assignAsset(): void
@@ -406,6 +466,10 @@ class EmployeeShow extends Component
             'potentialManagers' => User::where('id', '!=', $this->user->id)->orderBy('name')->get(),
             'assets' => Asset::where('user_id', $this->user->id)->orderByDesc('assigned_date')->get(),
             'leaveBalanceUsed' => $this->user->leaveRequests()->where('status', 'approved')->whereYear('start_date', now()->year)->sum('days'),
+            'casualLeaveUsed' => $this->user->casualLeaveUsed(now()->year),
+            'casualLeaveRemaining' => $this->user->casualLeaveRemaining(now()->year),
+            'sickLeaveUsed' => $this->user->sickLeaveUsed(now()->year),
+            'sickLeaveRemaining' => $this->user->sickLeaveRemaining(now()->year),
             'recentAttendance' => $this->user->attendances()->orderByDesc('work_date')->limit(5)->get(),
             'catalog' => EmployeeDocument::CATALOG,
             'documents' => $documents,

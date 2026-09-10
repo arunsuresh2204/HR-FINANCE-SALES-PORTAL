@@ -56,7 +56,9 @@ class PayrollRun extends Component
 
     public function generatePayroll(): void
     {
-        $employees = User::where('employment_status', '!=', 'offboarded')->whereNotNull('monthly_salary')->get();
+        $employees = User::where('employment_status', '!=', 'offboarded')
+            ->where(fn ($q) => $q->whereNotNull('monthly_salary')->orWhereNotNull('basic_pay'))
+            ->get();
 
         foreach ($employees as $employee) {
             $payroll = Payroll::firstOrNew(['user_id' => $employee->id, 'month' => $this->month, 'year' => $this->year]);
@@ -65,9 +67,30 @@ class PayrollRun extends Component
                 continue;
             }
 
+            if ($employee->hasSalaryStructure()) {
+                $basic = (float) $employee->basic_pay;
+                $hra = $employee->hraAmount();
+                $da = $employee->daAmount();
+                $other = (float) $employee->other_allowances;
+            } else {
+                $basic = (float) $employee->monthly_salary;
+                $hra = 0;
+                $da = 0;
+                $other = 0;
+            }
+
+            $daysInMonth = \Carbon\Carbon::create($this->year, $this->month, 1)->daysInMonth;
+            $lopDays = $employee->unpaidLeaveDaysForMonth($this->year, $this->month);
+            $dailyWage = $daysInMonth > 0 ? ($basic + $hra + $da + $other) / $daysInMonth : 0;
+
             $payroll->fill([
                 'processed_by' => Auth::id(),
-                'basic_salary' => $employee->monthly_salary,
+                'basic_salary' => $basic,
+                'hra' => $hra,
+                'da' => $da,
+                'other_allowances' => $other,
+                'lop_days' => $lopDays,
+                'loss_of_pay' => round($lopDays * $dailyWage, 2),
                 'status' => 'draft',
             ]);
             $payroll->recalculateTotals();

@@ -28,7 +28,7 @@
             <div class="space-y-3">
                 @forelse ($leaveByType as $type => $days)
                     <div class="flex items-center justify-between text-sm">
-                        <span class="capitalize text-white/70">{{ $type }}</span>
+                        <span class="text-white/70">{{ match($type) { 'vacation' => 'Casual', 'sick' => 'Sick', 'unpaid' => 'Unpaid', default => 'Other' } }}</span>
                         <span class="font-semibold text-white">{{ $days }} days</span>
                     </div>
                 @empty

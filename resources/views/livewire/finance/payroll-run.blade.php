@@ -15,6 +15,8 @@
         </x-slot:actions>
     </x-page-header>
 
+    <p class="mb-4 text-xs text-white/40">Drafts pull Basic/HRA/DA from each employee's Salary Structure, and Loss of Pay/LOP Days are pre-calculated from their leave balance — review and adjust before processing.</p>
+
     <div class="glass-panel relative overflow-hidden">
         <div class="glass-sheen"></div>
         <div class="overflow-x-auto">

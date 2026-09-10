@@ -71,6 +71,69 @@
             </div>
 
             <div class="glass-card">
+                <h2 class="mb-1 text-base font-bold text-white">Salary Structure</h2>
+                <p class="mb-4 text-xs text-white/40">Feeds Finance's monthly payroll generation for this employee.</p>
+                <form wire:submit="saveSalaryStructure" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <x-input-label for="basic_pay" value="Basic Pay (₹/month)" />
+                            <x-text-input wire:model.live="basic_pay" id="basic_pay" type="number" step="0.01" min="0" class="mt-0" />
+                            <x-input-error :messages="$errors->get('basic_pay')" class="mt-1" />
+                        </div>
+                        <div>
+                            <x-input-label for="other_allowances" value="Other Allowances (₹/month)" />
+                            <x-text-input wire:model.live="other_allowances" id="other_allowances" type="number" step="0.01" min="0" class="mt-0" />
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <x-input-label for="hra_percent" value="HRA (% of Basic)" />
+                            <x-text-input wire:model.live="hra_percent" id="hra_percent" type="number" step="0.01" min="0" class="mt-0" />
+                            <p class="mt-1 text-xs text-white/40">{{ \App\Support\Currency::format((float) $basic_pay * (float) $hra_percent / 100, 'INR') }}/month</p>
+                            <x-input-error :messages="$errors->get('hra_percent')" class="mt-1" />
+                        </div>
+                        <div>
+                            <x-input-label for="da_percent" value="DA (% of Basic)" />
+                            <x-text-input wire:model.live="da_percent" id="da_percent" type="number" step="0.01" min="0" class="mt-0" />
+                            <p class="mt-1 text-xs text-white/40">{{ \App\Support\Currency::format((float) $basic_pay * (float) $da_percent / 100, 'INR') }}/month</p>
+                            <x-input-error :messages="$errors->get('da_percent')" class="mt-1" />
+                        </div>
+                    </div>
+                    <div class="glass-inset flex items-center justify-between p-3">
+                        <span class="text-xs font-semibold uppercase tracking-wide text-white/40">Gross Monthly Salary</span>
+                        <span class="text-sm font-bold text-white">{{ \App\Support\Currency::format((float) $basic_pay + ((float) $basic_pay * (float) $hra_percent / 100) + ((float) $basic_pay * (float) $da_percent / 100) + (float) $other_allowances, 'INR') }}</span>
+                    </div>
+                    <div class="flex justify-end">
+                        <x-primary-button>Save Salary Structure</x-primary-button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="glass-card">
+                <h2 class="mb-1 text-base font-bold text-white">Leave Allotment</h2>
+                <p class="mb-4 text-xs text-white/40">Annual leave balance for {{ now()->year }}. Approved leave beyond this balance is treated as unpaid and deducted from payroll automatically.</p>
+                <form wire:submit="saveLeaveAllotment" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <x-input-label for="annual_casual_leave" value="Casual Leave (days/year)" />
+                            <x-text-input wire:model="annual_casual_leave" id="annual_casual_leave" type="number" step="1" min="0" class="mt-0" />
+                            <p class="mt-1 text-xs text-white/40">{{ $casualLeaveUsed }} used &middot; {{ $casualLeaveRemaining }} remaining</p>
+                            <x-input-error :messages="$errors->get('annual_casual_leave')" class="mt-1" />
+                        </div>
+                        <div>
+                            <x-input-label for="annual_sick_leave" value="Sick Leave (days/year)" />
+                            <x-text-input wire:model="annual_sick_leave" id="annual_sick_leave" type="number" step="1" min="0" class="mt-0" />
+                            <p class="mt-1 text-xs text-white/40">{{ $sickLeaveUsed }} used &middot; {{ $sickLeaveRemaining }} remaining</p>
+                            <x-input-error :messages="$errors->get('annual_sick_leave')" class="mt-1" />
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <x-primary-button>Save Leave Allotment</x-primary-button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="glass-card">
                 <h2 class="mb-4 text-base font-bold text-white">Functional Roles</h2>
                 <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     @foreach ($allRoles as $role)
