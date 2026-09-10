@@ -61,8 +61,8 @@
         </div>
     </div>
 
-    <div class="mb-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
-        <div class="glass-card lg:col-span-3">
+    <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <div class="glass-card flex flex-col lg:col-span-3">
             <div class="mb-3 flex items-center justify-between">
                 <h2 class="text-base font-bold text-white">Sales Achievement</h2>
                 <div class="flex items-center gap-4 text-[11px] text-white/50">
@@ -70,7 +70,7 @@
                     <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm" style="background-color:rgba(255,255,255,0.25)"></span> Target</span>
                 </div>
             </div>
-            <svg viewBox="0 0 {{ $chartW }} {{ $chartH }}" class="w-full" role="img" aria-label="Achieved versus target amount for the last six months">
+            <svg viewBox="0 0 {{ $chartW }} {{ $chartH }}" class="w-full flex-1" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Achieved versus target amount for the last six months">
                 @for ($g = 0; $g < 4; $g++)
                     @php $gy = $marginT + ($plotH / 4) * $g; @endphp
                     <line x1="{{ $marginL }}" y1="{{ $gy }}" x2="{{ $chartW - $marginR }}" y2="{{ $gy }}" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
