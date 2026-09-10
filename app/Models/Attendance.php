@@ -65,10 +65,10 @@ class Attendance extends Model
             }
 
             if ($clockIn->lte($graceEnd)) {
-                return ['tier' => 'grace', 'label' => "Late ({$minutesLate} min)", 'warning' => false, 'minutes_late' => $minutesLate];
+                return ['tier' => 'grace', 'label' => 'Late ('.self::formatDuration($minutesLate).')', 'warning' => false, 'minutes_late' => $minutesLate];
             }
 
-            return ['tier' => 'severe', 'label' => "Late - Warning ({$minutesLate} min)", 'warning' => true, 'minutes_late' => $minutesLate];
+            return ['tier' => 'severe', 'label' => 'Late - Warning ('.self::formatDuration($minutesLate).')', 'warning' => true, 'minutes_late' => $minutesLate];
         }
 
         if ($attendance && $attendance->exists) {
@@ -97,6 +97,21 @@ class Attendance extends Model
         }
 
         return ['tier' => 'absent', 'label' => 'Absent', 'warning' => false, 'minutes_late' => null];
+    }
+
+    /**
+     * Format a minute count as a compact duration, e.g. 45 => "45m", 90 => "1h30m", 120 => "2h".
+     */
+    public static function formatDuration(int $minutes): string
+    {
+        if ($minutes < 60) {
+            return "{$minutes}m";
+        }
+
+        $hours = intdiv($minutes, 60);
+        $remainder = $minutes % 60;
+
+        return $remainder > 0 ? "{$hours}h{$remainder}m" : "{$hours}h";
     }
 
     /**

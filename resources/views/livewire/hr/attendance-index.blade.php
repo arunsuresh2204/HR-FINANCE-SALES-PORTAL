@@ -102,7 +102,12 @@
             <p class="text-xs text-white/40">Optional &mdash; if you forgot to clock in or out, enter the actual times so HR can update your record accurately.</p>
             <div>
                 <x-input-label for="request_reason" value="Reason" />
-                <textarea wire:model="request_reason" id="request_reason" rows="3" class="input-glass" placeholder="e.g. My login was delayed due to a network outage."></textarea>
+                <select wire:model="request_reason" id="request_reason" class="input-glass">
+                    <option value="">Select a reason...</option>
+                    @foreach (\App\Livewire\Hr\AttendanceIndex::REASONS as $reasonOption)
+                        <option value="{{ $reasonOption }}">{{ $reasonOption }}</option>
+                    @endforeach
+                </select>
                 <x-input-error :messages="$errors->get('request_reason')" class="mt-1" />
             </div>
             <div class="flex justify-end gap-3 pt-2">

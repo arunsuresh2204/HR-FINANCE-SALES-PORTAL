@@ -16,6 +16,8 @@ class AttendanceIndex extends Component
 {
     use WithPagination;
 
+    public const REASONS = ['Forgot to clockin', 'Forgot to clockout', 'Onsite duty', 'Business travel'];
+
     public ?int $requestingAttendanceId = null;
 
     public bool $showRequestForm = false;
@@ -23,7 +25,7 @@ class AttendanceIndex extends Component
     #[Validate('required|in:present,late,absent,on_leave')]
     public string $requested_status = 'present';
 
-    #[Validate('required|string|max:1000')]
+    #[Validate('required|in:Forgot to clockin,Forgot to clockout,Onsite duty,Business travel')]
     public string $request_reason = '';
 
     #[Validate('nullable|date_format:H:i')]
