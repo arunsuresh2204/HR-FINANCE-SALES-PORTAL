@@ -49,12 +49,15 @@
                     </div>
                 @endif
 
-                @if (auth()->user()->can('access_timesheets') || auth()->user()->can('access_marketing_logs'))
+                @if (auth()->user()->can('access_timesheets') || auth()->user()->can('access_projects') || auth()->user()->can('access_marketing_logs'))
                     <div>
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">Daily Log</p>
                         <div class="mt-2 space-y-1">
                             @if (auth()->user()->can('access_timesheets'))
                                 <a href="{{ route('work.timesheets') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('work.timesheets') ? 'active' : '' }}"><x-icon name="code" class="h-4 w-4 shrink-0" />Timesheet</a>
+                            @endif
+                            @if (auth()->user()->can('access_projects'))
+                                <a href="{{ route('work.my-projects') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('work.my-projects') ? 'active' : '' }}"><x-icon name="briefcase" class="h-4 w-4 shrink-0" />My Projects</a>
                             @endif
                             @if (auth()->user()->can('access_marketing_logs'))
                                 <a href="{{ route('work.marketing-logs') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('work.marketing-logs') ? 'active' : '' }}"><x-icon name="megaphone" class="h-4 w-4 shrink-0" />Marketing Log</a>

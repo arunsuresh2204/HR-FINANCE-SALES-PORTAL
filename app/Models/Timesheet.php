@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Timesheet extends Model
 {
     protected $fillable = [
-        'user_id', 'client_id', 'project_name', 'work_date', 'task_description', 'hours', 'status', 'blocked_reason',
+        'user_id', 'client_id', 'project_id', 'project_name', 'work_date', 'task_description', 'hours', 'status', 'blocked_reason',
     ];
 
     protected function casts(): array
@@ -26,5 +26,10 @@ class Timesheet extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 }

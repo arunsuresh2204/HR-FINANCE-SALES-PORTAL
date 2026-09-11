@@ -43,7 +43,7 @@
                                 @if ($project->requirement_file)
                                     <a href="{{ Storage::url($project->requirement_file) }}" target="_blank" class="font-semibold text-gold-300 hover:text-gold-200">View Requirement</a>
                                 @endif
-                                @if ($canManageProjects)
+                                @if ($canManageProjects || $project->assigned_to === auth()->id())
                                     <button wire:click="openDeveloperForm({{ $project->id }})" class="font-semibold text-gold-300 hover:text-gold-200">Assign Developers</button>
                                 @endif
                             </div>
@@ -157,19 +157,19 @@
                 <x-input-error :messages="$errors->get('project_requirement_file')" class="mt-1" />
             </div>
             <div>
-                <x-input-label for="assigned_to" :value="$canManageProjects ? 'Assign To (optional)' : 'Assign To (Manager or Owner)'" />
+                <x-input-label for="assigned_to" :value="$canManageProjects ? 'Assign To (optional)' : 'Assign To (Manager, Team Leader, or Owner)'" />
                 <select wire:model="assigned_to" id="assigned_to" class="input-glass">
                     @if ($canManageProjects)
                         <option value="">— Keep assigned to me —</option>
                     @else
-                        <option value="">— Select a manager or owner —</option>
+                        <option value="">— Select a manager, team leader, or owner —</option>
                     @endif
                     @foreach ($managersAndOwners as $mgr)
                         <option value="{{ $mgr->id }}">{{ $mgr->name }}{{ $mgr->designation ? ' ('.$mgr->designation.')' : '' }}</option>
                     @endforeach
                 </select>
                 @unless ($canManageProjects)
-                    <p class="mt-1 text-xs text-white/35">Every project must be handed off to a manager or an owner to oversee.</p>
+                    <p class="mt-1 text-xs text-white/35">Every project must be handed off to a manager, team leader, or an owner to oversee.</p>
                 @endunless
                 <x-input-error :messages="$errors->get('assigned_to')" class="mt-1" />
             </div>

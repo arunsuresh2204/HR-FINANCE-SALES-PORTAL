@@ -40,6 +40,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['permission:access_timesheets'])->group(function () {
         Route::view('timesheets', 'pages.work.timesheet-index')->name('work.timesheets');
     });
+    Route::middleware(['permission:access_projects'])->group(function () {
+        Route::view('my-projects', 'pages.work.my-projects')->name('work.my-projects');
+    });
     Route::middleware(['permission:access_marketing_logs'])->group(function () {
         Route::view('marketing-logs', 'pages.work.marketing-log-index')->name('work.marketing-logs');
     });

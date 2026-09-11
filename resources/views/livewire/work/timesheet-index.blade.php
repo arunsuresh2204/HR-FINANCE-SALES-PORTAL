@@ -48,7 +48,7 @@
                                 <td class="text-white">{{ $entry->user->name }}</td>
                             @endif
                             <td>{{ $entry->work_date->format('M j, Y') }}</td>
-                            <td class="text-white">{{ $entry->client->business_name ?? $entry->project_name ?? '—' }}</td>
+                            <td class="text-white">{{ $entry->project->name ?? $entry->client->business_name ?? $entry->project_name ?? '—' }}</td>
                             <td class="max-w-sm truncate">{{ $entry->task_description }}</td>
                             <td class="font-semibold text-white">{{ number_format($entry->hours, 1) }}h</td>
                             <td><x-status-pill :status="$entry->status" :title="$entry->status === 'blocked' ? $entry->blocked_reason : null" /></td>
@@ -76,10 +76,24 @@
                     <x-input-error :messages="$errors->get('hours')" class="mt-1" />
                 </div>
             </div>
-            <div>
-                <x-input-label for="project_name" value="Project Name/Task (optional)" />
-                <x-text-input wire:model="project_name" id="project_name" type="text" class="mt-0" placeholder="e.g. In-house Pet Product" />
-            </div>
+            @if ($assignedProjects->isNotEmpty())
+                <div>
+                    <x-input-label for="project_id" value="Project" />
+                    <select wire:model.live="project_id" id="project_id" class="input-glass">
+                        <option value="">— Not project-specific —</option>
+                        @foreach ($assignedProjects as $proj)
+                            <option value="{{ $proj->id }}">{{ $proj->name }} ({{ $proj->client->business_name }})</option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('project_id')" class="mt-1" />
+                </div>
+            @endif
+            @if ($assignedProjects->isEmpty() || ! $project_id)
+                <div>
+                    <x-input-label for="project_name" value="Project Name/Task (optional)" />
+                    <x-text-input wire:model="project_name" id="project_name" type="text" class="mt-0" placeholder="e.g. In-house Pet Product" />
+                </div>
+            @endif
             <div>
                 <x-input-label for="task_description" value="Task Description" />
                 <textarea wire:model="task_description" id="task_description" rows="3" class="input-glass"></textarea>

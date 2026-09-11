@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Support\FeatureCatalog;
 use Carbon\Carbon;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -16,7 +17,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
 
     protected $guard_name = 'web';
@@ -128,6 +129,16 @@ class User extends Authenticatable
     public function timesheets(): HasMany
     {
         return $this->hasMany(Timesheet::class);
+    }
+
+    public function assignedProjects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'assigned_to');
+    }
+
+    public function developerProjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'project_developers')->withTimestamps();
     }
 
     public function marketingLogs(): HasMany

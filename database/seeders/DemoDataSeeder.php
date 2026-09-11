@@ -21,8 +21,10 @@ use App\Models\SalesTarget;
 use App\Models\Timesheet;
 use App\Models\User;
 use App\Support\FeatureCatalog;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
@@ -399,9 +401,9 @@ class DemoDataSeeder extends Seeder
         ]);
         $vishnuPayroll->recalculateTotals();
         $vishnuPayroll->save();
-        $vishnuPdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.payslip', ['payroll' => $vishnuPayroll->load('user')]);
+        $vishnuPdf = Pdf::loadView('pdf.payslip', ['payroll' => $vishnuPayroll->load('user')]);
         $vishnuPath = 'payslips/payslip-'.$vishnuPayroll->id.'.pdf';
-        \Illuminate\Support\Facades\Storage::disk('public')->put($vishnuPath, $vishnuPdf->output());
+        Storage::disk('public')->put($vishnuPath, $vishnuPdf->output());
         $vishnuPayroll->update(['payslip_file' => $vishnuPath]);
 
         $snehaPayroll = new Payroll([
@@ -413,9 +415,9 @@ class DemoDataSeeder extends Seeder
         ]);
         $snehaPayroll->recalculateTotals();
         $snehaPayroll->save();
-        $snehaPdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.payslip', ['payroll' => $snehaPayroll->load('user')]);
+        $snehaPdf = Pdf::loadView('pdf.payslip', ['payroll' => $snehaPayroll->load('user')]);
         $snehaPath = 'payslips/payslip-'.$snehaPayroll->id.'.pdf';
-        \Illuminate\Support\Facades\Storage::disk('public')->put($snehaPath, $snehaPdf->output());
+        Storage::disk('public')->put($snehaPath, $snehaPdf->output());
         $snehaPayroll->update(['payslip_file' => $snehaPath]);
 
         // A draft payroll for the current month, left unedited so Finance can demo the itemized edit flow
@@ -492,18 +494,24 @@ class DemoDataSeeder extends Seeder
             'milestone_description' => '50% on delivery', 'status' => 'pending',
         ]);
 
-        // Projects for PawCare Co.: one assigned to a manager, one assigned to an owner, each staffed with developers
+        // Projects for PawCare Co.: one assigned to a manager, one handed off to a team leader, each staffed with developers
         $project1 = Project::create([
             'client_id' => $client1->id, 'created_by' => $sales1->id, 'assigned_to' => $owner4->id,
             'name' => 'PawCare Storefront Build', 'description' => 'Full e-commerce site for pet supplies.', 'status' => 'active',
         ]);
         $project1->developers()->attach([$dev1->id, $dev2->id]);
 
+        // Vikram (Mobile Team Lead) is handed this one by the Manager - Engineering; Sneha builds it under him.
         $project2 = Project::create([
-            'client_id' => $client1->id, 'created_by' => $owner1->id, 'assigned_to' => $owner1->id,
-            'name' => 'PawCare Mobile Companion App', 'description' => 'Follow-on mobile app once the storefront ships.', 'status' => 'on_hold',
+            'client_id' => $client1->id, 'created_by' => $owner1->id, 'assigned_to' => $dev2->id,
+            'name' => 'PawCare Mobile Companion App', 'description' => 'Follow-on mobile app once the storefront ships.', 'status' => 'active',
         ]);
-        $project2->developers()->attach([$dev2->id]);
+        $project2->developers()->attach([$dev1->id]);
+        Timesheet::create([
+            'user_id' => $dev1->id, 'client_id' => $client1->id, 'project_id' => $project2->id,
+            'project_name' => $project2->name, 'work_date' => now()->subDays(2),
+            'task_description' => 'Set up React Native project scaffolding', 'hours' => 4, 'status' => 'in_progress',
+        ]);
 
         // Vishnu's pipeline: 20 leads, 10 of which are won and converted to clients
         $vishnuLeads = [
@@ -531,7 +539,7 @@ class DemoDataSeeder extends Seeder
 
         foreach ($vishnuLeads as $i => $def) {
             $email = Str::slug($def['name'], '.').'@'.Str::slug($def['company'], '').'.com';
-            $isClosed = in_array($def['status'], \App\Models\Lead::CLOSED_STATUSES, true);
+            $isClosed = in_array($def['status'], Lead::CLOSED_STATUSES, true);
 
             $lead = Lead::create([
                 'sales_person_id' => $sales3->id,

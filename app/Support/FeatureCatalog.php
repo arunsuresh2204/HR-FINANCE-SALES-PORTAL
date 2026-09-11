@@ -11,6 +11,7 @@ class FeatureCatalog
     public const FEATURES = [
         'access_org_chart' => 'Org Chart',
         'access_timesheets' => 'Timesheets',
+        'access_projects' => 'My Projects',
         'access_marketing_logs' => 'Marketing Logs',
         'access_sales_leads' => 'Sales Leads',
         'access_sales_clients' => 'Sales Clients',
@@ -39,6 +40,7 @@ class FeatureCatalog
     public const FEATURE_DESCRIPTIONS = [
         'access_org_chart' => 'Company org chart and reporting lines',
         'access_timesheets' => 'Daily timesheet logs',
+        'access_projects' => 'Projects assigned to you: manage developers and view progress',
         'access_marketing_logs' => 'Marketer daily activity logs',
         'access_sales_leads' => 'Leads pipeline (add/track cold-outreach contacts)',
         'access_sales_clients' => 'Client list and client detail pages',
@@ -54,17 +56,17 @@ class FeatureCatalog
      */
     public const DEFAULT_ROLE_PERMISSIONS = [
         'super_admin' => [
-            'access_org_chart', 'access_timesheets', 'access_marketing_logs',
+            'access_org_chart', 'access_timesheets', 'access_projects', 'access_marketing_logs',
             'access_sales_leads', 'access_sales_clients', 'access_sales_targets',
             'access_hr_admin', 'access_finance_admin', 'access_super_admin',
             self::TEAM_MANAGER_PERMISSION,
         ],
-        'manager_engineering' => ['access_org_chart', 'access_sales_clients', 'access_timesheets', self::TEAM_MANAGER_PERMISSION],
+        'manager_engineering' => ['access_org_chart', 'access_sales_clients', 'access_timesheets', 'access_projects', self::TEAM_MANAGER_PERMISSION],
         'hr_admin' => ['access_org_chart', 'access_hr_admin'],
         'finance_admin' => ['access_finance_admin'],
         'sales_exec' => ['access_sales_leads', 'access_sales_clients', 'access_sales_targets'],
         'digital_marketer' => ['access_marketing_logs', 'access_sales_leads'],
         'programmer' => ['access_timesheets'],
-        'team_lead_it' => [],
+        'team_lead_it' => ['access_projects'],
     ];
 }

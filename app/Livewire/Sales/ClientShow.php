@@ -115,8 +115,8 @@ class ClientShow extends Component
         if ($this->assigned_to) {
             $assignee = User::findOrFail($this->assigned_to);
 
-            if (! $assignee->isManager() && ! $assignee->isSuperAdmin()) {
-                $this->addError('assigned_to', 'Projects can only be assigned to a manager or an owner.');
+            if (! $assignee->isManager() && ! $assignee->isSuperAdmin() && ! $assignee->isTeamLead()) {
+                $this->addError('assigned_to', 'Projects can only be assigned to a manager, team leader, or an owner.');
 
                 return;
             }
@@ -136,15 +136,20 @@ class ClientShow extends Component
         $this->dispatch('toast', message: 'Project created.', type: 'success');
     }
 
-    public function openDeveloperForm(int $projectId): void
+    protected function canManageProject(Project $project): bool
     {
         $authUser = Auth::user();
 
-        if (! $authUser->isManager() && ! $authUser->isSuperAdmin()) {
+        return $authUser->isManager() || $authUser->isSuperAdmin() || $project->assigned_to === $authUser->id;
+    }
+
+    public function openDeveloperForm(int $projectId): void
+    {
+        $project = Project::findOrFail($projectId);
+
+        if (! $this->canManageProject($project)) {
             return;
         }
-
-        $project = Project::findOrFail($projectId);
 
         $this->managingProjectId = $projectId;
         $this->developer_ids = $project->developers()->pluck('users.id')->all();
@@ -154,13 +159,12 @@ class ClientShow extends Component
 
     public function saveDevelopers(): void
     {
-        $authUser = Auth::user();
+        $project = Project::findOrFail($this->managingProjectId);
 
-        if (! $authUser->isManager() && ! $authUser->isSuperAdmin()) {
+        if (! $this->canManageProject($project)) {
             return;
         }
 
-        $project = Project::findOrFail($this->managingProjectId);
         $project->developers()->sync($this->developer_ids);
 
         $this->showDeveloperForm = false;
@@ -262,7 +266,7 @@ class ClientShow extends Component
             'totalHours' => $this->client->timesheets()->sum('hours'),
             'billableHours' => $this->client->billableHours(),
             'canManageProjects' => $authUser->isManager() || $authUser->isSuperAdmin(),
-            'managersAndOwners' => User::role(['manager_engineering', 'super_admin'])->orderBy('name')->get(),
+            'managersAndOwners' => User::role(['manager_engineering', 'team_lead_it', 'super_admin'])->orderBy('name')->get(),
             'developersList' => User::role('programmer')->orderBy('name')->get(),
         ]);
     }

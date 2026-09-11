@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Work;
 
+use App\Models\Project;
 use App\Models\Timesheet;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -17,6 +19,8 @@ class TimesheetIndex extends Component
     public string $tab = 'mine';
 
     public string $memberFilter = '';
+
+    public ?int $project_id = null;
 
     #[Validate('nullable|string|max:255')]
     public string $project_name = '';
@@ -38,7 +42,7 @@ class TimesheetIndex extends Component
 
     public function openForm(): void
     {
-        $this->reset(['project_name', 'task_description', 'hours', 'blocked_reason']);
+        $this->reset(['project_id', 'project_name', 'task_description', 'hours', 'blocked_reason']);
         $this->work_date = now()->toDateString();
         $this->status = 'in_progress';
         $this->showForm = true;
@@ -46,11 +50,23 @@ class TimesheetIndex extends Component
 
     public function submit(): void
     {
-        $this->validate();
+        $this->validate([
+            'project_id' => ['nullable', Rule::exists('project_developers', 'project_id')->where('user_id', Auth::id())],
+            'project_name' => 'nullable|string|max:255',
+            'work_date' => 'required|date|before_or_equal:today',
+            'task_description' => 'required|string|max:1000',
+            'hours' => 'required|numeric|min:0.25|max:24',
+            'status' => 'required|in:in_progress,completed,blocked',
+            'blocked_reason' => 'required_if:status,blocked|nullable|string|max:500',
+        ]);
+
+        $project = $this->project_id ? Project::find($this->project_id) : null;
 
         Timesheet::create([
             'user_id' => Auth::id(),
-            'project_name' => $this->project_name,
+            'project_id' => $this->project_id,
+            'client_id' => $project?->client_id,
+            'project_name' => $project?->name ?? $this->project_name,
             'work_date' => $this->work_date,
             'task_description' => $this->task_description,
             'hours' => $this->hours,
@@ -80,12 +96,13 @@ class TimesheetIndex extends Component
         $user = Auth::user();
         $userId = $user->id;
         $canViewTeam = $user->teamVisibilityFor('access_timesheets');
+        $assignedProjects = $user->developerProjects()->with('client')->orderBy('name')->get();
 
         if ($this->tab === 'team' && $canViewTeam) {
             $team = $user->allDescendants();
             $teamIds = $team->pluck('id');
 
-            $entriesQuery = Timesheet::with('user')->whereIn('user_id', $teamIds)->latest('work_date');
+            $entriesQuery = Timesheet::with(['user', 'project', 'client'])->whereIn('user_id', $teamIds)->latest('work_date');
 
             if ($this->memberFilter && $teamIds->contains((int) $this->memberFilter)) {
                 $entriesQuery->where('user_id', $this->memberFilter);
@@ -97,15 +114,17 @@ class TimesheetIndex extends Component
                 'monthHours' => Timesheet::whereIn('user_id', $teamIds)->whereMonth('work_date', now()->month)->whereYear('work_date', now()->year)->sum('hours'),
                 'canViewTeam' => $canViewTeam,
                 'teamMembers' => $team->sortBy('name')->values(),
+                'assignedProjects' => $assignedProjects,
             ]);
         }
 
         return view('livewire.work.timesheet-index', [
-            'entries' => Timesheet::where('user_id', $userId)->latest('work_date')->paginate(10),
+            'entries' => Timesheet::with(['project', 'client'])->where('user_id', $userId)->latest('work_date')->paginate(10),
             'weekHours' => Timesheet::where('user_id', $userId)->whereBetween('work_date', [now()->startOfWeek(), now()->endOfWeek()])->sum('hours'),
             'monthHours' => Timesheet::where('user_id', $userId)->whereMonth('work_date', now()->month)->whereYear('work_date', now()->year)->sum('hours'),
             'canViewTeam' => $canViewTeam,
             'teamMembers' => collect(),
+            'assignedProjects' => $assignedProjects,
         ]);
     }
 }
