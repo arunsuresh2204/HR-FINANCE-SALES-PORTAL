@@ -64,7 +64,7 @@ class TimesheetIndex extends Component
 
     public function setTab(string $tab): void
     {
-        $canViewTeam = Auth::user()->isManager();
+        $canViewTeam = Auth::user()->teamVisibilityFor('access_timesheets');
         $this->tab = ($tab === 'team' && $canViewTeam) ? 'team' : 'mine';
         $this->memberFilter = '';
         $this->resetPage();
@@ -79,7 +79,7 @@ class TimesheetIndex extends Component
     {
         $user = Auth::user();
         $userId = $user->id;
-        $canViewTeam = $user->isManager();
+        $canViewTeam = $user->teamVisibilityFor('access_timesheets');
 
         if ($this->tab === 'team' && $canViewTeam) {
             $team = $user->allDescendants();

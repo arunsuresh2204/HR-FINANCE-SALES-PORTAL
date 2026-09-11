@@ -20,6 +20,7 @@ use App\Models\Project;
 use App\Models\SalesTarget;
 use App\Models\Timesheet;
 use App\Models\User;
+use App\Support\FeatureCatalog;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -97,7 +98,10 @@ class DemoDataSeeder extends Seeder
         // Custom role created via the Functional Roles admin screen, mirroring
         // a real admin's setup: "Manager- Sales" overseeing the sales team.
         $managerSalesRole = Role::firstOrCreate(['name' => 'manager_sales', 'guard_name' => 'web']);
-        $managerSalesRole->syncPermissions(['access_sales_leads', 'access_sales_clients', 'access_sales_targets']);
+        $managerSalesRole->syncPermissions([
+            'access_sales_leads', 'access_sales_clients', 'access_sales_targets',
+            FeatureCatalog::TEAM_MANAGER_PERMISSION,
+        ]);
 
         $sales1 = User::create([
             'employee_code' => 'EMP-0008', 'name' => 'Rohan Kapoor', 'email' => 'rohan@nexstarc.com',

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\FeatureCatalog;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -372,9 +374,52 @@ class User extends Authenticatable
         return $this->hasAnyRole(['manager_engineering', 'super_admin']);
     }
 
-    public function isSalesManager(): bool
+    /**
+     * Whether this user's role is flagged (via the "Team Manager" toggle in
+     * Feature Access) as one that manages a team, regardless of which role
+     * it is. Combine with can('access_xxx') to scope a specific page's team
+     * view — see teamVisibilityFor().
+     */
+    public function isTeamManager(): bool
     {
-        return $this->hasAnyRole(['manager_sales', 'super_admin']);
+        return $this->can('manages_team');
+    }
+
+    /**
+     * Whether this user should see team-wide data (their full reporting
+     * line, not just their own) on the page gated by the given feature
+     * permission. This is what lets a brand-new manager role — created and
+     * configured entirely through Functional Roles, no code change — get
+     * team visibility on any page that already supports it.
+     */
+    public function teamVisibilityFor(string $featurePermission): bool
+    {
+        return $this->isTeamManager() && $this->can($featurePermission);
+    }
+
+    /**
+     * A display label for the org chart badge, derived from whichever of
+     * this user's roles actually carries the Team Manager flag — so a role
+     * like "manager_digital_marketing" automatically renders as "Manager –
+     * Digital Marketing" with no code change. Returns null for non-managers.
+     */
+    public function teamManagerLabel(): ?string
+    {
+        if (! $this->isTeamManager()) {
+            return null;
+        }
+
+        $role = $this->roles->first(
+            fn ($role) => $role->name !== 'super_admin' && $role->hasPermissionTo(FeatureCatalog::TEAM_MANAGER_PERMISSION)
+        );
+
+        if (! $role) {
+            return null;
+        }
+
+        return str_starts_with($role->name, 'manager_')
+            ? 'Manager – '.Str::title(str_replace('_', ' ', substr($role->name, 8)))
+            : Str::title(str_replace('_', ' ', $role->name));
     }
 
     public function isTeamLead(): bool
@@ -384,7 +429,7 @@ class User extends Authenticatable
 
     public function canSetSalesTargets(): bool
     {
-        return $this->isSalesManager();
+        return $this->teamVisibilityFor('access_sales_targets');
     }
 
     public function initials(): string

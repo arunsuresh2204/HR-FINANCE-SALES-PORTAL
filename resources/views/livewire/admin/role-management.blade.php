@@ -9,6 +9,7 @@
         <p class="text-sm text-white/60">
             A new role becomes assignable straight away from an employee's <span class="font-semibold text-white/80">Functional Roles</span> section.
             Use the <span class="font-semibold text-white/80">Feature Access</span> grid below to decide what that role — or any existing role — can actually see and use. Checking a box grants access immediately; no code changes or deploys needed.
+            Check <span class="font-semibold text-white/80">Team Manager</span> alongside a feature (e.g. Timesheets) to make that role see its whole reporting line's data there — set who reports to whom from each employee's profile.
         </p>
     </div>
 
@@ -66,6 +67,7 @@
                         @foreach ($features as $key => $label)
                             <th class="whitespace-nowrap text-center" title="{{ $featureDescriptions[$key] }}">{{ $label }}</th>
                         @endforeach
+                        <th class="whitespace-nowrap border-l border-white/10 pl-4 text-center" title="{{ $teamManagerDescription }}">{{ $teamManagerLabel }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -93,6 +95,15 @@
                                     >
                                 </td>
                             @endforeach
+                            <td class="border-l border-white/10 pl-4 text-center">
+                                <input
+                                    type="checkbox"
+                                    @checked(in_array($teamManagerPermission, $role->grantedPermissions, true))
+                                    title="{{ $teamManagerDescription }}"
+                                    wire:click="togglePermission({{ $role->id }}, '{{ $teamManagerPermission }}')"
+                                    class="h-4 w-4 rounded border-emerald-400/30 bg-white/5 text-emerald-400 focus:ring-emerald-400/40"
+                                >
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>

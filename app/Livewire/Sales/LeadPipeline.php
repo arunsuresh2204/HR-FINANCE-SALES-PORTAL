@@ -179,7 +179,7 @@ class LeadPipeline extends Component
             if ($this->ownerFilter) {
                 $query->where('sales_person_id', $this->ownerFilter);
             }
-        } elseif ($user->isSalesManager()) {
+        } elseif ($user->teamVisibilityFor('access_sales_leads')) {
             $teamIds = $user->allDescendants()->pluck('id')->push($user->id);
 
             if ($this->ownerFilter && $teamIds->contains((int) $this->ownerFilter)) {
@@ -231,7 +231,7 @@ class LeadPipeline extends Component
             'leads' => $leads,
             'owners' => match (true) {
                 $user->isSuperAdmin() => User::role(['sales_exec', 'marketer'])->orderBy('name')->get(),
-                $user->isSalesManager() => User::role(['sales_exec', 'marketer'])
+                $user->teamVisibilityFor('access_sales_leads') => User::role(['sales_exec', 'marketer'])
                     ->whereIn('id', $user->allDescendants()->pluck('id'))
                     ->orderBy('name')->get(),
                 default => collect(),

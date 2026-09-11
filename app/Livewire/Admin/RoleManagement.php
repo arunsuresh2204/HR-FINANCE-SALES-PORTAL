@@ -70,7 +70,10 @@ class RoleManagement extends Component
 
     public function togglePermission(int $roleId, string $permission): void
     {
-        if (! array_key_exists($permission, FeatureCatalog::FEATURES)) {
+        $isToggleable = array_key_exists($permission, FeatureCatalog::FEATURES)
+            || $permission === FeatureCatalog::TEAM_MANAGER_PERMISSION;
+
+        if (! $isToggleable) {
             return;
         }
 
@@ -107,6 +110,9 @@ class RoleManagement extends Component
             'roles' => $roles,
             'features' => FeatureCatalog::FEATURES,
             'featureDescriptions' => FeatureCatalog::FEATURE_DESCRIPTIONS,
+            'teamManagerPermission' => FeatureCatalog::TEAM_MANAGER_PERMISSION,
+            'teamManagerLabel' => FeatureCatalog::TEAM_MANAGER_LABEL,
+            'teamManagerDescription' => FeatureCatalog::TEAM_MANAGER_DESCRIPTION,
         ]);
     }
 }

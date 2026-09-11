@@ -33,7 +33,7 @@ class ClientIndex extends Component
 
         if ($user->isSuperAdmin() || $user->isFinanceAdmin() || $user->isManager()) {
             // sees every client, company-wide
-        } elseif ($user->isSalesManager()) {
+        } elseif ($user->teamVisibilityFor('access_sales_clients')) {
             $teamIds = $user->allDescendants()->pluck('id')->push($user->id);
             $query->whereIn('sales_person_id', $teamIds);
         } else {

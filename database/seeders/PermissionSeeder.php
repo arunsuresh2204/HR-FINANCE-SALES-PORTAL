@@ -11,7 +11,9 @@ class PermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach (array_keys(FeatureCatalog::FEATURES) as $permission) {
+        $permissions = [...array_keys(FeatureCatalog::FEATURES), FeatureCatalog::TEAM_MANAGER_PERMISSION];
+
+        foreach ($permissions as $permission) {
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
