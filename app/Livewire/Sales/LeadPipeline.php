@@ -168,7 +168,8 @@ class LeadPipeline extends Component
         $lead->update(['status' => $value]);
 
         if ($value === 'won') {
-            $this->dispatch('toast', message: 'Lead marked as won! Convert it to a client from the lead page.', type: 'success');
+            $lead->convertToClient();
+            $this->dispatch('toast', message: 'Lead marked as won and converted to a client!', type: 'success');
         } else {
             $this->dispatch('toast', message: 'Status updated.', type: 'success');
         }

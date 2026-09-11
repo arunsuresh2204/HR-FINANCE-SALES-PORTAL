@@ -18,6 +18,26 @@ class ClientShow extends Component
 
     public Client $client;
 
+    public bool $showBusinessForm = false;
+
+    #[Validate('required|string|max:255')]
+    public string $business_name = '';
+
+    #[Validate('nullable|string|max:255')]
+    public string $business_type = '';
+
+    #[Validate('nullable|string|max:1000')]
+    public string $business_address = '';
+
+    #[Validate('nullable|string|max:255')]
+    public string $owner_name = '';
+
+    #[Validate('nullable|string|max:255')]
+    public string $owner_designation = '';
+
+    #[Validate('nullable|string|max:255')]
+    public string $owner_contact = '';
+
     public bool $showAgreementForm = false;
 
     #[Validate('nullable|file|max:10240')]
@@ -72,6 +92,42 @@ class ClientShow extends Component
         $this->client = $client;
         $this->agreement_effective_date = $client->agreement_effective_date?->toDateString() ?? '';
         $this->agreement_scope_summary = $client->agreement_scope_summary ?? '';
+    }
+
+    public function openBusinessForm(): void
+    {
+        $this->business_name = $this->client->business_name;
+        $this->business_type = $this->client->business_type ?? '';
+        $this->business_address = $this->client->business_address ?? '';
+        $this->owner_name = $this->client->owner_name ?? '';
+        $this->owner_designation = $this->client->owner_designation ?? '';
+        $this->owner_contact = $this->client->owner_contact ?? '';
+        $this->resetValidation();
+        $this->showBusinessForm = true;
+    }
+
+    public function saveBusinessDetails(): void
+    {
+        $this->validate([
+            'business_name' => 'required|string|max:255',
+            'business_type' => 'nullable|string|max:255',
+            'business_address' => 'nullable|string|max:1000',
+            'owner_name' => 'nullable|string|max:255',
+            'owner_designation' => 'nullable|string|max:255',
+            'owner_contact' => 'nullable|string|max:255',
+        ]);
+
+        $this->client->update([
+            'business_name' => $this->business_name,
+            'business_type' => $this->business_type ?: null,
+            'business_address' => $this->business_address ?: null,
+            'owner_name' => $this->owner_name ?: null,
+            'owner_designation' => $this->owner_designation ?: null,
+            'owner_contact' => $this->owner_contact ?: null,
+        ]);
+
+        $this->showBusinessForm = false;
+        $this->dispatch('toast', message: 'Business details saved.', type: 'success');
     }
 
     public function saveAgreement(): void

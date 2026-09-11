@@ -47,4 +47,29 @@ class Lead extends Model
     {
         return $this->hasOne(Client::class);
     }
+
+    /**
+     * Auto-convert this lead into a Client the moment it's marked won.
+     * Idempotent: returns the existing client if one already exists.
+     */
+    public function convertToClient(): Client
+    {
+        $existing = $this->client()->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        $client = Client::create([
+            'lead_id' => $this->id,
+            'sales_person_id' => $this->sales_person_id,
+            'business_name' => $this->company_name ?: $this->client_name,
+            'owner_name' => $this->client_name,
+            'owner_contact' => $this->email ?: $this->phone,
+        ]);
+
+        $this->setRelation('client', $client);
+
+        return $client;
+    }
 }

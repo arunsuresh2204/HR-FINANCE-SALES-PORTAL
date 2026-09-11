@@ -67,7 +67,12 @@ class LeadShow extends Component
 
         $this->lead->update($data);
 
-        $this->dispatch('toast', message: 'Lead status updated.', type: 'success');
+        if ($this->status === 'won') {
+            $this->lead->convertToClient();
+            $this->dispatch('toast', message: 'Lead marked as won and converted to a client!', type: 'success');
+        } else {
+            $this->dispatch('toast', message: 'Lead status updated.', type: 'success');
+        }
     }
 
     public function saveDetails(): void

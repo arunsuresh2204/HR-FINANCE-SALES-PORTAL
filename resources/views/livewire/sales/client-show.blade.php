@@ -10,8 +10,12 @@
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
             <div class="glass-card">
-                <h2 class="mb-4 text-base font-bold text-white">Business Details</h2>
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="text-base font-bold text-white">Business Details</h2>
+                    <button wire:click="openBusinessForm" class="text-xs font-semibold text-gold-300 hover:text-gold-200">Edit</button>
+                </div>
                 <dl class="grid grid-cols-2 gap-4 text-sm">
+                    <div><dt class="text-white/40">Business Type</dt><dd class="mt-0.5 text-white">{{ $client->business_type ?? '—' }}</dd></div>
                     <div><dt class="text-white/40">Business Address</dt><dd class="mt-0.5 text-white">{{ $client->business_address ?? '—' }}</dd></div>
                     <div><dt class="text-white/40">Owner / Decision Maker</dt><dd class="mt-0.5 text-white">{{ $client->owner_name ?? '—' }} {{ $client->owner_designation ? '('.$client->owner_designation.')' : '' }}</dd></div>
                     <div><dt class="text-white/40">Contact</dt><dd class="mt-0.5 text-white">{{ $client->owner_contact ?? '—' }}</dd></div>
@@ -20,6 +24,44 @@
                     <div><dt class="text-white/40">Actual Hours Logged</dt><dd class="mt-0.5 text-white">{{ number_format($totalHours, 1) }}h</dd></div>
                     <div><dt class="text-white/40">Billable Hours (Invoiced)</dt><dd class="mt-0.5 text-white">{{ number_format($billableHours, 1) }}h</dd></div>
                 </dl>
+
+                @if ($showBusinessForm)
+                    <form wire:submit="saveBusinessDetails" class="mt-4 space-y-4 border-t border-white/10 pt-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <x-input-label for="business_name" value="Business Name" />
+                                <x-text-input wire:model="business_name" id="business_name" type="text" class="mt-0" />
+                                <x-input-error :messages="$errors->get('business_name')" class="mt-1" />
+                            </div>
+                            <div>
+                                <x-input-label for="business_type" value="Business Type" />
+                                <x-text-input wire:model="business_type" id="business_type" type="text" class="mt-0" placeholder="e.g. E-commerce, Restaurant" />
+                            </div>
+                        </div>
+                        <div>
+                            <x-input-label for="business_address" value="Business Address" />
+                            <textarea wire:model="business_address" id="business_address" rows="2" class="input-glass"></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <x-input-label for="owner_name" value="Owner / Decision Maker" />
+                                <x-text-input wire:model="owner_name" id="owner_name" type="text" class="mt-0" />
+                            </div>
+                            <div>
+                                <x-input-label for="owner_designation" value="Designation" />
+                                <x-text-input wire:model="owner_designation" id="owner_designation" type="text" class="mt-0" />
+                            </div>
+                        </div>
+                        <div>
+                            <x-input-label for="owner_contact" value="Contact (Email / Phone)" />
+                            <x-text-input wire:model="owner_contact" id="owner_contact" type="text" class="mt-0" />
+                        </div>
+                        <div class="flex justify-end gap-3">
+                            <x-secondary-button type="button" wire:click="$set('showBusinessForm', false)">Cancel</x-secondary-button>
+                            <x-primary-button>Save</x-primary-button>
+                        </div>
+                    </form>
+                @endif
             </div>
 
             <div class="glass-card">
