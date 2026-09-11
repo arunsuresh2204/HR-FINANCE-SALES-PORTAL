@@ -33,9 +33,12 @@ class TimesheetIndex extends Component
     #[Validate('required|in:in_progress,completed,blocked')]
     public string $status = 'in_progress';
 
+    #[Validate('required_if:status,blocked|nullable|string|max:500')]
+    public string $blocked_reason = '';
+
     public function openForm(): void
     {
-        $this->reset(['project_name', 'task_description', 'hours']);
+        $this->reset(['project_name', 'task_description', 'hours', 'blocked_reason']);
         $this->work_date = now()->toDateString();
         $this->status = 'in_progress';
         $this->showForm = true;
@@ -52,6 +55,7 @@ class TimesheetIndex extends Component
             'task_description' => $this->task_description,
             'hours' => $this->hours,
             'status' => $this->status,
+            'blocked_reason' => $this->status === 'blocked' ? $this->blocked_reason : null,
         ]);
 
         $this->showForm = false;

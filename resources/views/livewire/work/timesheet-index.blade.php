@@ -51,7 +51,7 @@
                             <td class="text-white">{{ $entry->client->business_name ?? $entry->project_name ?? '—' }}</td>
                             <td class="max-w-sm truncate">{{ $entry->task_description }}</td>
                             <td class="font-semibold text-white">{{ number_format($entry->hours, 1) }}h</td>
-                            <td><x-status-pill :status="$entry->status" /></td>
+                            <td><x-status-pill :status="$entry->status" :title="$entry->status === 'blocked' ? $entry->blocked_reason : null" /></td>
                         </tr>
                     @empty
                         <tr><td colspan="{{ $tab === 'team' ? 6 : 5 }}" class="py-8 text-center text-white/40">{{ $tab === 'team' ? 'No team timesheet entries yet.' : 'No timesheet entries yet.' }}</td></tr>
@@ -87,12 +87,19 @@
             </div>
             <div>
                 <x-input-label for="status" value="Status" />
-                <select wire:model="status" id="status" class="input-glass">
+                <select wire:model.live="status" id="status" class="input-glass">
                     <option value="in_progress">In Progress</option>
                     <option value="completed">Completed</option>
                     <option value="blocked">Blocked</option>
                 </select>
             </div>
+            @if ($status === 'blocked')
+                <div>
+                    <x-input-label for="blocked_reason" value="Reason for Blocker" />
+                    <textarea wire:model="blocked_reason" id="blocked_reason" rows="2" class="input-glass" placeholder="e.g. Waiting on client requirement, blocked by another dependency"></textarea>
+                    <x-input-error :messages="$errors->get('blocked_reason')" class="mt-1" />
+                </div>
+            @endif
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
                 <x-primary-button>Save Entry</x-primary-button>
