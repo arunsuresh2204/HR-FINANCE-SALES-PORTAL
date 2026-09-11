@@ -75,7 +75,7 @@ class DemoDataSeeder extends Seeder
             'monthly_salary' => 2600, 'manager_id' => $owner1->id,
             'scheduled_login_time' => '10:00', 'scheduled_logoff_time' => '19:00',
         ]);
-        $dev2->assignRole(['programmer', 'team_lead']);
+        $dev2->assignRole(['programmer', 'team_lead_it']);
 
         $dev1 = User::create([
             'employee_code' => 'EMP-0005', 'name' => 'Sneha Reddy', 'email' => 'sneha@nexstarc.com',
@@ -93,7 +93,7 @@ class DemoDataSeeder extends Seeder
             'monthly_salary' => 1800, 'manager_id' => $owner3->id,
             'scheduled_login_time' => '10:00', 'scheduled_logoff_time' => '19:00',
         ]);
-        $marketer1->assignRole('marketer');
+        $marketer1->assignRole('digital_marketer');
 
         // Custom role created via the Functional Roles admin screen, mirroring
         // a real admin's setup: "Manager- Sales" overseeing the sales team.
@@ -110,7 +110,7 @@ class DemoDataSeeder extends Seeder
             'monthly_salary' => 2000, 'manager_id' => $owner4->id,
             'scheduled_login_time' => '09:00', 'scheduled_logoff_time' => '18:00',
         ]);
-        $sales1->assignRole(['sales_exec', 'team_lead', 'manager_sales']);
+        $sales1->assignRole(['sales_exec', 'manager_sales']);
 
         $sales2 = User::create([
             'employee_code' => 'EMP-0009', 'name' => 'Divya Pillai', 'email' => 'divya@nexstarc.com',

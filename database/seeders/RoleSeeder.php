@@ -10,12 +10,12 @@ class RoleSeeder extends Seeder
     public const ROLES = [
         'super_admin',
         'manager_engineering',
-        'team_lead',
+        'team_lead_it',
         'hr_admin',
         'finance_admin',
         'sales_exec',
         'programmer',
-        'marketer',
+        'digital_marketer',
     ];
 
     public function run(): void

@@ -361,12 +361,12 @@ class User extends Authenticatable
 
     public function isMarketer(): bool
     {
-        return $this->hasAnyRole(['marketer', 'super_admin']);
+        return $this->hasAnyRole(['digital_marketer', 'super_admin']);
     }
 
     public function canManageLeads(): bool
     {
-        return $this->hasAnyRole(['sales_exec', 'marketer', 'super_admin']);
+        return $this->hasAnyRole(['sales_exec', 'digital_marketer', 'super_admin']);
     }
 
     public function isManager(): bool
@@ -424,7 +424,7 @@ class User extends Authenticatable
 
     public function isTeamLead(): bool
     {
-        return $this->hasAnyRole(['team_lead', 'super_admin']);
+        return $this->hasAnyRole(['team_lead_it', 'super_admin']);
     }
 
     public function canSetSalesTargets(): bool

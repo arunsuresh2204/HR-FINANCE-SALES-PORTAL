@@ -63,8 +63,8 @@ class FeatureCatalog
         'hr_admin' => ['access_org_chart', 'access_hr_admin'],
         'finance_admin' => ['access_finance_admin'],
         'sales_exec' => ['access_sales_leads', 'access_sales_clients', 'access_sales_targets'],
-        'marketer' => ['access_marketing_logs', 'access_sales_leads'],
+        'digital_marketer' => ['access_marketing_logs', 'access_sales_leads'],
         'programmer' => ['access_timesheets'],
-        'team_lead' => [],
+        'team_lead_it' => [],
     ];
 }

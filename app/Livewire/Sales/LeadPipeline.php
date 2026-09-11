@@ -248,8 +248,8 @@ class LeadPipeline extends Component
             'leads' => $leads,
             'canViewTeam' => $canViewTeam,
             'owners' => match (true) {
-                $user->isSuperAdmin() => User::role(['sales_exec', 'marketer'])->orderBy('name')->get(),
-                $canViewTeam && $this->tab === 'team' => User::role(['sales_exec', 'marketer'])
+                $user->isSuperAdmin() => User::role(['sales_exec', 'digital_marketer'])->orderBy('name')->get(),
+                $canViewTeam && $this->tab === 'team' => User::role(['sales_exec', 'digital_marketer'])
                     ->whereIn('id', $user->allDescendants()->pluck('id'))
                     ->orderBy('name')->get(),
                 default => collect(),
