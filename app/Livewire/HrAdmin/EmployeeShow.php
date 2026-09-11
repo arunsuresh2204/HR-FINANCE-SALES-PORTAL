@@ -188,6 +188,12 @@ class EmployeeShow extends Component
             'other_allowances' => 'nullable|numeric|min:0',
         ]);
 
+        if (! $this->user->monthly_salary) {
+            $this->addError('hra_percent', 'Set a Monthly Salary above (in Employment Details) first — HRA and DA are calculated as a percentage of it.');
+
+            return;
+        }
+
         $this->user->update([
             'basic_pay' => $this->basic_pay,
             'hra_percent' => $this->hra_percent,

@@ -206,12 +206,12 @@ class User extends Authenticatable
 
     public function hraAmount(): float
     {
-        return round((float) $this->basic_pay * (float) $this->hra_percent / 100, 2);
+        return round((float) $this->monthly_salary * (float) $this->hra_percent / 100, 2);
     }
 
     public function daAmount(): float
     {
-        return round((float) $this->basic_pay * (float) $this->da_percent / 100, 2);
+        return round((float) $this->monthly_salary * (float) $this->da_percent / 100, 2);
     }
 
     public function grossMonthlySalary(): float

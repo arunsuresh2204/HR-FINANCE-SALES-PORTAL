@@ -85,23 +85,26 @@
                             <x-text-input wire:model.live="other_allowances" id="other_allowances" type="number" step="0.01" min="0" class="mt-0" />
                         </div>
                     </div>
+                    @if (! $monthly_salary)
+                        <p class="text-xs text-amber-300/80">Set a Monthly Salary above first — HRA and DA are calculated as a percentage of it.</p>
+                    @endif
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <x-input-label for="hra_percent" value="HRA (% of Basic)" />
+                            <x-input-label for="hra_percent" value="HRA (% of Monthly Salary)" />
                             <x-text-input wire:model.live="hra_percent" id="hra_percent" type="number" step="0.01" min="0" class="mt-0" />
-                            <p class="mt-1 text-xs text-white/40">{{ \App\Support\Currency::format((float) $basic_pay * (float) $hra_percent / 100, 'INR') }}/month</p>
+                            <p class="mt-1 text-xs text-white/40">{{ \App\Support\Currency::format((float) $monthly_salary * (float) $hra_percent / 100, 'INR') }}/month</p>
                             <x-input-error :messages="$errors->get('hra_percent')" class="mt-1" />
                         </div>
                         <div>
-                            <x-input-label for="da_percent" value="DA (% of Basic)" />
+                            <x-input-label for="da_percent" value="DA (% of Monthly Salary)" />
                             <x-text-input wire:model.live="da_percent" id="da_percent" type="number" step="0.01" min="0" class="mt-0" />
-                            <p class="mt-1 text-xs text-white/40">{{ \App\Support\Currency::format((float) $basic_pay * (float) $da_percent / 100, 'INR') }}/month</p>
+                            <p class="mt-1 text-xs text-white/40">{{ \App\Support\Currency::format((float) $monthly_salary * (float) $da_percent / 100, 'INR') }}/month</p>
                             <x-input-error :messages="$errors->get('da_percent')" class="mt-1" />
                         </div>
                     </div>
                     <div class="glass-inset flex items-center justify-between p-3">
                         <span class="text-xs font-semibold uppercase tracking-wide text-white/40">Gross Monthly Salary</span>
-                        <span class="text-sm font-bold text-white">{{ \App\Support\Currency::format((float) $basic_pay + ((float) $basic_pay * (float) $hra_percent / 100) + ((float) $basic_pay * (float) $da_percent / 100) + (float) $other_allowances, 'INR') }}</span>
+                        <span class="text-sm font-bold text-white">{{ \App\Support\Currency::format((float) $basic_pay + ((float) $monthly_salary * (float) $hra_percent / 100) + ((float) $monthly_salary * (float) $da_percent / 100) + (float) $other_allowances, 'INR') }}</span>
                     </div>
                     <div class="flex justify-end">
                         <x-primary-button>Save Salary Structure</x-primary-button>
