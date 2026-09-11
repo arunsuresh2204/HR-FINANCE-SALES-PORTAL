@@ -31,7 +31,12 @@ class ClientIndex extends Component
 
         $query = Client::with(['salesPerson', 'invoices'])->latest();
 
-        if (! $user->isSuperAdmin() && ! $user->isFinanceAdmin() && ! $user->isManager()) {
+        if ($user->isSuperAdmin() || $user->isFinanceAdmin() || $user->isManager()) {
+            // sees every client, company-wide
+        } elseif ($user->isSalesManager()) {
+            $teamIds = $user->allDescendants()->pluck('id')->push($user->id);
+            $query->whereIn('sales_person_id', $teamIds);
+        } else {
             $query->where('sales_person_id', $user->id);
         }
 

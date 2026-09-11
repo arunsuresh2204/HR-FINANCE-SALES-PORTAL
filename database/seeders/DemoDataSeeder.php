@@ -23,6 +23,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class DemoDataSeeder extends Seeder
 {
@@ -93,14 +94,19 @@ class DemoDataSeeder extends Seeder
         ]);
         $marketer1->assignRole('marketer');
 
+        // Custom role created via the Functional Roles admin screen, mirroring
+        // a real admin's setup: "Manager- Sales" overseeing the sales team.
+        $managerSalesRole = Role::firstOrCreate(['name' => 'manager_sales', 'guard_name' => 'web']);
+        $managerSalesRole->syncPermissions(['access_sales_leads', 'access_sales_clients', 'access_sales_targets']);
+
         $sales1 = User::create([
             'employee_code' => 'EMP-0008', 'name' => 'Rohan Kapoor', 'email' => 'rohan@nexstarc.com',
-            'password' => $password, 'email_verified_at' => now(), 'designation' => 'Sales Team Lead',
+            'password' => $password, 'email_verified_at' => now(), 'designation' => 'Sales Manager',
             'department' => 'Sales', 'date_of_joining' => '2023-01-10', 'employment_status' => 'active',
             'monthly_salary' => 2000, 'manager_id' => $owner4->id,
             'scheduled_login_time' => '09:00', 'scheduled_logoff_time' => '18:00',
         ]);
-        $sales1->assignRole(['sales_exec', 'team_lead']);
+        $sales1->assignRole(['sales_exec', 'team_lead', 'manager_sales']);
 
         $sales2 = User::create([
             'employee_code' => 'EMP-0009', 'name' => 'Divya Pillai', 'email' => 'divya@nexstarc.com',

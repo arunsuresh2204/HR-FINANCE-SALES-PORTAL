@@ -116,6 +116,7 @@
                 </thead>
                 <tbody>
                     @forelse ($leads as $lead)
+                        @php $canEdit = auth()->user()->isSuperAdmin() || $lead->sales_person_id === auth()->id(); @endphp
                         <tr wire:key="lead-row-{{ $lead->id }}" onclick="if (!event.target.closest('a, button, select, input')) { Livewire.navigate('{{ route('sales.leads.show', $lead) }}') }" class="cursor-pointer">
                             <td class="whitespace-nowrap text-white/60">{{ $lead->contacted_date?->format('M j, Y') ?? $lead->created_at->format('M j, Y') }}</td>
                             <td class="max-w-[10rem]">
@@ -133,14 +134,22 @@
                             <td class="whitespace-nowrap"><span class="badge-glass">{{ $lead->service_type }}</span></td>
                             <td class="whitespace-nowrap text-white/60">{{ $lead->source }}</td>
                             <td class="min-w-[9rem]">
-                                <select wire:model.live="statuses.{{ $lead->id }}" class="input-glass !py-1.5 text-xs">
-                                    @foreach ($statusOptions as $s)
-                                        <option value="{{ $s }}">{{ ucwords(str_replace('_', ' ', $s)) }}</option>
-                                    @endforeach
-                                </select>
+                                @if ($canEdit)
+                                    <select wire:model.live="statuses.{{ $lead->id }}" class="input-glass !py-1.5 text-xs">
+                                        @foreach ($statusOptions as $s)
+                                            <option value="{{ $s }}">{{ ucwords(str_replace('_', ' ', $s)) }}</option>
+                                        @endforeach
+                                    </select>
+                                @else
+                                    <x-status-pill :status="$lead->status" />
+                                @endif
                             </td>
                             <td class="min-w-[10rem]">
-                                <input wire:model.blur="comments.{{ $lead->id }}" type="text" class="input-glass !py-1.5 text-xs" placeholder="Add comment...">
+                                @if ($canEdit)
+                                    <input wire:model.blur="comments.{{ $lead->id }}" type="text" class="input-glass !py-1.5 text-xs" placeholder="Add comment...">
+                                @else
+                                    <span class="text-white/60">{{ $lead->comment ?: '—' }}</span>
+                                @endif
                             </td>
                             <td class="max-w-[8rem]">
                                 @if ($lead->contact_link)

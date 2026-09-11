@@ -50,7 +50,7 @@ class TargetDashboard extends Component
     {
         $authUser = Auth::user();
 
-        return $authUser->isSuperAdmin() || $authUser->isManagerOf($targetUser);
+        return $authUser->isSuperAdmin() || $authUser->allDescendants()->contains('id', $targetUser->id);
     }
 
     public function openTargetForm(int $userId, int $month, int $year): void
@@ -118,7 +118,7 @@ class TargetDashboard extends Component
         if ($authUser->isSuperAdmin()) {
             $salesPeople = User::role('sales_exec')->orderBy('name')->get();
         } elseif ($authUser->canSetSalesTargets()) {
-            $reportIds = $authUser->allReports()->pluck('id');
+            $reportIds = $authUser->allDescendants()->pluck('id');
             $salesPeople = User::role('sales_exec')->whereIn('id', $reportIds)->orderBy('name')->get();
         } else {
             $salesPeople = collect([$authUser]);

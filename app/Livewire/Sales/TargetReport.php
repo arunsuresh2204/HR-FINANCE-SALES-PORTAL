@@ -21,7 +21,7 @@ class TargetReport extends Component
     {
         $authUser = Auth::user();
 
-        if ($authUser->id !== $user->id && ! $authUser->isSuperAdmin() && ! $authUser->isManagerOf($user)) {
+        if ($authUser->id !== $user->id && ! $authUser->isSuperAdmin() && ! $authUser->allDescendants()->contains('id', $user->id)) {
             abort(403);
         }
 

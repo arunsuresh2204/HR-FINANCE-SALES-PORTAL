@@ -175,10 +175,20 @@ class LeadPipeline extends Component
 
         $query = Lead::with('salesPerson')->latest('contacted_date');
 
-        if (! $user->isSuperAdmin()) {
+        if ($user->isSuperAdmin()) {
+            if ($this->ownerFilter) {
+                $query->where('sales_person_id', $this->ownerFilter);
+            }
+        } elseif ($user->isSalesManager()) {
+            $teamIds = $user->allDescendants()->pluck('id')->push($user->id);
+
+            if ($this->ownerFilter && $teamIds->contains((int) $this->ownerFilter)) {
+                $query->where('sales_person_id', $this->ownerFilter);
+            } else {
+                $query->whereIn('sales_person_id', $teamIds);
+            }
+        } else {
             $query->where('sales_person_id', $user->id);
-        } elseif ($this->ownerFilter) {
-            $query->where('sales_person_id', $this->ownerFilter);
         }
 
         if ($this->statusFilter) {
@@ -219,7 +229,13 @@ class LeadPipeline extends Component
 
         return view('livewire.sales.lead-pipeline', [
             'leads' => $leads,
-            'owners' => $user->isSuperAdmin() ? User::role(['sales_exec', 'marketer'])->orderBy('name')->get() : collect(),
+            'owners' => match (true) {
+                $user->isSuperAdmin() => User::role(['sales_exec', 'marketer'])->orderBy('name')->get(),
+                $user->isSalesManager() => User::role(['sales_exec', 'marketer'])
+                    ->whereIn('id', $user->allDescendants()->pluck('id'))
+                    ->orderBy('name')->get(),
+                default => collect(),
+            },
             'statusOptions' => Lead::STATUSES,
             'rangeLabel' => $rangeLabel,
             'viewingLead' => $this->viewingLeadId ? Lead::find($this->viewingLeadId) : null,

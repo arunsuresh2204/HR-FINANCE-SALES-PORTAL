@@ -322,11 +322,6 @@ class User extends Authenticatable
         )->unique('id');
     }
 
-    public function isManagerOf(User $user): bool
-    {
-        return $user->manager_id === $this->id || $user->additionalManagers->contains('id', $this->id);
-    }
-
     public function employmentTypeLabel(): string
     {
         return match ($this->employment_type) {
@@ -377,6 +372,11 @@ class User extends Authenticatable
         return $this->hasAnyRole(['manager_engineering', 'super_admin']);
     }
 
+    public function isSalesManager(): bool
+    {
+        return $this->hasAnyRole(['manager_sales', 'super_admin']);
+    }
+
     public function isTeamLead(): bool
     {
         return $this->hasAnyRole(['team_lead', 'super_admin']);
@@ -384,11 +384,7 @@ class User extends Authenticatable
 
     public function canSetSalesTargets(): bool
     {
-        // Sales-target authority belongs to sales leadership, not engineering
-        // management — no functional role currently covers that (Manager –
-        // Sales is planned but not yet built), so it's Super Admin-only for
-        // now.
-        return $this->isSuperAdmin();
+        return $this->isSalesManager();
     }
 
     public function initials(): string
