@@ -6,10 +6,12 @@ use App\Models\Announcement;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class AnnouncementIndex extends Component
 {
+    use WithFileUploads;
     use WithPagination;
 
     public bool $showForm = false;
@@ -22,9 +24,12 @@ class AnnouncementIndex extends Component
 
     public bool $pinned = false;
 
+    #[Validate('nullable|file|max:5120|mimes:jpg,jpeg,png,pdf')]
+    public $attachment = null;
+
     public function openForm(): void
     {
-        $this->reset(['title', 'body', 'pinned']);
+        $this->reset(['title', 'body', 'pinned', 'attachment']);
         $this->showForm = true;
     }
 
@@ -39,6 +44,7 @@ class AnnouncementIndex extends Component
             'title' => $this->title,
             'body' => $this->body,
             'pinned' => $this->pinned,
+            'attachment_path' => $this->attachment?->store('announcements', 'public'),
         ]);
 
         $this->showForm = false;
