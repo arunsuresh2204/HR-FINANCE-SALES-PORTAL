@@ -77,7 +77,7 @@
                 </div>
             </div>
             <div>
-                <x-input-label for="project_name" value="Project Name (optional)" />
+                <x-input-label for="project_name" value="Project Name/Task (optional)" />
                 <x-text-input wire:model="project_name" id="project_name" type="text" class="mt-0" placeholder="e.g. In-house Pet Product" />
             </div>
             <div>
