@@ -7,6 +7,13 @@
         </x-slot:actions>
     </x-page-header>
 
+    @if ($canViewTeam)
+        <div class="mb-4 flex gap-2">
+            <button wire:click="setTab('mine')" class="rounded-lg px-3 py-1.5 text-sm font-semibold transition {{ $tab === 'mine' ? 'bg-gold-400/15 text-gold-200' : 'text-white/50 hover:text-white/80' }}">My Leads</button>
+            <button wire:click="setTab('team')" class="rounded-lg px-3 py-1.5 text-sm font-semibold transition {{ $tab === 'team' ? 'bg-gold-400/15 text-gold-200' : 'text-white/50 hover:text-white/80' }}">My Team</button>
+        </div>
+    @endif
+
     <div class="glass-card mb-6">
         <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-white/40">Add a Lead</p>
         <form wire:submit="createLead" class="grid grid-cols-1 gap-2 md:grid-cols-6">

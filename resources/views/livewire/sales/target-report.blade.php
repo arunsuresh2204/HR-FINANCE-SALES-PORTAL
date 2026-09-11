@@ -22,6 +22,10 @@
 <div>
     <x-page-header :title="$user->name" subtitle="{{ $period->format('F Y') }} sales report">
         <x-slot:actions>
+            <div class="flex items-center gap-1.5">
+                <a href="{{ route('sales.targets.report', [$user, $prevPeriod['year'], $prevPeriod['month']]) }}" wire:navigate class="glass rounded-lg p-1.5 text-white/50 hover:text-white" title="Previous month"><x-icon name="arrow-right" class="h-3.5 w-3.5 rotate-180" /></a>
+                <a href="{{ route('sales.targets.report', [$user, $nextPeriod['year'], $nextPeriod['month']]) }}" wire:navigate class="glass rounded-lg p-1.5 text-white/50 hover:text-white" title="Next month"><x-icon name="arrow-right" class="h-3.5 w-3.5" /></a>
+            </div>
             <a href="{{ route('sales.targets') }}" wire:navigate class="btn-glass-secondary"><x-icon name="arrow-right" class="h-4 w-4 rotate-180" /> Back to Targets</a>
         </x-slot:actions>
     </x-page-header>

@@ -5,10 +5,27 @@
         </x-slot:actions>
     </x-page-header>
 
+    @if ($canViewTeam)
+        <div class="mb-4 flex gap-2">
+            <button wire:click="setTab('mine')" class="rounded-lg px-3 py-1.5 text-sm font-semibold transition {{ $tab === 'mine' ? 'bg-gold-400/15 text-gold-200' : 'text-white/50 hover:text-white/80' }}">My Clients</button>
+            <button wire:click="setTab('team')" class="rounded-lg px-3 py-1.5 text-sm font-semibold transition {{ $tab === 'team' ? 'bg-gold-400/15 text-gold-200' : 'text-white/50 hover:text-white/80' }}">My Team</button>
+        </div>
+    @endif
+
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div class="relative max-w-sm flex-1">
-            <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
-            <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search clients..." class="input-glass pl-9">
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="relative max-w-sm flex-1">
+                <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search clients..." class="input-glass pl-9">
+            </div>
+            @if ($canViewTeam && $tab === 'team')
+                <select wire:model.live="memberFilter" class="input-glass !w-auto">
+                    <option value="">All team members</option>
+                    @foreach ($teamMembers as $member)
+                        <option value="{{ $member->id }}">{{ $member->name }}</option>
+                    @endforeach
+                </select>
+            @endif
         </div>
         <div class="inline-flex rounded-xl border border-white/10 bg-white/5 p-1">
             <button type="button" wire:click="setView('grid')" class="rounded-lg p-1.5 transition {{ $view === 'grid' ? 'bg-gold-400 text-ink-950' : 'text-white/50 hover:text-white' }}" title="Grid view"><x-icon name="grid" class="h-4 w-4" /></button>

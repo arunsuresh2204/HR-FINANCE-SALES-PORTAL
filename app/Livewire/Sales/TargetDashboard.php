@@ -50,7 +50,9 @@ class TargetDashboard extends Component
     {
         $authUser = Auth::user();
 
-        return $authUser->isSuperAdmin() || $authUser->allDescendants()->contains('id', $targetUser->id);
+        return $authUser->isSuperAdmin()
+            || $authUser->id === $targetUser->id
+            || $authUser->allDescendants()->contains('id', $targetUser->id);
     }
 
     public function openTargetForm(int $userId, int $month, int $year): void
@@ -114,33 +116,66 @@ class TargetDashboard extends Component
     public function render()
     {
         $authUser = Auth::user();
+        $isTeamView = false;
 
         if ($authUser->isSuperAdmin()) {
             $salesPeople = User::role('sales_exec')->orderBy('name')->get();
+            $isTeamView = true;
         } elseif ($authUser->canSetSalesTargets()) {
             $reportIds = $authUser->allDescendants()->pluck('id');
             $salesPeople = User::role('sales_exec')->whereIn('id', $reportIds)->orderBy('name')->get();
+
+            // The manager's own personal quota (if they carry one) counts
+            // toward the team total alongside their reports', so it's
+            // included as the first row rather than shown separately.
+            if ($authUser->hasRole('sales_exec')) {
+                $salesPeople->prepend($authUser);
+            }
+
+            $isTeamView = true;
         } else {
             $salesPeople = collect([$authUser]);
         }
 
         $periods = $this->periods();
 
-        $rows = $salesPeople->map(function (User $sp) use ($periods) {
+        $rows = $salesPeople->map(function (User $sp) use ($periods, $authUser) {
             $totalLeads = Lead::where('sales_person_id', $sp->id)->count();
             $wonLeadsAllTime = Lead::where('sales_person_id', $sp->id)->where('status', 'won')->count();
 
             return [
                 'user' => $sp,
+                'isSelf' => $sp->id === $authUser->id,
                 'openLeads' => Lead::where('sales_person_id', $sp->id)->whereNotIn('status', Lead::CLOSED_STATUSES)->count(),
                 'conversionRate' => $totalLeads ? round($wonLeadsAllTime / $totalLeads * 100) : 0,
                 'months' => collect($periods)->map(fn ($p) => $this->monthStatsFor($sp, $p))->all(),
             ];
-        })->sortByDesc(fn ($row) => $row['months'][0]['achieved'])->values();
+        })->values();
+
+        // Own row (if present) pinned first; the rest ranked by current
+        // month's achievement, same ordering as before this changed.
+        $selfRow = $rows->firstWhere('isSelf', true);
+        $otherRows = $rows->reject(fn ($row) => $row['isSelf'])
+            ->sortByDesc(fn ($row) => $row['months'][0]['achieved'])
+            ->values();
+        $rows = $selfRow ? collect([$selfRow])->concat($otherRows) : $otherRows;
+
+        $teamSummary = null;
+
+        if ($isTeamView && $rows->count() > 1) {
+            $teamSummary = [
+                'label' => $periods[0]->format('F Y'),
+                'target' => $rows->sum(fn ($r) => $r['months'][0]['effectiveTarget']),
+                'achieved' => $rows->sum(fn ($r) => $r['months'][0]['achieved']),
+                'clientsAcquired' => $rows->sum(fn ($r) => $r['months'][0]['clientsAcquired']),
+                'memberCount' => $rows->count(),
+            ];
+        }
 
         return view('livewire.sales.target-dashboard', [
             'rows' => $rows,
             'canSetTargets' => $authUser->canSetSalesTargets(),
+            'teamSummary' => $teamSummary,
         ]);
     }
 }

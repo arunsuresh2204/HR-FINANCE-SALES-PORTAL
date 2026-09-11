@@ -43,6 +43,13 @@ class TargetReport extends Component
         ];
     }
 
+    protected function adjacentPeriod(int $delta): array
+    {
+        $period = Carbon::create($this->year, $this->month, 1)->addMonthsNoOverflow($delta);
+
+        return ['year' => $period->year, 'month' => $period->month];
+    }
+
     public function render()
     {
         $period = Carbon::create($this->year, $this->month, 1);
@@ -128,6 +135,8 @@ class TargetReport extends Component
             'totalProjects' => $clientRows->sum(fn ($r) => $r['projects']->count()),
             'currentTarget' => $currentTarget,
             'sourceStats' => $sourceStats,
+            'prevPeriod' => $this->adjacentPeriod(-1),
+            'nextPeriod' => $this->adjacentPeriod(1),
         ]);
     }
 }

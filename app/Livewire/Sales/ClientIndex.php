@@ -15,6 +15,10 @@ class ClientIndex extends Component
 
     public string $view = 'list';
 
+    public string $tab = 'mine';
+
+    public string $memberFilter = '';
+
     public function setView(string $view): void
     {
         $this->view = in_array($view, ['grid', 'list'], true) ? $view : 'list';
@@ -25,17 +29,45 @@ class ClientIndex extends Component
         $this->resetPage();
     }
 
-    public function render()
+    public function updatingMemberFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    protected function canViewTeam(): bool
     {
         $user = Auth::user();
 
+        return ! $user->isSuperAdmin() && ! $user->isFinanceAdmin() && ! $user->isManager() && $user->teamVisibilityFor('access_sales_clients');
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->tab = ($tab === 'team' && $this->canViewTeam()) ? 'team' : 'mine';
+        $this->memberFilter = '';
+        $this->resetPage();
+    }
+
+    public function render()
+    {
+        $user = Auth::user();
+        $canViewTeam = $this->canViewTeam();
+
         $query = Client::with(['salesPerson', 'invoices'])->latest();
+        $teamMembers = collect();
 
         if ($user->isSuperAdmin() || $user->isFinanceAdmin() || $user->isManager()) {
             // sees every client, company-wide
-        } elseif ($user->teamVisibilityFor('access_sales_clients')) {
-            $teamIds = $user->allDescendants()->pluck('id')->push($user->id);
-            $query->whereIn('sales_person_id', $teamIds);
+        } elseif ($canViewTeam && $this->tab === 'team') {
+            $team = $user->allDescendants();
+            $teamIds = $team->pluck('id');
+            $teamMembers = $team->sortBy('name')->values();
+
+            if ($this->memberFilter && $teamIds->contains((int) $this->memberFilter)) {
+                $query->where('sales_person_id', $this->memberFilter);
+            } else {
+                $query->whereIn('sales_person_id', $teamIds);
+            }
         } else {
             $query->where('sales_person_id', $user->id);
         }
@@ -46,6 +78,8 @@ class ClientIndex extends Component
 
         return view('livewire.sales.client-index', [
             'clients' => $query->paginate(10),
+            'canViewTeam' => $canViewTeam,
+            'teamMembers' => $teamMembers,
         ]);
     }
 }

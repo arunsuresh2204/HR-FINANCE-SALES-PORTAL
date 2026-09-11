@@ -15,6 +15,8 @@ class LeadPipeline extends Component
 {
     use WithPagination;
 
+    public string $tab = 'mine';
+
     public string $ownerFilter = '';
 
     public string $statusFilter = '';
@@ -69,6 +71,20 @@ class LeadPipeline extends Component
     public function setRange(string $range): void
     {
         $this->range = in_array($range, ['day', 'week', 'month'], true) ? $range : 'week';
+        $this->resetPage();
+    }
+
+    protected function canViewTeam(): bool
+    {
+        $user = Auth::user();
+
+        return ! $user->isSuperAdmin() && $user->teamVisibilityFor('access_sales_leads');
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->tab = ($tab === 'team' && $this->canViewTeam()) ? 'team' : 'mine';
+        $this->ownerFilter = '';
         $this->resetPage();
     }
 
@@ -174,12 +190,13 @@ class LeadPipeline extends Component
         $user = Auth::user();
 
         $query = Lead::with('salesPerson')->latest('contacted_date');
+        $canViewTeam = $this->canViewTeam();
 
         if ($user->isSuperAdmin()) {
             if ($this->ownerFilter) {
                 $query->where('sales_person_id', $this->ownerFilter);
             }
-        } elseif ($user->teamVisibilityFor('access_sales_leads')) {
+        } elseif ($canViewTeam && $this->tab === 'team') {
             $teamIds = $user->allDescendants()->pluck('id')->push($user->id);
 
             if ($this->ownerFilter && $teamIds->contains((int) $this->ownerFilter)) {
@@ -229,9 +246,10 @@ class LeadPipeline extends Component
 
         return view('livewire.sales.lead-pipeline', [
             'leads' => $leads,
+            'canViewTeam' => $canViewTeam,
             'owners' => match (true) {
                 $user->isSuperAdmin() => User::role(['sales_exec', 'marketer'])->orderBy('name')->get(),
-                $user->teamVisibilityFor('access_sales_leads') => User::role(['sales_exec', 'marketer'])
+                $canViewTeam && $this->tab === 'team' => User::role(['sales_exec', 'marketer'])
                     ->whereIn('id', $user->allDescendants()->pluck('id'))
                     ->orderBy('name')->get(),
                 default => collect(),

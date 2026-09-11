@@ -9,16 +9,33 @@
         </x-slot:actions>
     </x-page-header>
 
+    @if ($teamSummary)
+        <div class="mb-6">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-white/40">Team Total &middot; {{ $teamSummary['label'] }}</p>
+            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <x-stat-card label="Team Target" value="${{ number_format($teamSummary['target']) }}" icon="target" accent="gold" />
+                <x-stat-card label="Team Achieved" value="${{ number_format($teamSummary['achieved']) }}" icon="cash" accent="emerald" />
+                <x-stat-card label="Attainment" value="{{ $teamSummary['target'] > 0 ? min(100, round($teamSummary['achieved'] / $teamSummary['target'] * 100)) : 0 }}%" icon="chart" accent="sky" />
+                <x-stat-card label="Clients Acquired" value="{{ $teamSummary['clientsAcquired'] }}" icon="briefcase" accent="violet" :hint="$teamSummary['memberCount'].' team member'.($teamSummary['memberCount'] === 1 ? '' : 's')" />
+            </div>
+        </div>
+    @endif
+
     <div class="space-y-6">
         @forelse ($rows as $row)
             <div class="glass-card">
-                <div class="mb-4 flex items-center gap-3">
+                <a href="{{ route('sales.targets.report', [$row['user'], $row['months'][0]['year'], $row['months'][0]['month']]) }}" wire:navigate class="mb-4 flex items-center gap-3 hover:opacity-80">
                     <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-gold-400/15 text-sm font-bold text-gold-300">{{ $row['user']->initials() }}</span>
                     <div>
-                        <p class="font-semibold text-white">{{ $row['user']->name }}</p>
+                        <p class="flex items-center gap-2 font-semibold text-white">
+                            {{ $row['user']->name }}
+                            @if ($row['isSelf'])
+                                <span class="badge-glass !text-[10px]">You</span>
+                            @endif
+                        </p>
                         <p class="text-xs text-white/40">{{ $row['openLeads'] }} open leads &middot; {{ $row['conversionRate'] }}% conversion</p>
                     </div>
-                </div>
+                </a>
 
                 <div class="space-y-2">
                     @foreach ($row['months'] as $m)
