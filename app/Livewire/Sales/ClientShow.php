@@ -277,7 +277,7 @@ class ClientShow extends Component
                 'currency' => 'required|in:INR,USD,EUR',
                 'tasks' => 'required|array|min:1',
                 'tasks.*.description' => 'required|string|max:255',
-                'tasks.*.hours' => 'required|numeric|min:0.25|max:24',
+                'tasks.*.hours' => 'required|numeric|min:0.25|max:1000',
                 'tasks.*.rate' => 'required|numeric|min:0.01',
             ]);
 
