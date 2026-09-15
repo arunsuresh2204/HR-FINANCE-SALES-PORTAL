@@ -18,9 +18,11 @@
                 </button>
             </div>
 
-            <nav class="mt-6 flex-1 space-y-6 overflow-y-auto px-3 pb-4">
+            <div class="relative mt-6 flex-1 overflow-hidden">
+            @persist('sidebar-nav')
+            <nav class="absolute inset-0 space-y-6 overflow-y-auto px-3 pb-4">
                 <div class="space-y-1">
-                    <a href="{{ route('dashboard') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                         <x-icon name="home" class="h-4 w-4 shrink-0" />
                         Dashboard
                     </a>
@@ -29,14 +31,14 @@
                 <div>
                     <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">My Workspace</p>
                     <div class="mt-2 space-y-1">
-                        <a href="{{ route('hr.attendance') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hr.attendance') ? 'active' : '' }}"><x-icon name="clock" class="h-4 w-4 shrink-0" />Attendance</a>
-                        <a href="{{ route('hr.leave') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hr.leave') ? 'active' : '' }}"><x-icon name="calendar" class="h-4 w-4 shrink-0" />Leave</a>
-                        <a href="{{ route('hr.payslips') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hr.payslips') ? 'active' : '' }}"><x-icon name="cash" class="h-4 w-4 shrink-0" />Payslips</a>
-                        <a href="{{ route('hr.expenses') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hr.expenses') ? 'active' : '' }}"><x-icon name="receipt" class="h-4 w-4 shrink-0" />Expenses</a>
-                        <a href="{{ route('hr.assets') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hr.assets') ? 'active' : '' }}"><x-icon name="box" class="h-4 w-4 shrink-0" />Assets</a>
-                        <a href="{{ route('hr.documents') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hr.documents') ? 'active' : '' }}"><x-icon name="document" class="h-4 w-4 shrink-0" />Documents</a>
-                        <a href="{{ route('hr.announcements') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hr.announcements') ? 'active' : '' }}"><x-icon name="megaphone" class="h-4 w-4 shrink-0" />Announcements</a>
-                        <a href="{{ route('hr.resignation') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hr.resignation') ? 'active' : '' }}"><x-icon name="exit" class="h-4 w-4 shrink-0" />Resignation</a>
+                        <a href="{{ route('hr.attendance') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hr.attendance') ? 'active' : '' }}"><x-icon name="clock" class="h-4 w-4 shrink-0" />Attendance</a>
+                        <a href="{{ route('hr.leave') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hr.leave') ? 'active' : '' }}"><x-icon name="calendar" class="h-4 w-4 shrink-0" />Leave</a>
+                        <a href="{{ route('hr.payslips') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hr.payslips') ? 'active' : '' }}"><x-icon name="cash" class="h-4 w-4 shrink-0" />Payslips</a>
+                        <a href="{{ route('hr.expenses') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hr.expenses') ? 'active' : '' }}"><x-icon name="receipt" class="h-4 w-4 shrink-0" />Expenses</a>
+                        <a href="{{ route('hr.assets') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hr.assets') ? 'active' : '' }}"><x-icon name="box" class="h-4 w-4 shrink-0" />Assets</a>
+                        <a href="{{ route('hr.documents') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hr.documents') ? 'active' : '' }}"><x-icon name="document" class="h-4 w-4 shrink-0" />Documents</a>
+                        <a href="{{ route('hr.announcements') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hr.announcements') ? 'active' : '' }}"><x-icon name="megaphone" class="h-4 w-4 shrink-0" />Announcements</a>
+                        <a href="{{ route('hr.resignation') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hr.resignation') ? 'active' : '' }}"><x-icon name="exit" class="h-4 w-4 shrink-0" />Resignation</a>
                     </div>
                 </div>
 
@@ -44,7 +46,7 @@
                     <div>
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">Team</p>
                         <div class="mt-2 space-y-1">
-                            <a href="{{ route('org-chart') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('org-chart') ? 'active' : '' }}"><x-icon name="users" class="h-4 w-4 shrink-0" />Org Chart</a>
+                            <a href="{{ route('org-chart') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('org-chart') ? 'active' : '' }}"><x-icon name="users" class="h-4 w-4 shrink-0" />Org Chart</a>
                         </div>
                     </div>
                 @endif
@@ -54,13 +56,13 @@
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">Daily Log</p>
                         <div class="mt-2 space-y-1">
                             @if (auth()->user()->can('access_timesheets'))
-                                <a href="{{ route('work.timesheets') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('work.timesheets') ? 'active' : '' }}"><x-icon name="code" class="h-4 w-4 shrink-0" />Timesheet</a>
+                                <a href="{{ route('work.timesheets') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('work.timesheets') ? 'active' : '' }}"><x-icon name="code" class="h-4 w-4 shrink-0" />Timesheet</a>
                             @endif
                             @if (auth()->user()->can('access_projects'))
-                                <a href="{{ route('work.my-projects') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('work.my-projects') ? 'active' : '' }}"><x-icon name="briefcase" class="h-4 w-4 shrink-0" />My Projects</a>
+                                <a href="{{ route('work.my-projects') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('work.my-projects') ? 'active' : '' }}"><x-icon name="briefcase" class="h-4 w-4 shrink-0" />My Projects</a>
                             @endif
                             @if (auth()->user()->can('access_marketing_logs'))
-                                <a href="{{ route('work.marketing-logs') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('work.marketing-logs') ? 'active' : '' }}"><x-icon name="megaphone" class="h-4 w-4 shrink-0" />Marketing Log</a>
+                                <a href="{{ route('work.marketing-logs') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('work.marketing-logs') ? 'active' : '' }}"><x-icon name="megaphone" class="h-4 w-4 shrink-0" />Marketing Log</a>
                             @endif
                         </div>
                     </div>
@@ -71,13 +73,13 @@
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">Sales</p>
                         <div class="mt-2 space-y-1">
                             @if (auth()->user()->can('access_sales_leads'))
-                                <a href="{{ route('sales.leads') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('sales.leads*') ? 'active' : '' }}"><x-icon name="target" class="h-4 w-4 shrink-0" />Leads Pipeline</a>
+                                <a href="{{ route('sales.leads') }}" wire:navigate data-nav-link data-match="prefix" class="nav-link-glass {{ request()->routeIs('sales.leads*') ? 'active' : '' }}"><x-icon name="target" class="h-4 w-4 shrink-0" />Leads Pipeline</a>
                             @endif
                             @if (auth()->user()->can('access_sales_clients'))
-                                <a href="{{ route('sales.clients') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('sales.clients*') ? 'active' : '' }}"><x-icon name="briefcase" class="h-4 w-4 shrink-0" />Clients</a>
+                                <a href="{{ route('sales.clients') }}" wire:navigate data-nav-link data-match="prefix" class="nav-link-glass {{ request()->routeIs('sales.clients*') ? 'active' : '' }}"><x-icon name="briefcase" class="h-4 w-4 shrink-0" />Clients</a>
                             @endif
                             @if (auth()->user()->can('access_sales_targets'))
-                                <a href="{{ route('sales.targets') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('sales.targets') ? 'active' : '' }}"><x-icon name="chart" class="h-4 w-4 shrink-0" />Sales Targets</a>
+                                <a href="{{ route('sales.targets') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('sales.targets') ? 'active' : '' }}"><x-icon name="chart" class="h-4 w-4 shrink-0" />Sales Targets</a>
                             @endif
                         </div>
                     </div>
@@ -87,13 +89,13 @@
                     <div>
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">HR Admin</p>
                         <div class="mt-2 space-y-1">
-                            <a href="{{ route('hradmin.employees') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.employees*') ? 'active' : '' }}"><x-icon name="users" class="h-4 w-4 shrink-0" />Employees</a>
-                            <a href="{{ route('hradmin.attendance') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.attendance') ? 'active' : '' }}"><x-icon name="clock" class="h-4 w-4 shrink-0" />Attendance</a>
-                            <a href="{{ route('hradmin.leave-approvals') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.leave-approvals') ? 'active' : '' }}"><x-icon name="check" class="h-4 w-4 shrink-0" />Leave Approvals</a>
-                            <a href="{{ route('hradmin.holidays') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.holidays') ? 'active' : '' }}"><x-icon name="calendar" class="h-4 w-4 shrink-0" />Holiday Calendar</a>
-                            <a href="{{ route('hradmin.resignations') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.resignations') ? 'active' : '' }}"><x-icon name="exit" class="h-4 w-4 shrink-0" />Offboarding</a>
-                            <a href="{{ route('hradmin.policies') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.policies') ? 'active' : '' }}"><x-icon name="document" class="h-4 w-4 shrink-0" />Policies</a>
-                            <a href="{{ route('hradmin.reports') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('hradmin.reports') ? 'active' : '' }}"><x-icon name="chart" class="h-4 w-4 shrink-0" />HR Reports</a>
+                            <a href="{{ route('hradmin.employees') }}" wire:navigate data-nav-link data-match="prefix" class="nav-link-glass {{ request()->routeIs('hradmin.employees*') ? 'active' : '' }}"><x-icon name="users" class="h-4 w-4 shrink-0" />Employees</a>
+                            <a href="{{ route('hradmin.attendance') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hradmin.attendance') ? 'active' : '' }}"><x-icon name="clock" class="h-4 w-4 shrink-0" />Attendance</a>
+                            <a href="{{ route('hradmin.leave-approvals') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hradmin.leave-approvals') ? 'active' : '' }}"><x-icon name="check" class="h-4 w-4 shrink-0" />Leave Approvals</a>
+                            <a href="{{ route('hradmin.holidays') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hradmin.holidays') ? 'active' : '' }}"><x-icon name="calendar" class="h-4 w-4 shrink-0" />Holiday Calendar</a>
+                            <a href="{{ route('hradmin.resignations') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hradmin.resignations') ? 'active' : '' }}"><x-icon name="exit" class="h-4 w-4 shrink-0" />Offboarding</a>
+                            <a href="{{ route('hradmin.policies') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hradmin.policies') ? 'active' : '' }}"><x-icon name="document" class="h-4 w-4 shrink-0" />Policies</a>
+                            <a href="{{ route('hradmin.reports') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hradmin.reports') ? 'active' : '' }}"><x-icon name="chart" class="h-4 w-4 shrink-0" />HR Reports</a>
                         </div>
                     </div>
                 @endif
@@ -102,13 +104,13 @@
                     <div>
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">Finance Admin</p>
                         <div class="mt-2 space-y-1">
-                            <a href="{{ route('finance.billing-requests') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('finance.billing-requests') ? 'active' : '' }}"><x-icon name="inbox" class="h-4 w-4 shrink-0" />Billing Requests</a>
-                            <a href="{{ route('finance.invoices') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('finance.invoices*') ? 'active' : '' }}"><x-icon name="cash" class="h-4 w-4 shrink-0" />Invoices</a>
-                            <a href="{{ route('finance.expenses') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('finance.expenses') ? 'active' : '' }}"><x-icon name="receipt" class="h-4 w-4 shrink-0" />Expense Approvals</a>
-                            <a href="{{ route('finance.operational-expenses') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('finance.operational-expenses') ? 'active' : '' }}"><x-icon name="building" class="h-4 w-4 shrink-0" />Operational Expenses</a>
-                            <a href="{{ route('finance.payroll') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('finance.payroll') ? 'active' : '' }}"><x-icon name="wallet" class="h-4 w-4 shrink-0" />Payroll</a>
-                            <a href="{{ route('finance.reports') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('finance.reports') ? 'active' : '' }}"><x-icon name="chart" class="h-4 w-4 shrink-0" />Financial Reports</a>
-                            <a href="{{ route('finance.settings') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('finance.settings') ? 'active' : '' }}"><x-icon name="shield" class="h-4 w-4 shrink-0" />Settings</a>
+                            <a href="{{ route('finance.billing-requests') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('finance.billing-requests') ? 'active' : '' }}"><x-icon name="inbox" class="h-4 w-4 shrink-0" />Billing Requests</a>
+                            <a href="{{ route('finance.invoices') }}" wire:navigate data-nav-link data-match="prefix" class="nav-link-glass {{ request()->routeIs('finance.invoices*') ? 'active' : '' }}"><x-icon name="cash" class="h-4 w-4 shrink-0" />Invoices</a>
+                            <a href="{{ route('finance.expenses') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('finance.expenses') ? 'active' : '' }}"><x-icon name="receipt" class="h-4 w-4 shrink-0" />Expense Approvals</a>
+                            <a href="{{ route('finance.operational-expenses') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('finance.operational-expenses') ? 'active' : '' }}"><x-icon name="building" class="h-4 w-4 shrink-0" />Operational Expenses</a>
+                            <a href="{{ route('finance.payroll') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('finance.payroll') ? 'active' : '' }}"><x-icon name="wallet" class="h-4 w-4 shrink-0" />Payroll</a>
+                            <a href="{{ route('finance.reports') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('finance.reports') ? 'active' : '' }}"><x-icon name="chart" class="h-4 w-4 shrink-0" />Financial Reports</a>
+                            <a href="{{ route('finance.settings') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('finance.settings') ? 'active' : '' }}"><x-icon name="shield" class="h-4 w-4 shrink-0" />Settings</a>
                         </div>
                     </div>
                 @endif
@@ -117,13 +119,48 @@
                     <div>
                         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-white/30">System</p>
                         <div class="mt-2 space-y-1">
-                            <a href="{{ route('admin.users') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('admin.users*') ? 'active' : '' }}"><x-icon name="shield" class="h-4 w-4 shrink-0" />Users &amp; Roles</a>
-                            <a href="{{ route('admin.lead-sources') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('admin.lead-sources*') ? 'active' : '' }}"><x-icon name="filter" class="h-4 w-4 shrink-0" />Lead Sources</a>
-                            <a href="{{ route('admin.roles') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('admin.roles*') ? 'active' : '' }}"><x-icon name="users" class="h-4 w-4 shrink-0" />Functional Roles</a>
+                            <a href="{{ route('admin.users') }}" wire:navigate data-nav-link data-match="prefix" class="nav-link-glass {{ request()->routeIs('admin.users*') ? 'active' : '' }}"><x-icon name="shield" class="h-4 w-4 shrink-0" />Users &amp; Roles</a>
+                            <a href="{{ route('admin.lead-sources') }}" wire:navigate data-nav-link data-match="prefix" class="nav-link-glass {{ request()->routeIs('admin.lead-sources*') ? 'active' : '' }}"><x-icon name="filter" class="h-4 w-4 shrink-0" />Lead Sources</a>
+                            <a href="{{ route('admin.roles') }}" wire:navigate data-nav-link data-match="prefix" class="nav-link-glass {{ request()->routeIs('admin.roles*') ? 'active' : '' }}"><x-icon name="users" class="h-4 w-4 shrink-0" />Functional Roles</a>
                         </div>
                     </div>
                 @endif
             </nav>
+            <script>
+                (function () {
+                    const nav = document.currentScript.previousElementSibling;
+                    let savedScrollTop = nav.scrollTop;
+
+                    function updateActiveNavLinks() {
+                        const current = (window.location.pathname.replace(/\/+$/, '') || '/');
+
+                        document.querySelectorAll('[data-nav-link]').forEach(function (link) {
+                            const linkPath = new URL(link.getAttribute('href'), window.location.origin).pathname.replace(/\/+$/, '') || '/';
+                            const isActive = link.dataset.match === 'prefix'
+                                ? (current === linkPath || current.startsWith(linkPath + '/'))
+                                : current === linkPath;
+
+                            link.classList.toggle('active', isActive);
+                        });
+                    }
+
+                    // The sidebar's DOM node survives Livewire's SPA navigation
+                    // (it's kept alive via Livewire's persist feature), but browsers
+                    // still reset scrollTop when a node is detached/reattached during
+                    // the page morph — so save it just before leaving and restore it
+                    // right after the new page lands.
+                    document.addEventListener('livewire:navigate', function () {
+                        savedScrollTop = nav.scrollTop;
+                    });
+
+                    document.addEventListener('livewire:navigated', function () {
+                        updateActiveNavLinks();
+                        nav.scrollTop = savedScrollTop;
+                    });
+                })();
+            </script>
+            @endpersist
+            </div>
 
             <div class="border-t border-white/10 p-3">
                 <div class="flex items-center gap-3 rounded-xl p-2">
