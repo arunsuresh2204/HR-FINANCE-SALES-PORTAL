@@ -70,6 +70,8 @@ class ClientShow extends Component
 
     public bool $showBillingForm = false;
 
+    public ?int $editingBillingRequestId = null;
+
     #[Validate('nullable|exists:projects,id')]
     public ?int $project_id = null;
 
@@ -229,10 +231,58 @@ class ClientShow extends Component
 
     public function openBillingForm(): void
     {
+        $this->editingBillingRequestId = null;
         $this->reset(['project_id', 'amount', 'milestone_description']);
         $this->currency = 'INR';
         $this->billing_type = 'milestone';
         $this->tasks = [['description' => '', 'hours' => '', 'rate' => '']];
+        $this->resetValidation();
+        $this->showBillingForm = true;
+    }
+
+    protected function canManageClientFinancials(): bool
+    {
+        $authUser = Auth::user();
+
+        return $authUser->isSuperAdmin()
+            || $authUser->isManager()
+            || $authUser->id === $this->client->sales_person_id
+            || ($authUser->teamVisibilityFor('access_sales_clients') && $authUser->allDescendants()->contains('id', $this->client->sales_person_id));
+    }
+
+    protected function canEditBillingRequest(BillingRequest $billingRequest): bool
+    {
+        return $billingRequest->status === 'pending'
+            && (Auth::id() === $billingRequest->created_by || $this->canManageClientFinancials());
+    }
+
+    public function editBillingRequest(int $billingRequestId): void
+    {
+        $billingRequest = BillingRequest::with('tasks')->findOrFail($billingRequestId);
+
+        if (! $this->canEditBillingRequest($billingRequest)) {
+            return;
+        }
+
+        $this->editingBillingRequestId = $billingRequest->id;
+        $this->project_id = $billingRequest->project_id;
+        $this->currency = $billingRequest->currency;
+        $this->billing_type = $billingRequest->billing_type;
+
+        if ($billingRequest->isHourly()) {
+            $this->tasks = $billingRequest->tasks->map(fn ($task) => [
+                'description' => $task->task_description,
+                'hours' => (string) $task->hours,
+                'rate' => (string) $task->rate,
+            ])->all();
+            $this->amount = '';
+            $this->milestone_description = '';
+        } else {
+            $this->amount = (string) $billingRequest->amount;
+            $this->milestone_description = $billingRequest->milestone_description ?? '';
+            $this->tasks = [['description' => '', 'hours' => '', 'rate' => '']];
+        }
+
         $this->resetValidation();
         $this->showBillingForm = true;
     }
@@ -253,6 +303,14 @@ class ClientShow extends Component
 
     public function submitBillingRequest(): void
     {
+        $editing = $this->editingBillingRequestId
+            ? BillingRequest::findOrFail($this->editingBillingRequestId)
+            : null;
+
+        if ($editing && ! $this->canEditBillingRequest($editing)) {
+            return;
+        }
+
         if ($this->billing_type === 'milestone') {
             $this->validate([
                 'project_id' => 'nullable|exists:projects,id',
@@ -261,16 +319,22 @@ class ClientShow extends Component
                 'milestone_description' => 'required|string|max:255',
             ]);
 
-            BillingRequest::create([
+            $data = [
                 'client_id' => $this->client->id,
                 'project_id' => $this->project_id,
-                'created_by' => Auth::id(),
                 'currency' => $this->currency,
                 'billing_type' => 'milestone',
                 'amount' => $this->amount,
                 'milestone_description' => $this->milestone_description,
                 'status' => 'pending',
-            ]);
+            ];
+
+            if ($editing) {
+                $editing->tasks()->delete();
+                $editing->update($data);
+            } else {
+                BillingRequest::create($data + ['created_by' => Auth::id()]);
+            }
         } else {
             $this->validate([
                 'project_id' => 'nullable|exists:projects,id',
@@ -286,16 +350,24 @@ class ClientShow extends Component
                 $this->tasks
             ));
 
-            DB::transaction(function () use ($amount) {
-                $billingRequest = BillingRequest::create([
+            DB::transaction(function () use ($amount, $editing) {
+                $data = [
                     'client_id' => $this->client->id,
                     'project_id' => $this->project_id,
-                    'created_by' => Auth::id(),
                     'currency' => $this->currency,
                     'billing_type' => 'hourly',
                     'amount' => $amount,
+                    'milestone_description' => null,
                     'status' => 'pending',
-                ]);
+                ];
+
+                if ($editing) {
+                    $editing->tasks()->delete();
+                    $editing->update($data);
+                    $billingRequest = $editing;
+                } else {
+                    $billingRequest = BillingRequest::create($data + ['created_by' => Auth::id()]);
+                }
 
                 foreach ($this->tasks as $task) {
                     $billingRequest->tasks()->create([
@@ -307,8 +379,21 @@ class ClientShow extends Component
             });
         }
 
+        $this->editingBillingRequestId = null;
         $this->showBillingForm = false;
-        $this->dispatch('toast', message: 'Billing request sent to Finance.', type: 'success');
+        $this->dispatch('toast', message: $editing ? 'Billing request updated.' : 'Billing request sent to Finance.', type: 'success');
+    }
+
+    public function markInvoiceSent(int $invoiceId): void
+    {
+        $invoice = $this->client->invoices()->findOrFail($invoiceId);
+
+        if (! $this->canManageClientFinancials() || $invoice->status !== 'draft') {
+            return;
+        }
+
+        $invoice->update(['status' => 'sent']);
+        $this->dispatch('toast', message: 'Invoice marked as sent.', type: 'success');
     }
 
     public function render()
@@ -319,6 +404,7 @@ class ClientShow extends Component
             'projects' => $this->client->projects()->with(['assignedTo', 'developers'])->latest()->get(),
             'billingRequests' => $this->client->billingRequests()->with('tasks', 'project')->latest()->get(),
             'invoices' => $this->client->invoices()->latest()->get(),
+            'canManageClientFinancials' => $this->canManageClientFinancials(),
             'totalHours' => $this->client->timesheets()->sum('hours'),
             'billableHours' => $this->client->billableHours(),
             'canManageProjects' => $authUser->isManager() || $authUser->isSuperAdmin(),

@@ -50,13 +50,9 @@ class FinancialReportMonth extends Component
         $wonDealsValue = Lead::where('status', 'won')->whereYear('updated_at', $this->year)->whereMonth('updated_at', $this->month)->sum('budget');
         $invoicedValue = Invoice::whereMonth('created_at', $this->month)->whereYear('created_at', $this->year)->sum('total_amount');
 
-        $salesAchievements = User::role('sales_exec')->orderBy('name')->get()->map(function (User $sp) {
+        $salesAchievements = User::permission('access_sales_targets')->orderBy('name')->get()->map(function (User $sp) {
             $target = SalesTarget::where('user_id', $sp->id)->where('month', $this->month)->where('year', $this->year)->first();
-            $achieved = (float) ($target?->achievedAmount() ?? Lead::where('sales_person_id', $sp->id)
-                ->where('status', 'won')
-                ->whereYear('updated_at', $this->year)
-                ->whereMonth('updated_at', $this->month)
-                ->sum('budget'));
+            $achieved = (float) ($target?->achievedAmount() ?? 0);
             $effectiveTarget = (float) ($target?->effectiveTargetAmount() ?? 0);
 
             return [

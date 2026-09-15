@@ -102,7 +102,7 @@
                                 <td class="text-white/70">{{ $invoice->client->business_name }}</td>
                                 <td class="text-white/60">{{ $invoice->invoice_number }}</td>
                                 <td class="font-semibold text-white">{{ $invoice->money($invoice->total_amount) }}</td>
-                                <td class="text-white/60">{{ $invoice->money($invoice->amount_paid) }}</td>
+                                <td class="text-white/60">{{ \App\Support\Currency::format($invoice->amount_paid, 'INR') }}</td>
                                 <td><x-status-pill :status="$invoice->isOverdue() ? 'overdue' : $invoice->status" /></td>
                             </tr>
                         @empty

@@ -142,9 +142,13 @@
         <tr>
             <td>
                 <div class="footer-heading">Notes</div>
-                <div class="signatory-title">{{ config('company.signatory_title') }}</div>
-                <div class="signatory-line"></div>
-                <div class="signatory-name">{{ config('company.signatory_name') }}</div>
+                @if ($financeSetting->signature_path ?? null)
+                    <img src="{{ public_path('storage/'.$financeSetting->signature_path) }}" alt="Signature" style="height: 40px; margin: 12px 0 4px;">
+                @else
+                    <div class="signatory-line"></div>
+                @endif
+                <div class="signatory-name">{{ $financeSetting->signer_name ?? config('company.signatory_name') }}</div>
+                <div class="signatory-title">{{ $financeSetting->signer_designation ?? config('company.signatory_title') }}</div>
             </td>
             <td>
                 <div class="footer-heading">Terms and Conditions</div>

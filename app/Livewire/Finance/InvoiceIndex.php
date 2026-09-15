@@ -174,7 +174,7 @@ class InvoiceIndex extends Component
 
         return view('livewire.finance.invoice-index', [
             'invoices' => $query->paginate(12),
-            'salespeople' => User::role('sales_exec')->orderBy('name')->get(),
+            'salespeople' => User::permission(['access_sales_leads', 'access_sales_clients'])->orderBy('name')->get(),
             'clients' => $clientsQuery->get(),
             'pendingBillingRequests' => $this->client_id
                 ? BillingRequest::where('client_id', $this->client_id)

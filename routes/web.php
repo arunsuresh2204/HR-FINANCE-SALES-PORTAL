@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\InvoicePdfController;
+use App\Http\Controllers\PayslipPdfController;
 use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\Lead;
@@ -25,7 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('attendance', 'pages.hr.attendance-index')->name('hr.attendance');
     Route::view('leave', 'pages.hr.leave-index')->name('hr.leave');
     Route::view('payslips', 'pages.hr.payslip-index')->name('hr.payslips');
-    Route::get('payslips/{payroll}/download', \App\Http\Controllers\PayslipPdfController::class)->name('payslips.download');
+    Route::get('payslips/{payroll}/download', PayslipPdfController::class)->name('payslips.download');
     Route::view('expenses', 'pages.hr.expense-index')->name('hr.expenses');
     Route::view('assets', 'pages.hr.asset-index')->name('hr.assets');
     Route::view('documents', 'pages.hr.document-index')->name('hr.documents');
@@ -92,13 +94,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('invoices/{invoice}', function (Invoice $invoice) {
             return view('pages.finance.invoice-show', compact('invoice'));
         })->name('invoices.show');
-        Route::get('invoices/{invoice}/pdf', \App\Http\Controllers\InvoicePdfController::class)->name('invoices.pdf');
+        Route::get('invoices/{invoice}/pdf', InvoicePdfController::class)->name('invoices.pdf');
         Route::view('expenses', 'pages.finance.expense-approvals')->name('expenses');
         Route::view('payroll', 'pages.finance.payroll-run')->name('payroll');
         Route::view('reports', 'pages.finance.financial-reports')->name('reports');
         Route::get('reports/{year}/{month}', function (int $year, int $month) {
             return view('pages.finance.financial-report-month', compact('year', 'month'));
         })->name('reports.month');
+        Route::view('settings', 'pages.finance.finance-settings')->name('settings');
     });
 
     // Super Admin

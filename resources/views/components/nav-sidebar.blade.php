@@ -107,6 +107,7 @@
                             <a href="{{ route('finance.expenses') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('finance.expenses') ? 'active' : '' }}"><x-icon name="receipt" class="h-4 w-4 shrink-0" />Expense Approvals</a>
                             <a href="{{ route('finance.payroll') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('finance.payroll') ? 'active' : '' }}"><x-icon name="wallet" class="h-4 w-4 shrink-0" />Payroll</a>
                             <a href="{{ route('finance.reports') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('finance.reports') ? 'active' : '' }}"><x-icon name="chart" class="h-4 w-4 shrink-0" />Financial Reports</a>
+                            <a href="{{ route('finance.settings') }}" wire:navigate class="nav-link-glass {{ request()->routeIs('finance.settings') ? 'active' : '' }}"><x-icon name="shield" class="h-4 w-4 shrink-0" />Settings</a>
                         </div>
                     </div>
                 @endif

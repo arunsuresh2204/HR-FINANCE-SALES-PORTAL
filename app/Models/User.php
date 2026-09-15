@@ -360,9 +360,9 @@ class User extends Authenticatable
         return $this->hasAnyRole(['finance_admin', 'super_admin']);
     }
 
-    public function isSalesExec(): bool
+    public function isSalesPerson(): bool
     {
-        return $this->hasAnyRole(['sales_exec', 'super_admin']);
+        return $this->isSuperAdmin() || $this->can('access_sales_targets');
     }
 
     public function isProgrammer(): bool
@@ -377,7 +377,7 @@ class User extends Authenticatable
 
     public function canManageLeads(): bool
     {
-        return $this->hasAnyRole(['sales_exec', 'digital_marketer', 'super_admin']);
+        return $this->isSuperAdmin() || $this->can('access_sales_leads');
     }
 
     public function isManager(): bool

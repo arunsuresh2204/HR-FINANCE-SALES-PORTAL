@@ -8,7 +8,7 @@
         <x-stat-card label="Pending Expenses" :value="$pendingExpenses" icon="receipt" accent="violet" :href="route('hr.expenses')" />
     </div>
 
-    @if (auth()->user()->can('access_timesheets') || auth()->user()->can('access_marketing_logs') || auth()->user()->can('access_sales_leads') || auth()->user()->isSalesExec())
+    @if (auth()->user()->can('access_timesheets') || auth()->user()->can('access_marketing_logs') || auth()->user()->can('access_sales_leads') || auth()->user()->isSalesPerson())
         <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             @if (auth()->user()->can('access_timesheets'))
                 <x-stat-card label="Hours Logged Today" :value="number_format($todayHours ?? 0, 1)" icon="code" accent="sky" hint="{{ number_format($weekHours ?? 0, 1) }}h this week" :href="route('work.timesheets')" />
@@ -20,7 +20,7 @@
                 <x-stat-card label="Open Leads" :value="$myLeadsOpen" icon="target" accent="sky" :href="route('sales.leads')" />
                 <x-stat-card label="Won This Month" :value="$myLeadsWonThisMonth" icon="briefcase" accent="emerald" :href="route('sales.leads')" />
             @endif
-            @if (auth()->user()->isSalesExec() && $salesTarget)
+            @if (auth()->user()->isSalesPerson() && $salesTarget)
                 <x-stat-card label="Target Progress" value="${{ number_format($salesAchieved) }} / ${{ number_format($salesTarget->target_amount) }}" icon="chart" accent="gold" :href="route('sales.targets')" />
             @endif
         </div>

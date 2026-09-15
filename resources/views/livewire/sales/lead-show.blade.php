@@ -2,9 +2,9 @@
     <x-page-header :title="$lead->client_name" :subtitle="$lead->company_name ?? 'Individual lead'">
         <x-slot:actions>
             <a href="{{ route('sales.leads') }}" wire:navigate class="btn-glass-secondary"><x-icon name="arrow-right" class="h-4 w-4 rotate-180" /> Back to Pipeline</a>
-            @if ($lead->status === 'won' && ! $client && auth()->user()->isSalesExec())
+            @if ($lead->status === 'won' && ! $client && auth()->user()->isSalesPerson())
                 <button wire:click="openConvertForm" class="btn-glass-primary"><x-icon name="briefcase" class="h-4 w-4" /> Convert to Client</button>
-            @elseif ($client && auth()->user()->isSalesExec())
+            @elseif ($client && auth()->user()->isSalesPerson())
                 <a href="{{ route('sales.clients.show', $client) }}" wire:navigate class="btn-glass-primary"><x-icon name="briefcase" class="h-4 w-4" /> View Client</a>
             @endif
         </x-slot:actions>
@@ -87,7 +87,7 @@
 
                 <button wire:click="updateStatus" class="btn-glass-primary mt-4 w-full">Save Status</button>
 
-                @if ($lead->status === 'won' && ! $client && ! auth()->user()->isSalesExec())
+                @if ($lead->status === 'won' && ! $client && ! auth()->user()->isSalesPerson())
                     <p class="mt-3 text-xs text-white/40">Marked as won — a sales team member will convert this to a client.</p>
                 @endif
             </div>

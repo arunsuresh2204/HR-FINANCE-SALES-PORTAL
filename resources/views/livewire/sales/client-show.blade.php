@@ -143,12 +143,17 @@
                 <h2 class="mb-4 text-base font-bold text-white">Invoices</h2>
                 <div class="space-y-2">
                     @forelse ($invoices as $invoice)
-                        <div class="glass-inset flex items-center justify-between p-3">
-                            <div>
-                                <p class="text-sm font-medium text-white">{{ $invoice->invoice_number }}</p>
-                                <p class="text-xs text-white/40">{{ $invoice->money($invoice->total_amount) }} &middot; Due {{ $invoice->due_date?->format('M j, Y') ?? '—' }}</p>
+                        <div class="glass-inset p-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-white">{{ $invoice->invoice_number }}</p>
+                                    <p class="text-xs text-white/40">{{ $invoice->money($invoice->total_amount) }} &middot; Due {{ $invoice->due_date?->format('M j, Y') ?? '—' }}</p>
+                                </div>
+                                <x-status-pill :status="$invoice->status" />
                             </div>
-                            <x-status-pill :status="$invoice->status" />
+                            @if ($canManageClientFinancials && $invoice->status === 'draft')
+                                <button wire:click="markInvoiceSent({{ $invoice->id }})" class="mt-2 text-xs font-semibold text-gold-300 hover:text-gold-200">Mark as Sent</button>
+                            @endif
                         </div>
                     @empty
                         <p class="text-sm text-white/40">No invoices yet.</p>
@@ -171,7 +176,12 @@
                             @if ($br->project)
                                 <p class="mt-1 text-[11px] text-white/30">Project: {{ $br->project->name }}</p>
                             @endif
-                            <p class="mt-1 text-[11px] text-white/30">{{ $br->created_at->format('M j, Y') }}</p>
+                            <div class="mt-1 flex items-center justify-between">
+                                <p class="text-[11px] text-white/30">{{ $br->created_at->format('M j, Y') }}</p>
+                                @if ($br->status === 'pending' && (auth()->id() === $br->created_by || $canManageClientFinancials))
+                                    <button wire:click="editBillingRequest({{ $br->id }})" class="text-[11px] font-semibold text-gold-300 hover:text-gold-200">Edit</button>
+                                @endif
+                            </div>
                         </div>
                     @empty
                         <p class="text-sm text-white/40">No billing requests yet.</p>
@@ -241,7 +251,7 @@
         </form>
     </x-modal-glass>
 
-    <x-modal-glass wire-model="showBillingForm" title="New Billing Request" max-width="2xl">
+    <x-modal-glass wire-model="showBillingForm" :title="$editingBillingRequestId ? 'Edit Billing Request' : 'New Billing Request'" max-width="2xl">
         <form wire:submit="submitBillingRequest" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -333,7 +343,7 @@
 
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
-                <x-primary-button>Send to Finance</x-primary-button>
+                <x-primary-button>{{ $editingBillingRequestId ? 'Save Changes' : 'Send to Finance' }}</x-primary-button>
             </div>
         </form>
     </x-modal-glass>

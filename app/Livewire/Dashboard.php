@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Announcement;
 use App\Models\Attendance;
+use App\Models\BillingRequest;
 use App\Models\Client;
 use App\Models\Expense;
 use App\Models\Invoice;
@@ -46,7 +47,7 @@ class Dashboard extends Component
             $data['myLeadsWonThisMonth'] = Lead::where('sales_person_id', $user->id)->where('status', 'won')->whereMonth('updated_at', now()->month)->whereYear('updated_at', now()->year)->count();
         }
 
-        if ($user->isSalesExec()) {
+        if ($user->isSalesPerson()) {
             $target = SalesTarget::where('user_id', $user->id)->where('month', now()->month)->where('year', now()->year)->first();
             $data['salesTarget'] = $target;
             $data['salesAchieved'] = $target?->achievedAmount() ?? 0;
@@ -59,7 +60,7 @@ class Dashboard extends Component
         }
 
         if ($user->can('access_finance_admin')) {
-            $data['pendingBillingRequests'] = \App\Models\BillingRequest::where('status', 'pending')->count();
+            $data['pendingBillingRequests'] = BillingRequest::where('status', 'pending')->count();
             $data['outstandingInvoices'] = Invoice::whereIn('status', ['sent', 'partially_paid', 'overdue'])->get()->sum(fn ($i) => $i->balanceDue());
             $data['pendingExpenseApprovals'] = Expense::where('status', 'pending')->count();
             $data['revenueThisMonth'] = Invoice::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->sum('amount_paid');

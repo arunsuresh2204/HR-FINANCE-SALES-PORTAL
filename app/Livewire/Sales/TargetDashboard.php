@@ -119,16 +119,16 @@ class TargetDashboard extends Component
         $isTeamView = false;
 
         if ($authUser->isSuperAdmin()) {
-            $salesPeople = User::role('sales_exec')->orderBy('name')->get();
+            $salesPeople = User::permission('access_sales_targets')->orderBy('name')->get();
             $isTeamView = true;
         } elseif ($authUser->canSetSalesTargets()) {
             $reportIds = $authUser->allDescendants()->pluck('id');
-            $salesPeople = User::role('sales_exec')->whereIn('id', $reportIds)->orderBy('name')->get();
+            $salesPeople = User::permission('access_sales_targets')->whereIn('id', $reportIds)->orderBy('name')->get();
 
             // The manager's own personal quota (if they carry one) counts
             // toward the team total alongside their reports', so it's
             // included as the first row rather than shown separately.
-            if ($authUser->hasRole('sales_exec')) {
+            if ($authUser->can('access_sales_targets')) {
                 $salesPeople->prepend($authUser);
             }
 

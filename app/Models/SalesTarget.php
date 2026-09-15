@@ -22,14 +22,18 @@ class SalesTarget extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Real revenue collected this month for this salesperson's clients, in
+     * INR: the sum of the payments ledger (a refund posts as a negative
+     * payment, so it nets out of the month it lands in).
+     */
     public function achievedAmount(): float
     {
-        return (float) Lead::query()
-            ->where('sales_person_id', $this->user_id)
-            ->where('status', 'won')
-            ->whereYear('updated_at', $this->year)
-            ->whereMonth('updated_at', $this->month)
-            ->sum('budget');
+        return (float) Payment::query()
+            ->whereHas('invoice.client', fn ($q) => $q->where('sales_person_id', $this->user_id))
+            ->whereYear('payment_date', $this->year)
+            ->whereMonth('payment_date', $this->month)
+            ->sum('amount');
     }
 
     public function deficitCarriedIn(): float

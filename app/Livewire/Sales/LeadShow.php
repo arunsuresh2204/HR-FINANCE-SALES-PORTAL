@@ -113,7 +113,7 @@ class LeadShow extends Component
 
     public function convertToClient(): void
     {
-        if (! Auth::user()->isSalesExec()) {
+        if (! Auth::user()->isSalesPerson()) {
             return;
         }
 

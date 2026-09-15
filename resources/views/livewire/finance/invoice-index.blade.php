@@ -8,6 +8,10 @@
                 <option value="partially_paid">Partially Paid</option>
                 <option value="paid">Paid</option>
                 <option value="overdue">Overdue</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="credit_note">Credit Note</option>
+                <option value="refunded">Refunded</option>
+                <option value="written_off">Written Off</option>
             </select>
             <button wire:click="openCreateForm" class="btn-glass-primary"><x-icon name="plus" class="h-4 w-4" /> New Invoice</button>
         </x-slot:actions>
@@ -25,7 +29,7 @@
                             <td>{{ $invoice->client->business_name }}</td>
                             <td><span class="badge-glass">{{ $invoice->currency }}</span></td>
                             <td class="font-semibold text-white">{{ $invoice->money($invoice->total_amount) }}</td>
-                            <td>{{ $invoice->money($invoice->amount_paid) }}</td>
+                            <td>{{ \App\Support\Currency::format($invoice->amount_paid, 'INR') }}</td>
                             <td>{{ $invoice->due_date?->format('M j, Y') ?? '—' }}</td>
                             <td><x-status-pill :status="$invoice->isOverdue() ? 'overdue' : $invoice->status" /></td>
                             <td class="text-right"><a href="{{ route('finance.invoices.show', $invoice) }}" wire:navigate class="text-xs font-semibold text-gold-300 hover:text-gold-200">View</a></td>

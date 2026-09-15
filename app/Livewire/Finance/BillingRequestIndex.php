@@ -32,18 +32,11 @@ class BillingRequestIndex extends Component
     public function openConvert(BillingRequest $billingRequest): void
     {
         $this->converting = $billingRequest;
-        $this->currency = 'INR';
-        $this->tax_percent = '18';
+        $this->currency = $billingRequest->currency;
+        $this->tax_percent = $this->currency === 'INR' ? '18' : '0';
         $this->client_tax_id = $billingRequest->client->tax_id ?? '';
         $this->due_date = now()->addDays(15)->toDateString();
         $this->showConvertForm = true;
-    }
-
-    public function updatedCurrency(): void
-    {
-        if ($this->currency !== 'INR') {
-            $this->tax_percent = '0';
-        }
     }
 
     public function createInvoice(): void
@@ -69,7 +62,7 @@ class BillingRequestIndex extends Component
                 'total_amount' => $amount + $tax,
                 'due_date' => $this->due_date,
                 'status' => 'draft',
-                'line_items' => [['description' => $billingRequest->milestone_description, 'amount' => $amount]],
+                'line_items' => [['description' => $billingRequest->summary(), 'amount' => $amount]],
             ]);
 
             if ($this->client_tax_id !== ($billingRequest->client->tax_id ?? '')) {

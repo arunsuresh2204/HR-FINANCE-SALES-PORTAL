@@ -14,6 +14,7 @@ use App\Models\Lead;
 use App\Models\LeadActivity;
 use App\Models\LeaveRequest;
 use App\Models\MarketingLog;
+use App\Models\Payment;
 use App\Models\Payroll;
 use App\Models\PolicyDocument;
 use App\Models\Project;
@@ -132,6 +133,22 @@ class DemoDataSeeder extends Seeder
         ]);
         $sales3->assignRole('sales_exec');
         $sales3->additionalManagers()->attach($owner3->id);
+
+        // Another custom role (distinct from the built-in sales_exec role),
+        // proving a salesperson recognized purely by feature access shows up
+        // everywhere a salesperson should — target dashboard, invoice
+        // salesperson filter — with zero hardcoded role checks.
+        $salesAssociateRole = Role::firstOrCreate(['name' => 'sales_associate', 'guard_name' => 'web']);
+        $salesAssociateRole->syncPermissions(['access_sales_leads', 'access_sales_clients', 'access_sales_targets']);
+
+        $sales4 = User::create([
+            'employee_code' => 'EMP-0011', 'name' => 'Kabir Ahluwalia', 'email' => 'kabir@nexstarc.com',
+            'password' => $password, 'email_verified_at' => now(), 'designation' => 'Sales Associate',
+            'department' => 'Sales', 'date_of_joining' => now()->subMonth()->startOfMonth(), 'employment_status' => 'active',
+            'monthly_salary' => 1800, 'manager_id' => $sales1->id,
+            'scheduled_login_time' => '09:00', 'scheduled_logoff_time' => '18:00',
+        ]);
+        $sales4->assignRole('sales_associate');
 
         // Announcements
         Announcement::create([
@@ -483,10 +500,15 @@ class DemoDataSeeder extends Seeder
             'milestone_description' => '50% advance', 'status' => 'invoiced',
         ]);
 
-        Invoice::create([
+        $invoice1 = Invoice::create([
             'billing_request_id' => $billing1->id, 'client_id' => $client1->id, 'created_by' => $owner3->id,
             'invoice_number' => 'INV-2026-0001', 'currency' => 'USD', 'amount' => 4000, 'tax_percent' => 0, 'total_amount' => 4000,
-            'amount_paid' => 4000, 'due_date' => now()->addDays(15), 'status' => 'paid',
+            'amount_paid' => 332800, 'due_date' => now()->addDays(15), 'status' => 'paid',
+        ]);
+        Payment::create([
+            'invoice_id' => $invoice1->id, 'recorded_by' => $owner3->id,
+            'amount' => 332800, 'payment_date' => now(),
+            'notes' => 'Wire transfer received in full ($4,000 @ ~83.2 INR/USD).',
         ]);
 
         BillingRequest::create([
@@ -679,6 +701,7 @@ class DemoDataSeeder extends Seeder
         SalesTarget::create(['user_id' => $sales1->id, 'month' => now()->month, 'year' => now()->year, 'target_amount' => 10000, 'commission_percent' => 5]);
         SalesTarget::create(['user_id' => $sales2->id, 'month' => now()->month, 'year' => now()->year, 'target_amount' => 8000, 'commission_percent' => 5]);
         SalesTarget::create(['user_id' => $sales3->id, 'month' => now()->month, 'year' => now()->year, 'target_amount' => 12000, 'commission_percent' => 5]);
+        SalesTarget::create(['user_id' => $sales4->id, 'month' => now()->month, 'year' => now()->year, 'target_amount' => 5000, 'commission_percent' => 5]);
 
         // Three months of prior sales-target history, each with a few backdated won deals so
         // "achieved" isn't just zero, showing a mix of over- and under-target months.

@@ -14,13 +14,13 @@
         <div class="glass-sheen"></div>
         <div class="overflow-x-auto">
             <table class="table-glass">
-                <thead><tr><th>Client</th><th>Milestone</th><th>Amount</th><th>Requested By</th><th>Status</th><th></th></tr></thead>
+                <thead><tr><th>Client</th><th>Details</th><th>Amount</th><th>Requested By</th><th>Status</th><th></th></tr></thead>
                 <tbody>
                     @forelse ($requests as $req)
                         <tr>
                             <td class="font-medium text-white">{{ $req->client->business_name }}</td>
-                            <td>{{ $req->milestone_description }}</td>
-                            <td class="font-semibold text-white">{{ \App\Support\Currency::format($req->amount, 'INR') }}</td>
+                            <td>{{ $req->summary() }}</td>
+                            <td class="font-semibold text-white">{{ \App\Support\Currency::format($req->amount, $req->currency) }}</td>
                             <td>{{ $req->creator->name }}</td>
                             <td><x-status-pill :status="$req->status" /></td>
                             <td class="text-right">
@@ -44,17 +44,13 @@
         @if ($converting)
             <form wire:submit="createInvoice" class="space-y-4">
                 <div class="glass-inset p-3 text-sm">
-                    <p class="text-white/70">{{ $converting->client->business_name }} &middot; {{ $converting->milestone_description }}</p>
+                    <p class="text-white/70">{{ $converting->client->business_name }} &middot; {{ $converting->summary() }}</p>
                     <p class="mt-1 text-lg font-bold text-white">{{ \App\Support\Currency::format($converting->amount, $currency) }}</p>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <x-input-label for="currency" value="Currency" />
-                        <select wire:model.live="currency" id="currency" class="input-glass">
-                            <option value="INR">INR (₹)</option>
-                            <option value="USD">USD ($)</option>
-                            <option value="EUR">EUR (€)</option>
-                        </select>
+                        <x-input-label value="Currency" />
+                        <p class="input-glass flex items-center text-white/70">{{ $currency }} &mdash; set by the salesperson's billing request</p>
                     </div>
                     <div>
                         <x-input-label for="due_date" value="Due Date" />
