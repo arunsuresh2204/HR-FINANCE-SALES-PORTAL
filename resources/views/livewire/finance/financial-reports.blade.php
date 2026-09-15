@@ -1,9 +1,10 @@
 <div>
     <x-page-header title="Financial Reports" subtitle="Revenue, expenses and reconciliation overview." />
 
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <x-stat-card label="Revenue This Month" :value="\App\Support\Currency::format($revenueThisMonth, 'INR')" icon="cash" accent="emerald" />
         <x-stat-card label="Expenses This Month" :value="\App\Support\Currency::format($expensesThisMonth, 'INR')" icon="receipt" accent="rose" />
+        <x-stat-card label="Operational Expenses" :value="\App\Support\Currency::format($operationalExpensesThisMonth, 'INR')" icon="building" accent="rose" href="{{ route('finance.operational-expenses') }}" />
         <x-stat-card label="Payroll This Month" :value="\App\Support\Currency::format($payrollThisMonth, 'INR')" icon="wallet" accent="violet" />
         <x-stat-card label="Net (P&L) This Month" :value="\App\Support\Currency::format($netThisMonth, 'INR')" icon="chart" :accent="$netThisMonth >= 0 ? 'emerald' : 'rose'" />
     </div>

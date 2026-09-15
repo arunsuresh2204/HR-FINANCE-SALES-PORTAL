@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Lead;
+use App\Models\OperationalExpense;
 use App\Models\Payroll;
 use Livewire\Component;
 
@@ -36,6 +37,7 @@ class FinancialReports extends Component
 
         $revenueThisMonth = Invoice::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->sum('amount_paid');
         $expensesThisMonth = Expense::where('status', 'approved')->whereMonth('expense_date', now()->month)->whereYear('expense_date', now()->year)->sum('amount');
+        $operationalExpensesThisMonth = OperationalExpense::whereMonth('expense_date', now()->month)->whereYear('expense_date', now()->year)->sum('amount');
         $payrollThisMonth = Payroll::where('month', now()->month)->where('year', now()->year)->sum('net_salary');
 
         $agingInvoices = Invoice::whereIn('status', ['sent', 'partially_paid', 'overdue'])->with('client')->get();
@@ -53,6 +55,7 @@ class FinancialReports extends Component
                 'revenue' => Invoice::whereMonth('created_at', $period->month)->whereYear('created_at', $period->year)->sum('amount_paid'),
                 'net' => Invoice::whereMonth('created_at', $period->month)->whereYear('created_at', $period->year)->sum('amount_paid')
                     - Expense::where('status', 'approved')->whereMonth('expense_date', $period->month)->whereYear('expense_date', $period->year)->sum('amount')
+                    - OperationalExpense::whereMonth('expense_date', $period->month)->whereYear('expense_date', $period->year)->sum('amount')
                     - Payroll::where('month', $period->month)->where('year', $period->year)->sum('net_salary'),
             ];
         });
@@ -61,8 +64,9 @@ class FinancialReports extends Component
             'revenueByClient' => $revenueByClient,
             'revenueThisMonth' => $revenueThisMonth,
             'expensesThisMonth' => $expensesThisMonth,
+            'operationalExpensesThisMonth' => $operationalExpensesThisMonth,
             'payrollThisMonth' => $payrollThisMonth,
-            'netThisMonth' => $revenueThisMonth - $expensesThisMonth - $payrollThisMonth,
+            'netThisMonth' => $revenueThisMonth - $expensesThisMonth - $operationalExpensesThisMonth - $payrollThisMonth,
             'agingInvoices' => $agingInvoices,
             'totalOutstanding' => $agingInvoices->sum(fn ($i) => $i->balanceDue()),
             'wonDealsValue' => $wonDealsValue,

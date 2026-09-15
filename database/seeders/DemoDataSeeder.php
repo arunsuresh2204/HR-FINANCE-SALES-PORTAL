@@ -14,6 +14,8 @@ use App\Models\Lead;
 use App\Models\LeadActivity;
 use App\Models\LeaveRequest;
 use App\Models\MarketingLog;
+use App\Models\OperationalExpense;
+use App\Models\OperationalExpenseCategory;
 use App\Models\Payment;
 use App\Models\Payroll;
 use App\Models\PolicyDocument;
@@ -777,6 +779,41 @@ class DemoDataSeeder extends Seeder
             'description' => 'Client visit taxi fare', 'expense_date' => now()->subDays(6),
             'status' => 'approved', 'reviewed_by' => $owner3->id, 'reviewed_at' => now()->subDays(5),
         ]);
+
+        // Operational Expenses
+        $rentCategory = OperationalExpenseCategory::where('name', 'Rent')->first();
+        $electricityCategory = OperationalExpenseCategory::where('name', 'Electricity')->first();
+        $softwareCategory = OperationalExpenseCategory::where('name', 'Software Licenses')->first();
+        $internetCategory = OperationalExpenseCategory::where('name', 'Internet & Telephony')->first();
+
+        if ($rentCategory) {
+            OperationalExpense::create([
+                'category_id' => $rentCategory->id, 'vendor' => 'WeWork Koramangala', 'amount' => 185000,
+                'expense_date' => now()->startOfMonth()->addDays(2), 'is_recurring' => true,
+                'notes' => 'Monthly office rent', 'created_by' => $owner3->id,
+            ]);
+        }
+        if ($electricityCategory) {
+            OperationalExpense::create([
+                'category_id' => $electricityCategory->id, 'vendor' => 'BESCOM', 'amount' => 21400,
+                'expense_date' => now()->subDays(9), 'is_recurring' => true,
+                'notes' => 'Office electricity bill', 'created_by' => $owner3->id,
+            ]);
+        }
+        if ($softwareCategory) {
+            OperationalExpense::create([
+                'category_id' => $softwareCategory->id, 'vendor' => 'Microsoft 365', 'amount' => 34500,
+                'expense_date' => now()->subDays(15), 'is_recurring' => true,
+                'notes' => 'Annual Business Premium licenses', 'created_by' => $owner3->id,
+            ]);
+        }
+        if ($internetCategory) {
+            OperationalExpense::create([
+                'category_id' => $internetCategory->id, 'vendor' => 'ACT Fibernet', 'amount' => 6999,
+                'expense_date' => now()->subDays(11), 'is_recurring' => true,
+                'notes' => 'Office broadband', 'created_by' => $owner3->id,
+            ]);
+        }
 
         // Assets
         Asset::create(['user_id' => $dev1->id, 'item_name' => 'MacBook Pro 14"', 'item_type' => 'Laptop', 'assigned_date' => '2022-03-15']);

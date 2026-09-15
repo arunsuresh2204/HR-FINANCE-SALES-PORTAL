@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Lead;
+use App\Models\OperationalExpense;
 use App\Models\Payroll;
 use App\Models\SalesTarget;
 use App\Models\User;
@@ -30,8 +31,17 @@ class FinancialReportMonth extends Component
 
         $revenue = Invoice::whereMonth('created_at', $this->month)->whereYear('created_at', $this->year)->sum('amount_paid');
         $expenses = Expense::where('status', 'approved')->whereMonth('expense_date', $this->month)->whereYear('expense_date', $this->year)->sum('amount');
+        $operationalExpenses = OperationalExpense::whereMonth('expense_date', $this->month)->whereYear('expense_date', $this->year)->sum('amount');
         $payroll = Payroll::where('month', $this->month)->where('year', $this->year)->sum('net_salary');
-        $net = $revenue - $expenses - $payroll;
+        $net = $revenue - $expenses - $operationalExpenses - $payroll;
+
+        $operationalExpensesByCategory = OperationalExpense::with('category')
+            ->whereMonth('expense_date', $this->month)
+            ->whereYear('expense_date', $this->year)
+            ->get()
+            ->groupBy(fn ($e) => $e->category->name)
+            ->map(fn ($group) => $group->sum('amount'))
+            ->sortDesc();
 
         $revenueByClient = Client::withSum(['invoices as revenue' => function ($q) {
             $q->whereMonth('created_at', $this->month)->whereYear('created_at', $this->year);
@@ -74,6 +84,8 @@ class FinancialReportMonth extends Component
             'period' => $period,
             'revenue' => $revenue,
             'expenses' => $expenses,
+            'operationalExpenses' => $operationalExpenses,
+            'operationalExpensesByCategory' => $operationalExpensesByCategory,
             'payroll' => $payroll,
             'net' => $net,
             'revenueByClient' => $revenueByClient,

@@ -46,7 +46,7 @@ class FeatureCatalog
         'access_sales_clients' => 'Client list and client detail pages',
         'access_sales_targets' => 'Sales targets dashboard and reports',
         'access_hr_admin' => 'Employees, leave approvals, attendance oversight, holidays, resignations, policies, HR reports',
-        'access_finance_admin' => 'Billing requests, invoices, expense approvals, payroll, financial reports',
+        'access_finance_admin' => 'Billing requests, invoices, expense approvals, operational expenses, payroll, financial reports',
         'access_super_admin' => 'User management, lead sources, functional roles',
     ];
 

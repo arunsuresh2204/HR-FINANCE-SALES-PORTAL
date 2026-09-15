@@ -5,9 +5,10 @@
         </x-slot:actions>
     </x-page-header>
 
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <x-stat-card label="Revenue" :value="\App\Support\Currency::format($revenue, 'INR')" icon="cash" accent="emerald" />
         <x-stat-card label="Expenses" :value="\App\Support\Currency::format($expenses, 'INR')" icon="receipt" accent="rose" />
+        <x-stat-card label="Operational Expenses" :value="\App\Support\Currency::format($operationalExpenses, 'INR')" icon="building" accent="rose" href="{{ route('finance.operational-expenses') }}" />
         <x-stat-card label="Payroll" :value="\App\Support\Currency::format($payroll, 'INR')" icon="wallet" accent="violet" />
         <x-stat-card label="Net (P&L)" :value="\App\Support\Currency::format($net, 'INR')" icon="chart" :accent="$net >= 0 ? 'emerald' : 'rose'" />
     </div>
@@ -23,6 +24,20 @@
                     </div>
                 @empty
                     <p class="text-sm text-white/40">No revenue recorded this month.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <h2 class="mb-4 text-base font-bold text-white">Operational Expenses by Category</h2>
+            <div class="space-y-3">
+                @forelse ($operationalExpensesByCategory as $catName => $total)
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-white/70">{{ $catName }}</span>
+                        <span class="font-semibold text-white">{{ \App\Support\Currency::format($total, 'INR') }}</span>
+                    </div>
+                @empty
+                    <p class="text-sm text-white/40">No operational expenses recorded this month.</p>
                 @endforelse
             </div>
         </div>

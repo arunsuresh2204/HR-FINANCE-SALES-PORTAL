@@ -99,6 +99,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         })->name('invoices.show');
         Route::get('invoices/{invoice}/pdf', InvoicePdfController::class)->name('invoices.pdf');
         Route::view('expenses', 'pages.finance.expense-approvals')->name('expenses');
+        Route::view('operational-expenses', 'pages.finance.operational-expenses')->name('operational-expenses');
         Route::view('payroll', 'pages.finance.payroll-run')->name('payroll');
         Route::view('reports', 'pages.finance.financial-reports')->name('reports');
         Route::get('reports/{year}/{month}', function (int $year, int $month) {

@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             HolidaySeeder::class,
             LeadSourceSeeder::class,
+            OperationalExpenseCategorySeeder::class,
             DemoDataSeeder::class,
         ]);
     }
