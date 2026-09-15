@@ -6,6 +6,7 @@ use App\Models\Lead;
 use App\Models\SalesTarget;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -39,6 +40,10 @@ class TargetDashboard extends Component
         $this->monthPicker = $anchor->format('Y-m');
     }
 
+    /**
+     * Individual (non-manager) view still shows their own last 5 months
+     * in one glance, so they don't need a drill-down page just for themselves.
+     */
     protected function periods(): array
     {
         $anchor = Carbon::createFromFormat('Y-m', $this->monthPicker)->startOfMonth();
@@ -113,6 +118,25 @@ class TargetDashboard extends Component
         ];
     }
 
+    /**
+     * Target/achieved summed across a group of people for one month,
+     * without the per-member extras (clients acquired etc.) a totals-only
+     * comparison doesn't need.
+     */
+    protected function teamTotalsFor(Collection $people, Carbon $period): array
+    {
+        $target = 0.0;
+        $achieved = 0.0;
+
+        foreach ($people as $person) {
+            $t = SalesTarget::where('user_id', $person->id)->where('month', $period->month)->where('year', $period->year)->first();
+            $target += $t?->effectiveTargetAmount() ?? 0;
+            $achieved += $t?->achievedAmount() ?? 0;
+        }
+
+        return ['target' => $target, 'achieved' => $achieved];
+    }
+
     public function render()
     {
         $authUser = Auth::user();
@@ -137,45 +161,59 @@ class TargetDashboard extends Component
             $salesPeople = collect([$authUser]);
         }
 
-        $periods = $this->periods();
+        $anchor = Carbon::createFromFormat('Y-m', $this->monthPicker)->startOfMonth();
 
-        $rows = $salesPeople->map(function (User $sp) use ($periods, $authUser) {
-            $totalLeads = Lead::where('sales_person_id', $sp->id)->count();
-            $wonLeadsAllTime = Lead::where('sales_person_id', $sp->id)->where('status', 'won')->count();
+        if ($isTeamView) {
+            $members = $salesPeople->map(function (User $sp) use ($anchor, $authUser) {
+                $stats = $this->monthStatsFor($sp, $anchor);
+                $target = $stats['effectiveTarget'];
+                $achieved = $stats['achieved'];
 
-            return [
-                'user' => $sp,
-                'isSelf' => $sp->id === $authUser->id,
-                'openLeads' => Lead::where('sales_person_id', $sp->id)->whereNotIn('status', Lead::CLOSED_STATUSES)->count(),
-                'conversionRate' => $totalLeads ? round($wonLeadsAllTime / $totalLeads * 100) : 0,
-                'months' => collect($periods)->map(fn ($p) => $this->monthStatsFor($sp, $p))->all(),
-            ];
-        })->values();
+                return [
+                    'user' => $sp,
+                    'isSelf' => $sp->id === $authUser->id,
+                    'hasTarget' => (bool) $stats['target'],
+                    'target' => $target,
+                    'achieved' => $achieved,
+                    'clientsAcquired' => $stats['clientsAcquired'],
+                    'attainment' => $target > 0 ? (int) round($achieved / $target * 100) : 0,
+                ];
+            })->values();
 
-        // Own row (if present) pinned first; the rest ranked by current
-        // month's achievement, same ordering as before this changed.
-        $selfRow = $rows->firstWhere('isSelf', true);
-        $otherRows = $rows->reject(fn ($row) => $row['isSelf'])
-            ->sortByDesc(fn ($row) => $row['months'][0]['achieved'])
-            ->values();
-        $rows = $selfRow ? collect([$selfRow])->concat($otherRows) : $otherRows;
+            $selfRow = $members->firstWhere('isSelf', true);
+            $otherRows = $members->reject(fn ($r) => $r['isSelf'])->sortByDesc('attainment')->values();
+            $members = $selfRow ? collect([$selfRow])->concat($otherRows) : $otherRows;
 
-        $teamSummary = null;
+            $teamTarget = (float) $members->sum('target');
+            $teamAchieved = (float) $members->sum('achieved');
+            $teamAttainment = $teamTarget > 0 ? (int) round($teamAchieved / $teamTarget * 100) : 0;
 
-        if ($isTeamView && $rows->count() > 1) {
-            $teamSummary = [
-                'label' => $periods[0]->format('F Y'),
-                'target' => $rows->sum(fn ($r) => $r['months'][0]['effectiveTarget']),
-                'achieved' => $rows->sum(fn ($r) => $r['months'][0]['achieved']),
-                'clientsAcquired' => $rows->sum(fn ($r) => $r['months'][0]['clientsAcquired']),
-                'memberCount' => $rows->count(),
-            ];
+            $prevTotals = $this->teamTotalsFor($salesPeople, $anchor->copy()->subMonthNoOverflow());
+            $prevAttainment = $prevTotals['target'] > 0 ? (int) round($prevTotals['achieved'] / $prevTotals['target'] * 100) : 0;
+
+            return view('livewire.sales.target-dashboard', [
+                'isTeamView' => true,
+                'period' => $anchor,
+                'members' => $members,
+                'teamTarget' => $teamTarget,
+                'teamAchieved' => $teamAchieved,
+                'teamPending' => max(0, $teamTarget - $teamAchieved),
+                'teamAttainment' => $teamAttainment,
+                'attainmentDelta' => $teamAttainment - $prevAttainment,
+                'teamClientsAcquired' => $members->sum('clientsAcquired'),
+            ]);
         }
 
+        $periods = $this->periods();
+
+        $rows = collect([$authUser])->map(fn (User $sp) => [
+            'user' => $sp,
+            'months' => collect($periods)->map(fn ($p) => $this->monthStatsFor($sp, $p))->all(),
+        ]);
+
         return view('livewire.sales.target-dashboard', [
+            'isTeamView' => false,
             'rows' => $rows,
-            'canSetTargets' => $authUser->canSetSalesTargets(),
-            'teamSummary' => $teamSummary,
         ]);
     }
 }

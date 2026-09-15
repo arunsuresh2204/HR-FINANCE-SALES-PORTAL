@@ -22,13 +22,37 @@
 <div>
     <x-page-header :title="$user->name" subtitle="{{ $period->format('F Y') }} sales report">
         <x-slot:actions>
-            <div class="flex items-center gap-1.5">
-                <a href="{{ route('sales.targets.report', [$user, $prevPeriod['year'], $prevPeriod['month']]) }}" wire:navigate class="glass rounded-lg p-1.5 text-white/50 hover:text-white" title="Previous month"><x-icon name="arrow-right" class="h-3.5 w-3.5 rotate-180" /></a>
-                <a href="{{ route('sales.targets.report', [$user, $nextPeriod['year'], $nextPeriod['month']]) }}" wire:navigate class="glass rounded-lg p-1.5 text-white/50 hover:text-white" title="Next month"><x-icon name="arrow-right" class="h-3.5 w-3.5" /></a>
+            <div class="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 p-1">
+                <a href="{{ route('sales.targets.report', [$user, $prevPeriod['year'], $prevPeriod['month']]) }}" wire:navigate class="rounded-lg p-1.5 text-white/50 hover:bg-white/10 hover:text-white" title="Previous month"><x-icon name="arrow-right" class="h-3.5 w-3.5 rotate-180" /></a>
+                <select onchange="Livewire.navigate(this.value)" class="input-glass !w-auto !border-0 !bg-transparent !p-1.5 !text-sm !font-semibold !shadow-none" title="Jump to month">
+                    @foreach ($monthOptions as $opt)
+                        <option value="{{ route('sales.targets.report', [$user, $opt['year'], $opt['month']]) }}" @selected($opt['year'] === $year && $opt['month'] === $month)>{{ $opt['label'] }}</option>
+                    @endforeach
+                </select>
+                <a href="{{ route('sales.targets.report', [$user, $nextPeriod['year'], $nextPeriod['month']]) }}" wire:navigate class="rounded-lg p-1.5 text-white/50 hover:bg-white/10 hover:text-white" title="Next month"><x-icon name="arrow-right" class="h-3.5 w-3.5" /></a>
             </div>
             <a href="{{ route('sales.targets') }}" wire:navigate class="btn-glass-secondary"><x-icon name="arrow-right" class="h-4 w-4 rotate-180" /> Back to Targets</a>
         </x-slot:actions>
     </x-page-header>
+
+    <div class="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div class="glass-card text-center">
+            <p class="text-xl font-extrabold text-white">{{ \App\Support\Currency::format($targetAmount, 'INR') }}</p>
+            <p class="mt-1 text-[11px] text-white/40">Target</p>
+        </div>
+        <div class="glass-card text-center">
+            <p class="text-xl font-extrabold text-emerald-300">{{ \App\Support\Currency::format($achievedAmount, 'INR') }}</p>
+            <p class="mt-1 text-[11px] text-white/40">Achieved</p>
+        </div>
+        <div class="glass-card text-center">
+            <p class="text-xl font-extrabold text-rose-300">{{ \App\Support\Currency::format($pendingAmount, 'INR') }}</p>
+            <p class="mt-1 text-[11px] text-white/40">Pending</p>
+        </div>
+        <div class="glass-card text-center">
+            <p class="text-xl font-extrabold text-gold-300">{{ $attainmentPct }}%</p>
+            <p class="mt-1 text-[11px] text-white/40">Attainment</p>
+        </div>
+    </div>
 
     <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div class="glass-card text-center">

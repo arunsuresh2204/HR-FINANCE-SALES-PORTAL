@@ -104,6 +104,14 @@ class TargetReport extends Component
         ]);
 
         $currentTarget = SalesTarget::where('user_id', $this->user->id)->where('month', $this->month)->where('year', $this->year)->first();
+        $targetAmount = $currentTarget?->effectiveTargetAmount() ?? 0;
+        $achievedAmount = $currentTarget?->achievedAmount() ?? 0;
+
+        $monthOptions = collect(range(0, 11))->map(function ($i) use ($period) {
+            $p = $period->copy()->subMonthsNoOverflow($i);
+
+            return ['year' => $p->year, 'month' => $p->month, 'label' => $p->format('F Y')];
+        });
 
         $sources = $contacted->pluck('source')->merge($wonLeads->pluck('source'))->unique()->sort()->values();
 
@@ -134,6 +142,11 @@ class TargetReport extends Component
             'totalDealValue' => $wonLeads->sum('budget'),
             'totalProjects' => $clientRows->sum(fn ($r) => $r['projects']->count()),
             'currentTarget' => $currentTarget,
+            'targetAmount' => $targetAmount,
+            'achievedAmount' => $achievedAmount,
+            'pendingAmount' => max(0, $targetAmount - $achievedAmount),
+            'attainmentPct' => $targetAmount > 0 ? (int) round($achievedAmount / $targetAmount * 100) : 0,
+            'monthOptions' => $monthOptions,
             'sourceStats' => $sourceStats,
             'prevPeriod' => $this->adjacentPeriod(-1),
             'nextPeriod' => $this->adjacentPeriod(1),

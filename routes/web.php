@@ -70,6 +70,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('targets/{user}/report/{year}/{month}', function (User $user, int $year, int $month) {
                 return view('pages.sales.target-report', compact('user', 'year', 'month'));
             })->name('targets.report');
+            Route::get('targets/team-stats/{year}/{month}', function (int $year, int $month) {
+                return view('pages.sales.team-target-stats', compact('year', 'month'));
+            })->name('targets.team-stats');
         });
     });
 
