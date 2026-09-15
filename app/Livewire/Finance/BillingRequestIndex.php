@@ -83,6 +83,16 @@ class BillingRequestIndex extends Component
         $this->dispatch('toast', message: 'Billing request rejected.', type: 'success');
     }
 
+    public function deleteBillingRequest(BillingRequest $billingRequest): void
+    {
+        if ($billingRequest->status !== 'pending') {
+            return;
+        }
+
+        $billingRequest->delete();
+        $this->dispatch('toast', message: 'Billing request deleted.', type: 'success');
+    }
+
     public function render()
     {
         $query = BillingRequest::with('client')->latest();

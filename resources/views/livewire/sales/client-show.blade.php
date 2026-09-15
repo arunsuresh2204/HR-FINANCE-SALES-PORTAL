@@ -187,7 +187,10 @@
                             <div class="mt-1 flex items-center justify-between">
                                 <p class="text-[11px] text-white/30">{{ $br->created_at->format('M j, Y') }}</p>
                                 @if ($br->status === 'pending' && (auth()->id() === $br->created_by || $canManageClientFinancials))
-                                    <button wire:click="editBillingRequest({{ $br->id }})" class="text-[11px] font-semibold text-gold-300 hover:text-gold-200">Edit</button>
+                                    <div class="flex gap-3">
+                                        <button wire:click="editBillingRequest({{ $br->id }})" class="text-[11px] font-semibold text-gold-300 hover:text-gold-200">Edit</button>
+                                        <button wire:click="deleteBillingRequest({{ $br->id }})" wire:confirm="Delete this billing request? This can't be undone." class="text-[11px] font-semibold text-white/40 hover:text-rose-300">Delete</button>
+                                    </div>
                                 @endif
                             </div>
                         </div>

@@ -266,6 +266,18 @@ class ClientShow extends Component
             && (Auth::id() === $billingRequest->created_by || $this->canManageClientFinancials());
     }
 
+    public function deleteBillingRequest(int $billingRequestId): void
+    {
+        $billingRequest = BillingRequest::findOrFail($billingRequestId);
+
+        if (! $this->canEditBillingRequest($billingRequest)) {
+            return;
+        }
+
+        $billingRequest->delete();
+        $this->dispatch('toast', message: 'Billing request deleted.', type: 'success');
+    }
+
     public function editBillingRequest(int $billingRequestId): void
     {
         $billingRequest = BillingRequest::with('tasks')->findOrFail($billingRequestId);
