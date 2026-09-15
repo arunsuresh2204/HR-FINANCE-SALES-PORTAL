@@ -32,6 +32,14 @@ class InvoiceShow extends Component
     #[Validate('required|string|max:1000')]
     public string $adjustment_reason = '';
 
+    public bool $showEditForm = false;
+
+    public array $edit_line_items = [];
+
+    public string $edit_tax_percent = '0';
+
+    public string $edit_due_date = '';
+
     public function mount(Invoice $invoice): void
     {
         $this->invoice = $invoice;
@@ -51,6 +59,85 @@ class InvoiceShow extends Component
 
         $this->invoice->update(['status' => 'cancelled']);
         $this->dispatch('toast', message: 'Invoice cancelled.', type: 'success');
+    }
+
+    public function openEditForm(): void
+    {
+        if (! $this->invoice->isEditable()) {
+            return;
+        }
+
+        $lineItems = $this->invoice->line_items ?: [['description' => $this->invoice->billingRequest?->summary() ?? 'Services rendered', 'amount' => $this->invoice->amount]];
+        $this->edit_line_items = collect($lineItems)->map(fn ($item) => [
+            'description' => $item['description'] ?? '',
+            'amount' => (string) ($item['amount'] ?? 0),
+        ])->all();
+        $this->edit_tax_percent = (string) $this->invoice->tax_percent;
+        $this->edit_due_date = $this->invoice->due_date?->toDateString() ?? '';
+        $this->resetValidation();
+        $this->showEditForm = true;
+    }
+
+    public function addEditLineItem(): void
+    {
+        $this->edit_line_items[] = ['description' => '', 'amount' => ''];
+    }
+
+    public function removeEditLineItem(int $index): void
+    {
+        if (count($this->edit_line_items) > 1) {
+            unset($this->edit_line_items[$index]);
+            $this->edit_line_items = array_values($this->edit_line_items);
+        }
+    }
+
+    public function saveEdit(): void
+    {
+        if (! $this->invoice->isEditable()) {
+            return;
+        }
+
+        $this->validate([
+            'edit_line_items' => 'required|array|min:1',
+            'edit_line_items.*.description' => 'required|string|max:255',
+            'edit_line_items.*.amount' => 'required|numeric|min:0.01',
+            'edit_tax_percent' => 'required|numeric|min:0',
+            'edit_due_date' => 'required|date',
+        ]);
+
+        $lineItems = collect($this->edit_line_items)->map(fn ($item) => [
+            'description' => $item['description'],
+            'amount' => (float) $item['amount'],
+        ])->values()->all();
+
+        $amount = array_sum(array_column($lineItems, 'amount'));
+        $taxPercent = $this->invoice->currency === 'INR' ? (float) $this->edit_tax_percent : 0;
+        $tax = $amount * ($taxPercent / 100);
+
+        $this->invoice->update([
+            'line_items' => $lineItems,
+            'amount' => $amount,
+            'tax_percent' => $taxPercent,
+            'total_amount' => $amount + $tax,
+            'due_date' => $this->edit_due_date,
+        ]);
+
+        $this->showEditForm = false;
+        $this->invoice->refresh();
+        $this->dispatch('toast', message: 'Invoice updated.', type: 'success');
+    }
+
+    public function deleteInvoice(): void
+    {
+        if (! $this->invoice->isEditable()) {
+            return;
+        }
+
+        $this->invoice->billingRequest?->update(['status' => 'pending']);
+        $this->invoice->delete();
+
+        $this->dispatch('toast', message: 'Invoice deleted.', type: 'success');
+        $this->redirect(route('finance.invoices'), navigate: true);
     }
 
     public function openPaymentForm(): void

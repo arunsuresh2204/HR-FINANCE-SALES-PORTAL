@@ -93,6 +93,16 @@ class Invoice extends Model
         return in_array($this->status, self::CLOSED_STATUSES, true);
     }
 
+    /**
+     * Invoices can be edited or deleted right up until money has actually
+     * landed in full — i.e. anything before the terminal 'paid' status or
+     * a closed (cancelled/credit-noted/refunded/written-off) state.
+     */
+    public function isEditable(): bool
+    {
+        return ! $this->isClosed() && $this->status !== 'paid';
+    }
+
     public function isOverdue(): bool
     {
         return $this->due_date && $this->due_date->isPast() && ! in_array($this->status, ['paid', ...self::CLOSED_STATUSES], true);

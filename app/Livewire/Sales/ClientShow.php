@@ -89,6 +89,16 @@ class ClientShow extends Component
 
     public array $tasks = [];
 
+    public bool $showEditInvoiceForm = false;
+
+    public ?int $editingInvoiceId = null;
+
+    public array $edit_line_items = [];
+
+    public string $edit_tax_percent = '0';
+
+    public string $edit_due_date = '';
+
     public function mount(Client $client): void
     {
         $this->client = $client;
@@ -394,6 +404,92 @@ class ClientShow extends Component
 
         $invoice->update(['status' => 'sent']);
         $this->dispatch('toast', message: 'Invoice marked as sent.', type: 'success');
+    }
+
+    public function editInvoice(int $invoiceId): void
+    {
+        $invoice = $this->client->invoices()->findOrFail($invoiceId);
+
+        if (! $this->canManageClientFinancials() || ! $invoice->isEditable()) {
+            return;
+        }
+
+        $lineItems = $invoice->line_items ?: [['description' => $invoice->billingRequest?->summary() ?? 'Services rendered', 'amount' => $invoice->amount]];
+
+        $this->editingInvoiceId = $invoice->id;
+        $this->edit_line_items = collect($lineItems)->map(fn ($item) => [
+            'description' => $item['description'] ?? '',
+            'amount' => (string) ($item['amount'] ?? 0),
+        ])->all();
+        $this->edit_tax_percent = (string) $invoice->tax_percent;
+        $this->edit_due_date = $invoice->due_date?->toDateString() ?? '';
+        $this->resetValidation();
+        $this->showEditInvoiceForm = true;
+    }
+
+    public function addEditLineItem(): void
+    {
+        $this->edit_line_items[] = ['description' => '', 'amount' => ''];
+    }
+
+    public function removeEditLineItem(int $index): void
+    {
+        if (count($this->edit_line_items) > 1) {
+            unset($this->edit_line_items[$index]);
+            $this->edit_line_items = array_values($this->edit_line_items);
+        }
+    }
+
+    public function saveInvoiceEdit(): void
+    {
+        $invoice = $this->client->invoices()->findOrFail($this->editingInvoiceId);
+
+        if (! $this->canManageClientFinancials() || ! $invoice->isEditable()) {
+            return;
+        }
+
+        $this->validate([
+            'edit_line_items' => 'required|array|min:1',
+            'edit_line_items.*.description' => 'required|string|max:255',
+            'edit_line_items.*.amount' => 'required|numeric|min:0.01',
+            'edit_tax_percent' => 'required|numeric|min:0',
+            'edit_due_date' => 'required|date',
+        ]);
+
+        $lineItems = collect($this->edit_line_items)->map(fn ($item) => [
+            'description' => $item['description'],
+            'amount' => (float) $item['amount'],
+        ])->values()->all();
+
+        $amount = array_sum(array_column($lineItems, 'amount'));
+        $taxPercent = $invoice->currency === 'INR' ? (float) $this->edit_tax_percent : 0;
+        $tax = $amount * ($taxPercent / 100);
+
+        $invoice->update([
+            'line_items' => $lineItems,
+            'amount' => $amount,
+            'tax_percent' => $taxPercent,
+            'total_amount' => $amount + $tax,
+            'due_date' => $this->edit_due_date,
+        ]);
+
+        $this->editingInvoiceId = null;
+        $this->showEditInvoiceForm = false;
+        $this->dispatch('toast', message: 'Invoice updated.', type: 'success');
+    }
+
+    public function deleteInvoice(int $invoiceId): void
+    {
+        $invoice = $this->client->invoices()->findOrFail($invoiceId);
+
+        if (! $this->canManageClientFinancials() || ! $invoice->isEditable()) {
+            return;
+        }
+
+        $invoice->billingRequest?->update(['status' => 'pending']);
+        $invoice->delete();
+
+        $this->dispatch('toast', message: 'Invoice deleted.', type: 'success');
     }
 
     public function render()
