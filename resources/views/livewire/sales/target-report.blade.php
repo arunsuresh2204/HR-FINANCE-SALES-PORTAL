@@ -16,7 +16,7 @@
 
     $barTop = fn ($value) => $marginT + ($plotH - ($maxVal > 0 ? ($value / $maxVal) * $plotH : 0));
     $barHeight = fn ($value) => $maxVal > 0 ? ($value / $maxVal) * $plotH : 0;
-    $abbr = fn ($n) => $n >= 1000 ? '$'.rtrim(rtrim(number_format($n / 1000, 1), '0'), '.').'k' : '$'.number_format($n);
+    $abbr = fn ($n) => $n >= 1000 ? '₹'.rtrim(rtrim(number_format($n / 1000, 1), '0'), '.').'k' : '₹'.number_format($n);
 @endphp
 
 <div>
@@ -52,7 +52,7 @@
             <p class="text-[11px] text-white/40">Clients Acquired</p>
         </div>
         <div class="glass-card text-center">
-            <p class="text-2xl font-extrabold text-gold-300">${{ number_format($totalDealValue) }}</p>
+            <p class="text-2xl font-extrabold text-gold-300">{{ \App\Support\Currency::format($totalDealValue, 'INR') }}</p>
             <p class="text-[11px] text-white/40">Total Deal Value</p>
         </div>
         <div class="glass-card text-center">
@@ -156,7 +156,7 @@
                                 </div>
                             </td>
                             <td class="text-white/60">{{ $s['won'] }}</td>
-                            <td class="font-semibold text-gold-300">${{ number_format($s['dealValue']) }}</td>
+                            <td class="font-semibold text-gold-300">{{ \App\Support\Currency::format($s['dealValue'], 'INR') }}</td>
                         </tr>
                     @empty
                         <tr><td colspan="5" class="py-6 text-center text-white/40">No contacts logged this month.</td></tr>
@@ -192,7 +192,7 @@
                                     <p class="text-xs text-white/40">{{ $row['lead']->company_name }}</p>
                                 @endif
                             </td>
-                            <td class="whitespace-nowrap font-semibold text-gold-300">${{ number_format($row['lead']->budget ?? 0) }}</td>
+                            <td class="whitespace-nowrap font-semibold text-gold-300">{{ \App\Support\Currency::format($row['lead']->budget ?? 0, 'INR') }}</td>
                             <td class="text-white/60">{{ $row['lead']->source }}</td>
                             <td class="text-white/60">{{ $row['contacts'] }}</td>
                             <td class="text-white/60">

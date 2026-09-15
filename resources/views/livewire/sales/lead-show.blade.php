@@ -79,7 +79,7 @@
 
                 @if ($status === 'won')
                     <div class="mt-3">
-                        <x-input-label for="budget" value="Deal Value ($)" />
+                        <x-input-label for="budget" value="Deal Value (₹)" />
                         <x-text-input wire:model="budget" id="budget" type="number" step="0.01" class="mt-0" />
                         <x-input-error :messages="$errors->get('budget')" class="mt-1" />
                     </div>
@@ -96,7 +96,7 @@
                 <p class="text-xs font-semibold uppercase tracking-wide text-white/40">Current Status</p>
                 <div class="mt-2"><x-status-pill :status="$lead->status" /></div>
                 @if ($lead->budget)
-                    <p class="mt-3 text-2xl font-extrabold text-gold-300">${{ number_format($lead->budget) }}</p>
+                    <p class="mt-3 text-2xl font-extrabold text-gold-300">{{ \App\Support\Currency::format($lead->budget, 'INR') }}</p>
                 @endif
             </div>
         </div>

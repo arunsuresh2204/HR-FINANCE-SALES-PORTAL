@@ -21,7 +21,7 @@
                 <x-stat-card label="Won This Month" :value="$myLeadsWonThisMonth" icon="briefcase" accent="emerald" :href="route('sales.leads')" />
             @endif
             @if (auth()->user()->isSalesPerson() && $salesTarget)
-                <x-stat-card label="Target Progress" value="${{ number_format($salesAchieved) }} / ${{ number_format($salesTarget->target_amount) }}" icon="chart" accent="gold" :href="route('sales.targets')" />
+                <x-stat-card label="Target Progress" value="{{ \App\Support\Currency::format($salesAchieved, 'INR') }} / {{ \App\Support\Currency::format($salesTarget->target_amount, 'INR') }}" icon="chart" accent="gold" :href="route('sales.targets')" />
             @endif
         </div>
     @endif
@@ -38,12 +38,12 @@
                 <x-stat-card label="Pending Billing Requests" :value="$pendingBillingRequests" icon="inbox" accent="sky" :href="route('finance.billing-requests')" />
                 <x-stat-card label="Outstanding Invoices" value="${{ number_format($outstandingInvoices, 2) }}" icon="cash" accent="rose" :href="route('finance.invoices')" />
                 <x-stat-card label="Pending Expense Approvals" :value="$pendingExpenseApprovals" icon="receipt" accent="violet" :href="route('finance.expenses')" />
-                <x-stat-card label="Revenue This Month" value="${{ number_format($revenueThisMonth, 2) }}" icon="wallet" accent="emerald" :href="route('finance.reports')" />
+                <x-stat-card label="Revenue This Month" value="{{ \App\Support\Currency::format($revenueThisMonth, 'INR') }}" icon="wallet" accent="emerald" :href="route('finance.reports')" />
             @endif
             @if (auth()->user()->isSuperAdmin())
                 <x-stat-card label="Total Clients" :value="$totalClients" icon="briefcase" accent="sky" :href="route('sales.clients')" />
                 <x-stat-card label="Open Leads (Company)" :value="$openLeads" icon="target" accent="gold" :href="route('sales.leads')" />
-                <x-stat-card label="Total Revenue Collected" value="${{ number_format($totalRevenue, 2) }}" icon="wallet" accent="emerald" :href="route('finance.reports')" />
+                <x-stat-card label="Total Revenue Collected" value="{{ \App\Support\Currency::format($totalRevenue, 'INR') }}" icon="wallet" accent="emerald" :href="route('finance.reports')" />
             @endif
         </div>
     @endif

@@ -13,8 +13,8 @@
         <div class="mb-6">
             <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-white/40">Team Total &middot; {{ $teamSummary['label'] }}</p>
             <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <x-stat-card label="Team Target" value="${{ number_format($teamSummary['target']) }}" icon="target" accent="gold" />
-                <x-stat-card label="Team Achieved" value="${{ number_format($teamSummary['achieved']) }}" icon="cash" accent="emerald" />
+                <x-stat-card label="Team Target" value="{{ \App\Support\Currency::format($teamSummary['target'], 'INR') }}" icon="target" accent="gold" />
+                <x-stat-card label="Team Achieved" value="{{ \App\Support\Currency::format($teamSummary['achieved'], 'INR') }}" icon="cash" accent="emerald" />
                 <x-stat-card label="Attainment" value="{{ $teamSummary['target'] > 0 ? min(100, round($teamSummary['achieved'] / $teamSummary['target'] * 100)) : 0 }}%" icon="chart" accent="sky" />
                 <x-stat-card label="Clients Acquired" value="{{ $teamSummary['clientsAcquired'] }}" icon="briefcase" accent="violet" :hint="$teamSummary['memberCount'].' team member'.($teamSummary['memberCount'] === 1 ? '' : 's')" />
             </div>
@@ -48,14 +48,14 @@
                                 @if ($m['target'])
                                     <div class="w-full">
                                         <div class="mb-1 flex justify-between text-xs text-white/50">
-                                            <span>${{ number_format($m['achieved']) }}</span>
-                                            <span>${{ number_format($m['effectiveTarget']) }}</span>
+                                            <span>{{ \App\Support\Currency::format($m['achieved'], 'INR') }}</span>
+                                            <span>{{ \App\Support\Currency::format($m['effectiveTarget'], 'INR') }}</span>
                                         </div>
                                         <div class="h-2 rounded-full bg-white/5">
                                             <div class="h-2 rounded-full bg-gradient-to-r from-gold-500 to-gold-300" style="width: {{ min(100, $m['effectiveTarget'] > 0 ? $m['achieved'] / $m['effectiveTarget'] * 100 : 0) }}%"></div>
                                         </div>
                                         @if ($m['deficitCarried'] > 0)
-                                            <p class="mt-1 text-[11px] text-rose-300/80">Includes ${{ number_format($m['deficitCarried']) }} carried from last month's shortfall</p>
+                                            <p class="mt-1 text-[11px] text-rose-300/80">Includes {{ \App\Support\Currency::format($m['deficitCarried'], 'INR') }} carried from last month's shortfall</p>
                                         @endif
                                     </div>
                                 @else
@@ -81,7 +81,7 @@
     <x-modal-glass wire-model="showTargetForm" title="Set Monthly Target" max-width="sm">
         <form wire:submit="saveTarget" class="space-y-4">
             <div>
-                <x-input-label for="target_amount" value="Target Amount ($)" />
+                <x-input-label for="target_amount" value="Target Amount (₹)" />
                 <x-text-input wire:model="target_amount" id="target_amount" type="number" step="0.01" class="mt-0" />
                 <x-input-error :messages="$errors->get('target_amount')" class="mt-1" />
             </div>
