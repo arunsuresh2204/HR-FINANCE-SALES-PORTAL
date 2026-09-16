@@ -61,8 +61,8 @@ class LeadShow extends Component
         $data = ['status' => $this->status];
 
         if ($this->status === 'won') {
-            $this->validate(['budget' => 'required|numeric|min:0']);
-            $data['budget'] = $this->budget;
+            $this->validate(['budget' => 'nullable|numeric|min:0']);
+            $data['budget'] = $this->budget !== '' ? $this->budget : null;
         }
 
         $this->lead->update($data);

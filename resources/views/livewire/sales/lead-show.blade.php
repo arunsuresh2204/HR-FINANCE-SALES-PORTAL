@@ -71,7 +71,7 @@
         <div class="space-y-6">
             <div class="glass-card">
                 <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-white/40">Update Status</p>
-                <select wire:model="status" class="input-glass">
+                <select wire:model.live="status" class="input-glass">
                     @foreach (\App\Models\Lead::STATUSES as $s)
                         <option value="{{ $s }}">{{ ucwords(str_replace('_', ' ', $s)) }}</option>
                     @endforeach
@@ -79,7 +79,7 @@
 
                 @if ($status === 'won')
                     <div class="mt-3">
-                        <x-input-label for="budget" value="Deal Value (₹)" />
+                        <x-input-label for="budget" value="Deal Value (₹, optional)" />
                         <x-text-input wire:model="budget" id="budget" type="number" step="0.01" class="mt-0" />
                         <x-input-error :messages="$errors->get('budget')" class="mt-1" />
                     </div>
