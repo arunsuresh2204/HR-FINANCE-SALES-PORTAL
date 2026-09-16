@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\InvoiceExportController;
 use App\Http\Controllers\InvoicePdfController;
 use App\Http\Controllers\PayslipPdfController;
 use App\Models\Client;
@@ -94,6 +95,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['permission:access_finance_admin'])->prefix('finance')->name('finance.')->group(function () {
         Route::view('billing-requests', 'pages.finance.billing-request-index')->name('billing-requests');
         Route::view('invoices', 'pages.finance.invoice-index')->name('invoices');
+        Route::get('invoices/export/csv', [InvoiceExportController::class, 'csv'])->name('invoices.export.csv');
+        Route::get('invoices/export/pdfs', [InvoiceExportController::class, 'pdfsZip'])->name('invoices.export.pdfs');
         Route::get('invoices/{invoice}', function (Invoice $invoice) {
             return view('pages.finance.invoice-show', compact('invoice'));
         })->name('invoices.show');

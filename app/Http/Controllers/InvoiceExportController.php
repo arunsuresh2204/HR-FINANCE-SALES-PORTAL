@@ -1,0 +1,120 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\FinanceSetting;
+use App\Models\Invoice;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use ZipArchive;
+
+class InvoiceExportController extends Controller
+{
+    protected function dateRange(Request $request): array
+    {
+        $validated = Validator::make($request->all(), [
+            'from' => 'required|date',
+            'to' => 'required|date|after_or_equal:from',
+        ])->validate();
+
+        return [
+            Carbon::parse($validated['from'])->startOfDay(),
+            Carbon::parse($validated['to'])->endOfDay(),
+        ];
+    }
+
+    public function csv(Request $request): StreamedResponse
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        $invoices = Invoice::with('client')
+            ->whereBetween('created_at', [$from, $to])
+            ->orderBy('created_at')
+            ->get();
+
+        $filename = 'invoices-'.$from->format('Y-m-d').'-to-'.$to->format('Y-m-d').'.csv';
+
+        return response()->streamDownload(function () use ($invoices) {
+            $out = fopen('php://output', 'w');
+
+            fputcsv($out, [
+                'Invoice Number', 'Invoice Date', 'Due Date', 'Client', 'Client Tax ID',
+                'Currency', 'Subtotal', 'Tax %', 'Tax Amount', 'Total Amount',
+                'Amount Paid (INR)', 'Balance Due', 'Status', 'Adjustment Type',
+                'Adjustment Amount (INR)', 'Adjustment Reason', 'Adjustment Date',
+            ]);
+
+            foreach ($invoices as $invoice) {
+                fputcsv($out, [
+                    $invoice->invoice_number,
+                    $invoice->created_at->format('Y-m-d'),
+                    $invoice->due_date?->format('Y-m-d'),
+                    $invoice->client->business_name,
+                    $invoice->client->tax_id,
+                    $invoice->currency,
+                    number_format((float) $invoice->amount, 2, '.', ''),
+                    number_format((float) $invoice->tax_percent, 2, '.', ''),
+                    number_format((float) $invoice->total_amount - (float) $invoice->amount, 2, '.', ''),
+                    number_format((float) $invoice->total_amount, 2, '.', ''),
+                    number_format((float) $invoice->amount_paid, 2, '.', ''),
+                    number_format($invoice->balanceDue(), 2, '.', ''),
+                    $invoice->status,
+                    $invoice->adjustment_type,
+                    $invoice->adjustment_amount !== null ? number_format((float) $invoice->adjustment_amount, 2, '.', '') : null,
+                    $invoice->adjustment_reason,
+                    $invoice->adjustment_at?->format('Y-m-d'),
+                ]);
+            }
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    public function pdfsZip(Request $request)
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        $invoices = Invoice::with('client')
+            ->whereBetween('created_at', [$from, $to])
+            ->orderBy('created_at')
+            ->get();
+
+        if ($invoices->isEmpty()) {
+            return back()->with('error', 'No invoices in that date range.');
+        }
+
+        $financeSetting = FinanceSetting::current();
+        $zipPath = tempnam(sys_get_temp_dir(), 'invoices').'.zip';
+
+        $zip = new ZipArchive;
+        $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        $usedNames = [];
+        foreach ($invoices as $invoice) {
+            $pdf = Pdf::loadView('pdf.invoice', [
+                'invoice' => $invoice,
+                'financeSetting' => $financeSetting,
+            ]);
+
+            $name = $invoice->invoice_number.'.pdf';
+            $suffix = 1;
+            while (in_array($name, $usedNames, true)) {
+                $name = $invoice->invoice_number.'-'.(++$suffix).'.pdf';
+            }
+            $usedNames[] = $name;
+
+            $zip->addFromString($name, $pdf->output());
+        }
+
+        $zip->close();
+
+        $filename = 'invoices-'.$from->format('Y-m-d').'-to-'.$to->format('Y-m-d').'.zip';
+
+        return response()->download($zipPath, $filename)->deleteFileAfterSend(true);
+    }
+}

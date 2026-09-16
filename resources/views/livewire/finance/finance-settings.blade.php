@@ -33,4 +33,26 @@
             </div>
         </form>
     </div>
+
+    <div class="glass-card mt-6 max-w-xl">
+        <h2 class="text-base font-bold text-white">Export Invoices for Accounting</h2>
+        <p class="mt-1 text-xs text-white/40">Download every invoice raised in a date range &mdash; a CSV register for your books, or the individual PDFs bundled as a ZIP for your records.</p>
+
+        <form class="mt-4 space-y-4" method="GET" target="_blank">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <x-input-label value="From" for="export_from" />
+                    <input id="export_from" name="from" type="date" required value="{{ now()->startOfYear()->toDateString() }}" class="input-glass mt-0">
+                </div>
+                <div>
+                    <x-input-label value="To" for="export_to" />
+                    <input id="export_to" name="to" type="date" required value="{{ now()->toDateString() }}" class="input-glass mt-0">
+                </div>
+            </div>
+            <div class="flex flex-wrap justify-end gap-3 pt-2">
+                <button type="submit" formaction="{{ route('finance.invoices.export.csv') }}" class="btn-glass-secondary"><x-icon name="document" class="h-4 w-4" /> Download CSV</button>
+                <button type="submit" formaction="{{ route('finance.invoices.export.pdfs') }}" class="btn-glass-primary"><x-icon name="document" class="h-4 w-4" /> Download PDFs (ZIP)</button>
+            </div>
+        </form>
+    </div>
 </div>

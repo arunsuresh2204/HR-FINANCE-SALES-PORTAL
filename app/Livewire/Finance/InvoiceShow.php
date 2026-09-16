@@ -260,7 +260,14 @@ class InvoiceShow extends Component
 
     public function openAdjustmentForm(string $type): void
     {
-        if (! in_array($type, ['credit_note', 'refund', 'written_off'], true)) {
+        $allowed = match ($type) {
+            'credit_note' => $this->invoice->canIssueCreditNote(),
+            'refund' => $this->invoice->canRecordRefund(),
+            'written_off' => $this->invoice->canBeWrittenOff(),
+            default => false,
+        };
+
+        if (! $allowed) {
             return;
         }
 
@@ -278,6 +285,19 @@ class InvoiceShow extends Component
 
     public function saveAdjustment(): void
     {
+        $allowed = match ($this->adjustment_type) {
+            'credit_note' => $this->invoice->canIssueCreditNote(),
+            'refund' => $this->invoice->canRecordRefund(),
+            'written_off' => $this->invoice->canBeWrittenOff(),
+            default => false,
+        };
+
+        if (! $allowed) {
+            $this->showAdjustmentForm = false;
+
+            return;
+        }
+
         $this->validate([
             'adjustment_amount' => 'required|numeric|min:0.01',
             'adjustment_reason' => 'required|string|max:1000',

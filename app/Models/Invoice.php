@@ -139,6 +139,35 @@ class Invoice extends Model
         return $this->status === 'sent' && (float) $this->amount_paid <= 0;
     }
 
+    /**
+     * A credit note records a reduction in what's owed. It only makes
+     * sense once an invoice has actually gone out (not a draft) and
+     * hasn't already been closed some other way.
+     */
+    public function canIssueCreditNote(): bool
+    {
+        return ! $this->isClosed() && $this->status !== 'draft';
+    }
+
+    /**
+     * A refund gives back money that was actually received, so it only
+     * applies once some payment has landed.
+     */
+    public function canRecordRefund(): bool
+    {
+        return ! $this->isClosed() && (float) $this->amount_paid > 0;
+    }
+
+    /**
+     * Writing off is abandoning collection of an outstanding balance, so
+     * it doesn't apply to a draft (never sent) or an invoice that's
+     * already fully paid - there's nothing left to write off.
+     */
+    public function canBeWrittenOff(): bool
+    {
+        return ! $this->isClosed() && $this->status !== 'draft' && $this->balanceDue() > 0.004;
+    }
+
     public function isOverdue(): bool
     {
         return $this->due_date && $this->due_date->isPast() && ! in_array($this->status, ['paid', ...self::CLOSED_STATUSES], true);

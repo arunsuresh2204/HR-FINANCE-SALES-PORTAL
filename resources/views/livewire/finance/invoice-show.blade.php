@@ -21,13 +21,19 @@
         </x-slot:actions>
     </x-page-header>
 
-    @if (! $invoice->isClosed())
+    @if ($invoice->canIssueCreditNote() || $invoice->canRecordRefund() || $invoice->canBeWrittenOff())
         <div class="glass-card mb-6">
             <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-white/40">Invoice Adjustments <span class="normal-case text-white/30">&middot; finance only</span></p>
             <div class="flex flex-wrap gap-3">
-                <button wire:click="openAdjustmentForm('credit_note')" class="btn-glass-secondary"><x-icon name="receipt" class="h-4 w-4" /> Issue Credit Note</button>
-                <button wire:click="openAdjustmentForm('refund')" class="btn-glass-secondary"><x-icon name="wallet" class="h-4 w-4" /> Record Refund</button>
-                <button wire:click="openAdjustmentForm('written_off')" class="btn-glass-secondary !text-rose-300"><x-icon name="inbox" class="h-4 w-4" /> Write Off</button>
+                @if ($invoice->canIssueCreditNote())
+                    <button wire:click="openAdjustmentForm('credit_note')" class="btn-glass-secondary"><x-icon name="receipt" class="h-4 w-4" /> Issue Credit Note</button>
+                @endif
+                @if ($invoice->canRecordRefund())
+                    <button wire:click="openAdjustmentForm('refund')" class="btn-glass-secondary"><x-icon name="wallet" class="h-4 w-4" /> Record Refund</button>
+                @endif
+                @if ($invoice->canBeWrittenOff())
+                    <button wire:click="openAdjustmentForm('written_off')" class="btn-glass-secondary !text-rose-300"><x-icon name="inbox" class="h-4 w-4" /> Write Off</button>
+                @endif
             </div>
         </div>
     @endif
