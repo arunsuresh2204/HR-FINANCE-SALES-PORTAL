@@ -1,8 +1,14 @@
 <div>
-    <x-page-header title="Finance Settings" subtitle="Signature and authorized signer shown on invoice PDFs." />
+    <x-page-header title="Finance Settings" subtitle="Signature, authorized signer, and GSTIN shown on invoice PDFs." />
 
     <div class="glass-card max-w-xl">
         <form wire:submit="save" class="space-y-4">
+            <div>
+                <x-input-label value="GSTIN" for="gstin" />
+                <x-text-input wire:model="gstin" id="gstin" type="text" class="mt-0" placeholder="Not yet registered &mdash; add once GST registration is obtained" />
+                <p class="mt-1 text-xs text-white/40">Leave blank until GST registration is obtained (currently not required, as revenue is under &#8377;20L). Once set, it appears on all invoices.</p>
+                <x-input-error :messages="$errors->get('gstin')" class="mt-1" />
+            </div>
             <div>
                 <x-input-label value="Signature Image" for="signature" />
                 @if ($setting->signature_path)

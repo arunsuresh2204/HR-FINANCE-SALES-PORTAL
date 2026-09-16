@@ -58,8 +58,8 @@
                 @foreach (config('company.address_lines') as $line)
                     <div class="muted">{{ $line }}</div>
                 @endforeach
-                @if (config('company.gstin'))
-                    <div class="muted" style="margin-top: 6px;">Tax ID: GSTIN - {{ config('company.gstin') }}</div>
+                @if ($financeSetting->gstin ?? config('company.gstin'))
+                    <div class="muted" style="margin-top: 6px;">Tax ID: GSTIN - {{ $financeSetting->gstin ?? config('company.gstin') }}</div>
                 @elseif (config('company.tax_id'))
                     <div class="muted" style="margin-top: 6px;">Tax ID ({{ config('company.tax_id_label') }}): {{ config('company.tax_id') }}</div>
                 @endif
@@ -162,11 +162,11 @@
                 @if (config('company.bank.bank_address'))
                     <div class="bank-line muted">{{ config('company.bank.bank_address') }}</div>
                 @endif
-                @if (config('company.phone') || config('company.gstin') || config('company.tax_id'))
+                @if (config('company.phone') || ($financeSetting->gstin ?? config('company.gstin')) || config('company.tax_id'))
                     <div class="bank-line muted" style="margin-top: 6px;">
                         @if (config('company.phone'))Contact Number: {{ config('company.phone') }}@endif
-                        @if (config('company.gstin'))
-                            @if (config('company.phone')), @endif GSTIN - {{ config('company.gstin') }}
+                        @if ($financeSetting->gstin ?? config('company.gstin'))
+                            @if (config('company.phone')), @endif GSTIN - {{ $financeSetting->gstin ?? config('company.gstin') }}
                         @elseif (config('company.tax_id'))
                             @if (config('company.phone')), @endif {{ config('company.tax_id_label') }} - {{ config('company.tax_id') }}
                         @endif
