@@ -2,29 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ValidatesExportDateRange;
 use App\Models\FinanceSetting;
 use App\Models\Invoice;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use ZipArchive;
 
 class InvoiceExportController extends Controller
 {
-    protected function dateRange(Request $request): array
-    {
-        $validated = Validator::make($request->all(), [
-            'from' => 'required|date',
-            'to' => 'required|date|after_or_equal:from',
-        ])->validate();
-
-        return [
-            Carbon::parse($validated['from'])->startOfDay(),
-            Carbon::parse($validated['to'])->endOfDay(),
-        ];
-    }
+    use ValidatesExportDateRange;
 
     public function csv(Request $request): StreamedResponse
     {
