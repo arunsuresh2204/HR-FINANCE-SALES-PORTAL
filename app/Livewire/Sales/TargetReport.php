@@ -93,7 +93,7 @@ class TargetReport extends Component
             ->where('status', 'won')
             ->whereYear('updated_at', $this->year)
             ->whereMonth('updated_at', $this->month)
-            ->with(['client.projects.billingRequests', 'activities'])
+            ->with(['client.projects.billingRequests.invoice', 'activities'])
             ->latest('updated_at')
             ->get();
 

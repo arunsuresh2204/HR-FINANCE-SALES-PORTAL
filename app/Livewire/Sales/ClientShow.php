@@ -562,7 +562,7 @@ class ClientShow extends Component
 
         return view('livewire.sales.client-show', [
             'projects' => $this->client->projects()->with(['assignedTo', 'developers'])->latest()->get(),
-            'billingRequests' => $this->client->billingRequests()->with('tasks', 'project')->latest()->get(),
+            'billingRequests' => $this->client->billingRequests()->with('tasks', 'project')->where('status', '!=', 'invoiced')->latest()->get(),
             'invoices' => $this->client->invoices()->latest()->get(),
             'canManageClientFinancials' => $this->canManageClientFinancials(),
             'totalHours' => $this->client->timesheets()->sum('hours'),

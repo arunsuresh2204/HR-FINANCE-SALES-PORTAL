@@ -204,7 +204,7 @@
                         <th>Source</th>
                         <th>Contacts</th>
                         <th>Projects</th>
-                        <th>Project Billing</th>
+                        <th>Amount Paid</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -228,14 +228,8 @@
                             </td>
                             <td class="text-white/60">
                                 @forelse ($row['projects'] as $project)
-                                    @php $byCurrency = $project->billingRequests->groupBy('currency'); @endphp
-                                    @if ($byCurrency->isEmpty())
-                                        <p class="text-white/25">—</p>
-                                    @else
-                                        @foreach ($byCurrency as $currency => $requests)
-                                            <p>{{ \App\Support\Currency::format($requests->sum('amount'), $currency) }}</p>
-                                        @endforeach
-                                    @endif
+                                    @php $paid = $project->billingRequests->sum(fn ($br) => (float) ($br->invoice?->amount_paid ?? 0)); @endphp
+                                    <p>{{ \App\Support\Currency::format($paid, 'INR') }}</p>
                                 @empty
                                     <span class="text-white/25">—</span>
                                 @endforelse
