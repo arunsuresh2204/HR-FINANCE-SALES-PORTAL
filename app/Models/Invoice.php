@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\Currency;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -165,5 +166,23 @@ class Invoice extends Model
     public function money(float|string $amount): string
     {
         return Currency::format($amount, $this->currency ?? 'INR');
+    }
+
+    /**
+     * The next invoice number, numbered within the Indian financial year
+     * (April 1 - March 31) it's issued in — e.g. INV-2026-0001 for the
+     * first invoice of FY2026-27, resetting to INV-2027-0001 once
+     * April 2027 starts a new financial year.
+     */
+    public static function nextInvoiceNumber(): string
+    {
+        $today = now();
+        $fyStartYear = $today->month >= 4 ? $today->year : $today->year - 1;
+        $fyStart = Carbon::create($fyStartYear, 4, 1)->startOfDay();
+        $fyEnd = Carbon::create($fyStartYear + 1, 3, 31)->endOfDay();
+
+        $count = static::whereBetween('created_at', [$fyStart, $fyEnd])->count();
+
+        return 'INV-'.$fyStartYear.'-'.str_pad((string) ($count + 1), 4, '0', STR_PAD_LEFT);
     }
 }

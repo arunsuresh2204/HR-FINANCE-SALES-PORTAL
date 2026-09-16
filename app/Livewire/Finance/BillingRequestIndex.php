@@ -49,7 +49,7 @@ class BillingRequestIndex extends Component
         $tax = $amount * ($taxPercent / 100);
 
         DB::transaction(function () use ($billingRequest, $amount, $tax, $taxPercent) {
-            $invoiceNumber = 'INV-'.now()->year.'-'.str_pad((string) (Invoice::count() + 1), 4, '0', STR_PAD_LEFT);
+            $invoiceNumber = Invoice::nextInvoiceNumber();
 
             Invoice::create([
                 'billing_request_id' => $billingRequest->id,
