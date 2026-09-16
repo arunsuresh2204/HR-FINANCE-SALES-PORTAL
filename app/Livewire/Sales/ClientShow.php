@@ -38,6 +38,9 @@ class ClientShow extends Component
     #[Validate('nullable|string|max:255')]
     public string $owner_contact = '';
 
+    #[Validate('nullable|string|max:50')]
+    public string $tax_id = '';
+
     public bool $showAgreementForm = false;
 
     #[Validate('nullable|file|max:10240')]
@@ -61,6 +64,8 @@ class ClientShow extends Component
     public $project_requirement_file = null;
 
     public ?int $assigned_to = null;
+
+    public ?int $editingProjectId = null;
 
     public bool $showDeveloperForm = false;
 
@@ -114,6 +119,7 @@ class ClientShow extends Component
         $this->owner_name = $this->client->owner_name ?? '';
         $this->owner_designation = $this->client->owner_designation ?? '';
         $this->owner_contact = $this->client->owner_contact ?? '';
+        $this->tax_id = $this->client->tax_id ?? '';
         $this->resetValidation();
         $this->showBusinessForm = true;
     }
@@ -127,6 +133,7 @@ class ClientShow extends Component
             'owner_name' => 'nullable|string|max:255',
             'owner_designation' => 'nullable|string|max:255',
             'owner_contact' => 'nullable|string|max:255',
+            'tax_id' => 'nullable|string|max:50',
         ]);
 
         $this->client->update([
@@ -136,6 +143,7 @@ class ClientShow extends Component
             'owner_name' => $this->owner_name ?: null,
             'owner_designation' => $this->owner_designation ?: null,
             'owner_contact' => $this->owner_contact ?: null,
+            'tax_id' => $this->tax_id ?: null,
         ]);
 
         $this->showBusinessForm = false;
@@ -162,16 +170,52 @@ class ClientShow extends Component
 
     public function openProjectForm(): void
     {
+        $this->editingProjectId = null;
         $this->reset(['project_name', 'project_description', 'project_requirement_file']);
         $this->assigned_to = Auth::user()->isManager() || Auth::user()->isSuperAdmin() ? Auth::id() : null;
         $this->resetValidation();
         $this->showProjectForm = true;
     }
 
+    public function editProject(int $projectId): void
+    {
+        $project = Project::findOrFail($projectId);
+
+        if (! $this->canManageClientFinancials()) {
+            return;
+        }
+
+        $this->editingProjectId = $project->id;
+        $this->project_name = $project->name;
+        $this->project_description = $project->description ?? '';
+        $this->project_requirement_file = null;
+        $this->assigned_to = $project->assigned_to;
+        $this->resetValidation();
+        $this->showProjectForm = true;
+    }
+
+    public function deleteProject(int $projectId): void
+    {
+        $project = Project::findOrFail($projectId);
+
+        if (! $this->canManageClientFinancials()) {
+            return;
+        }
+
+        $project->delete();
+        $this->dispatch('toast', message: 'Project deleted.', type: 'success');
+    }
+
     public function submitProject(): void
     {
         $authUser = Auth::user();
         $canManage = $authUser->isManager() || $authUser->isSuperAdmin();
+
+        $editing = $this->editingProjectId ? Project::findOrFail($this->editingProjectId) : null;
+
+        if ($editing && ! $this->canManageClientFinancials()) {
+            return;
+        }
 
         $this->validate([
             'project_name' => 'required|string|max:255',
@@ -183,25 +227,42 @@ class ClientShow extends Component
         if ($this->assigned_to) {
             $assignee = User::findOrFail($this->assigned_to);
 
-            if (! $assignee->isManager() && ! $assignee->isSuperAdmin() && ! $assignee->isTeamLead()) {
-                $this->addError('assigned_to', 'Projects can only be assigned to a manager, team leader, or an owner.');
+            if ($canManage) {
+                if (! $assignee->isManager() && ! $assignee->isSuperAdmin() && ! $assignee->isTeamLead()) {
+                    $this->addError('assigned_to', 'Projects can only be assigned to a manager, team leader, or an owner.');
+
+                    return;
+                }
+            } elseif (! $assignee->hasRole('manager_engineering')) {
+                $this->addError('assigned_to', 'Projects can only be assigned to the Engineering Manager.');
 
                 return;
             }
         }
 
-        Project::create([
-            'client_id' => $this->client->id,
-            'created_by' => Auth::id(),
+        $data = [
             'assigned_to' => $this->assigned_to ?: ($canManage ? Auth::id() : null),
             'name' => $this->project_name,
             'description' => $this->project_description,
-            'requirement_file' => $this->project_requirement_file?->store('project-requirements', 'public'),
-            'status' => 'active',
-        ]);
+        ];
 
+        if ($this->project_requirement_file) {
+            $data['requirement_file'] = $this->project_requirement_file->store('project-requirements', 'public');
+        }
+
+        if ($editing) {
+            $editing->update($data);
+        } else {
+            Project::create($data + [
+                'client_id' => $this->client->id,
+                'created_by' => Auth::id(),
+                'status' => 'active',
+            ]);
+        }
+
+        $this->editingProjectId = null;
         $this->showProjectForm = false;
-        $this->dispatch('toast', message: 'Project created.', type: 'success');
+        $this->dispatch('toast', message: $editing ? 'Project updated.' : 'Project created.', type: 'success');
     }
 
     protected function canManageProject(Project $project): bool
@@ -517,6 +578,7 @@ class ClientShow extends Component
             'billableHours' => $this->client->billableHours(),
             'canManageProjects' => $authUser->isManager() || $authUser->isSuperAdmin(),
             'managersAndOwners' => User::role(['manager_engineering', 'team_lead_it', 'super_admin'])->orderBy('name')->get(),
+            'engineeringManagers' => User::role('manager_engineering')->orderBy('name')->get(),
             'developersList' => User::role('programmer')->orderBy('name')->get(),
         ]);
     }

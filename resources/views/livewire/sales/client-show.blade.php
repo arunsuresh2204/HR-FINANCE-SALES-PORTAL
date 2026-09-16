@@ -52,9 +52,15 @@
                                 <x-text-input wire:model="owner_designation" id="owner_designation" type="text" class="mt-0" />
                             </div>
                         </div>
-                        <div>
-                            <x-input-label for="owner_contact" value="Contact (Email / Phone)" />
-                            <x-text-input wire:model="owner_contact" id="owner_contact" type="text" class="mt-0" />
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <x-input-label for="owner_contact" value="Contact (Email / Phone)" />
+                                <x-text-input wire:model="owner_contact" id="owner_contact" type="text" class="mt-0" />
+                            </div>
+                            <div>
+                                <x-input-label for="tax_id" value="GSTIN / VAT / Tax ID" />
+                                <x-text-input wire:model="tax_id" id="tax_id" type="text" class="mt-0" placeholder="e.g. 32ABBCS6427Q1ZY" />
+                            </div>
                         </div>
                         <div class="flex justify-end gap-3">
                             <x-secondary-button type="button" wire:click="$set('showBusinessForm', false)">Cancel</x-secondary-button>
@@ -87,6 +93,10 @@
                                 @endif
                                 @if ($canManageProjects || $project->assigned_to === auth()->id())
                                     <button wire:click="openDeveloperForm({{ $project->id }})" class="font-semibold text-gold-300 hover:text-gold-200">Assign Developers</button>
+                                @endif
+                                @if ($canManageClientFinancials)
+                                    <button wire:click="editProject({{ $project->id }})" class="font-semibold text-gold-300 hover:text-gold-200">Edit</button>
+                                    <button wire:click="deleteProject({{ $project->id }})" wire:confirm="Delete this project? This can't be undone." class="font-semibold text-white/40 hover:text-rose-300">Delete</button>
                                 @endif
                             </div>
                         </div>
@@ -202,7 +212,7 @@
         </div>
     </div>
 
-    <x-modal-glass wire-model="showProjectForm" title="New Project">
+    <x-modal-glass wire-model="showProjectForm" :title="$editingProjectId ? 'Edit Project' : 'New Project'">
         <form wire:submit="submitProject" class="space-y-4">
             <div>
                 <x-input-label for="project_name" value="Project Name" />
@@ -220,25 +230,28 @@
                 <x-input-error :messages="$errors->get('project_requirement_file')" class="mt-1" />
             </div>
             <div>
-                <x-input-label for="assigned_to" :value="$canManageProjects ? 'Assign To (optional)' : 'Assign To (Manager, Team Leader, or Owner)'" />
+                <x-input-label for="assigned_to" :value="$canManageProjects ? 'Assign To (optional)' : 'Assign To (Engineering Manager)'" />
                 <select wire:model="assigned_to" id="assigned_to" class="input-glass">
                     @if ($canManageProjects)
                         <option value="">— Keep assigned to me —</option>
+                        @foreach ($managersAndOwners as $mgr)
+                            <option value="{{ $mgr->id }}">{{ $mgr->name }}{{ $mgr->designation ? ' ('.$mgr->designation.')' : '' }}</option>
+                        @endforeach
                     @else
-                        <option value="">— Select a manager, team leader, or owner —</option>
+                        <option value="">— Select the Engineering Manager —</option>
+                        @foreach ($engineeringManagers as $mgr)
+                            <option value="{{ $mgr->id }}">{{ $mgr->name }}{{ $mgr->designation ? ' ('.$mgr->designation.')' : '' }}</option>
+                        @endforeach
                     @endif
-                    @foreach ($managersAndOwners as $mgr)
-                        <option value="{{ $mgr->id }}">{{ $mgr->name }}{{ $mgr->designation ? ' ('.$mgr->designation.')' : '' }}</option>
-                    @endforeach
                 </select>
                 @unless ($canManageProjects)
-                    <p class="mt-1 text-xs text-white/35">Every project must be handed off to a manager, team leader, or an owner to oversee.</p>
+                    <p class="mt-1 text-xs text-white/35">The Engineering Manager will hand this off to a team leader and developers.</p>
                 @endunless
                 <x-input-error :messages="$errors->get('assigned_to')" class="mt-1" />
             </div>
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
-                <x-primary-button>Create Project</x-primary-button>
+                <x-primary-button>{{ $editingProjectId ? 'Save Changes' : 'Create Project' }}</x-primary-button>
             </div>
         </form>
     </x-modal-glass>
