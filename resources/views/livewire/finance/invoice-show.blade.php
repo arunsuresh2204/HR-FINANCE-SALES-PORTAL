@@ -22,12 +22,13 @@
     </x-page-header>
 
     @if (! $invoice->isClosed())
-        <div class="mb-6 flex flex-wrap gap-2">
-            <button wire:click="openAdjustmentForm('credit_note')" class="text-xs font-semibold text-white/40 hover:text-white/70">Issue Credit Note</button>
-            <span class="text-white/20">&middot;</span>
-            <button wire:click="openAdjustmentForm('refund')" class="text-xs font-semibold text-white/40 hover:text-white/70">Record Refund</button>
-            <span class="text-white/20">&middot;</span>
-            <button wire:click="openAdjustmentForm('written_off')" class="text-xs font-semibold text-white/40 hover:text-white/70">Write Off</button>
+        <div class="glass-card mb-6">
+            <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-white/40">Invoice Adjustments <span class="normal-case text-white/30">&middot; finance only</span></p>
+            <div class="flex flex-wrap gap-3">
+                <button wire:click="openAdjustmentForm('credit_note')" class="btn-glass-secondary"><x-icon name="receipt" class="h-4 w-4" /> Issue Credit Note</button>
+                <button wire:click="openAdjustmentForm('refund')" class="btn-glass-secondary"><x-icon name="wallet" class="h-4 w-4" /> Record Refund</button>
+                <button wire:click="openAdjustmentForm('written_off')" class="btn-glass-secondary !text-rose-300"><x-icon name="inbox" class="h-4 w-4" /> Write Off</button>
+            </div>
         </div>
     @endif
 
@@ -132,6 +133,9 @@
             <p class="text-xs font-semibold uppercase tracking-wide text-white/40">Bill To</p>
             <p class="mt-2 font-semibold text-white">{{ $invoice->client->business_name }}</p>
             <p class="text-sm text-white/50">{{ $invoice->client->business_address }}</p>
+            @if ($invoice->client->owner_phone)
+                <p class="mt-1 text-xs text-white/40">Phone: {{ $invoice->client->owner_phone }}</p>
+            @endif
             @if ($invoice->client->tax_id)
                 <p class="mt-1 text-xs text-white/40">{{ $invoice->clientTaxIdLabel() }}: {{ $invoice->client->tax_id }}</p>
             @endif

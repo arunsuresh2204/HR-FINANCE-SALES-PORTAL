@@ -103,6 +103,9 @@
     @if ($invoice->client->owner_contact)
         <div class="muted" style="margin-top: 6px;">{{ $invoice->client->owner_contact }}</div>
     @endif
+    @if ($invoice->client->owner_phone)
+        <div class="muted">Phone: {{ $invoice->client->owner_phone }}</div>
+    @endif
     @if ($invoice->client->tax_id)
         <div class="muted">{{ $invoice->clientTaxIdLabel() }}: {{ $invoice->client->tax_id }}</div>
     @endif
