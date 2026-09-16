@@ -32,6 +32,15 @@ class TargetDashboard extends Component
     public function mount(): void
     {
         $this->monthPicker = now()->format('Y-m');
+
+        $authUser = Auth::user();
+
+        // Individual contributors have nothing to manage here — send them
+        // straight to their own current-month report, with its prev/next
+        // month navigation, instead of a list of months to click through.
+        if (! $authUser->isSuperAdmin() && ! $authUser->canSetSalesTargets()) {
+            $this->redirect(route('sales.targets.report', [$authUser, now()->year, now()->month]), navigate: true);
+        }
     }
 
     public function shiftAnchor(int $delta): void
