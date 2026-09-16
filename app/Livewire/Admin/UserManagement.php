@@ -11,6 +11,10 @@ use Spatie\Permission\Models\Role;
 
 class UserManagement extends Component
 {
+    public string $search = '';
+
+    public ?int $editingUserId = null;
+
     public array $editingRoles = [];
 
     public bool $showPasswordForm = false;
@@ -26,20 +30,23 @@ class UserManagement extends Component
 
     public function toggleEdit(int $userId): void
     {
-        if (isset($this->editingRoles[$userId])) {
-            unset($this->editingRoles[$userId]);
+        if ($this->editingUserId === $userId) {
+            $this->editingUserId = null;
+            $this->editingRoles = [];
 
             return;
         }
 
-        $this->editingRoles[$userId] = User::find($userId)->getRoleNames()->toArray();
+        $this->editingUserId = $userId;
+        $this->editingRoles = User::find($userId)->getRoleNames()->toArray();
     }
 
     public function saveRoles(int $userId): void
     {
         $user = User::findOrFail($userId);
-        $user->syncRoles($this->editingRoles[$userId] ?? []);
-        unset($this->editingRoles[$userId]);
+        $user->syncRoles($this->editingRoles);
+        $this->editingUserId = null;
+        $this->editingRoles = [];
         $this->dispatch('toast', message: "Roles updated for {$user->name}.", type: 'success');
     }
 
@@ -81,7 +88,10 @@ class UserManagement extends Component
     public function render()
     {
         return view('livewire.admin.user-management', [
-            'users' => User::orderBy('name')->get(),
+            'users' => User::query()
+                ->when($this->search, fn ($q) => $q->where(fn ($q2) => $q2->where('name', 'like', "%{$this->search}%")->orWhere('email', 'like', "%{$this->search}%")->orWhere('employee_code', 'like', "%{$this->search}%")))
+                ->orderBy('name')
+                ->get(),
             'allRoles' => Role::orderBy('name')->pluck('name'),
         ]);
     }
