@@ -20,9 +20,44 @@
                 <x-stat-card label="Open Leads" :value="$myLeadsOpen" icon="target" accent="sky" :href="route('sales.leads')" />
                 <x-stat-card label="Won This Month" :value="$myLeadsWonThisMonth" icon="briefcase" accent="emerald" :href="route('sales.leads')" />
             @endif
-            @if (auth()->user()->isSalesPerson() && $salesTarget)
-                <x-stat-card label="Target Progress" value="{{ \App\Support\Currency::format($salesAchieved, 'INR') }} / {{ \App\Support\Currency::format($salesTarget->target_amount, 'INR') }}" icon="chart" accent="gold" :href="route('sales.targets')" />
+        </div>
+    @endif
+
+    @if (auth()->user()->isSalesPerson())
+        <div class="glass-card mt-6">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-xs font-bold uppercase tracking-widest text-white/40">Sales Performance</h2>
+                <div class="flex items-center gap-2">
+                    <select wire:model.live="salesMonth" class="input-glass w-36">
+                        @foreach (range(1, 12) as $m)
+                            <option value="{{ $m }}">{{ \Carbon\Carbon::create(null, $m, 1)->format('F') }}</option>
+                        @endforeach
+                    </select>
+                    <select wire:model.live="salesYear" class="input-glass w-28">
+                        @foreach (array_reverse(range(now()->year - 3, now()->year)) as $y)
+                            <option value="{{ $y }}">{{ $y }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <div>
+                    <p class="text-xs text-white/40">Target</p>
+                    <p class="mt-1 text-xl font-extrabold text-white">{{ $salesTargetAmount > 0 ? \App\Support\Currency::format($salesTargetAmount, 'INR') : '—' }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-white/40">Achieved</p>
+                    <p class="mt-1 text-xl font-extrabold text-emerald-300">{{ \App\Support\Currency::format($salesAchieved, 'INR') }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-white/40">Attainment</p>
+                    <p class="mt-1 text-xl font-extrabold text-gold-300">{{ $salesTargetAmount > 0 ? number_format(min(999, $salesAchieved / $salesTargetAmount * 100)) . '%' : '—' }}</p>
+                </div>
+            </div>
+            @if ($salesTargetAmount == 0)
+                <p class="mt-3 text-xs text-white/30">No target set for this month yet — achieved amount still reflects recorded payments.</p>
             @endif
+            <a href="{{ route('sales.targets') }}" wire:navigate class="mt-4 inline-block text-xs font-semibold text-gold-300 hover:text-gold-200">View full Sales Targets &rarr;</a>
         </div>
     @endif
 

@@ -20,6 +20,16 @@ use Livewire\Component;
 
 class Dashboard extends Component
 {
+    public int $salesMonth;
+
+    public int $salesYear;
+
+    public function mount(): void
+    {
+        $this->salesMonth = now()->month;
+        $this->salesYear = now()->year;
+    }
+
     public function render()
     {
         $user = Auth::user();
@@ -48,9 +58,13 @@ class Dashboard extends Component
         }
 
         if ($user->isSalesPerson()) {
-            $target = SalesTarget::where('user_id', $user->id)->where('month', now()->month)->where('year', now()->year)->first();
+            $target = SalesTarget::where('user_id', $user->id)->where('month', $this->salesMonth)->where('year', $this->salesYear)->first();
+
             $data['salesTarget'] = $target;
-            $data['salesAchieved'] = $target?->achievedAmount() ?? 0;
+            $data['salesTargetAmount'] = $target?->effectiveTargetAmount() ?? 0;
+            $data['salesAchieved'] = $target
+                ? $target->achievedAmount()
+                : (new SalesTarget(['user_id' => $user->id, 'month' => $this->salesMonth, 'year' => $this->salesYear]))->achievedAmount();
         }
 
         if ($user->can('access_hr_admin')) {
