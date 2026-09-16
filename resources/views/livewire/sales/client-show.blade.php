@@ -19,6 +19,7 @@
                     <div><dt class="text-white/40">Business Address</dt><dd class="mt-0.5 text-white">{{ $client->business_address ?? '—' }}</dd></div>
                     <div><dt class="text-white/40">Owner / Decision Maker</dt><dd class="mt-0.5 text-white">{{ $client->owner_name ?? '—' }} {{ $client->owner_designation ? '('.$client->owner_designation.')' : '' }}</dd></div>
                     <div><dt class="text-white/40">Contact</dt><dd class="mt-0.5 text-white">{{ $client->owner_contact ?? '—' }}</dd></div>
+                    <div><dt class="text-white/40">Phone Number</dt><dd class="mt-0.5 text-white">{{ $client->owner_phone ?? '—' }}</dd></div>
                     <div><dt class="text-white/40">GSTIN / VAT / Tax ID</dt><dd class="mt-0.5 text-white">{{ $client->tax_id ?? '—' }}</dd></div>
                     <div><dt class="text-white/40">Sales Person</dt><dd class="mt-0.5 text-white">{{ $client->salesPerson->name }}</dd></div>
                     <div><dt class="text-white/40">Actual Hours Logged</dt><dd class="mt-0.5 text-white">{{ number_format($totalHours, 1) }}h</dd></div>
@@ -58,9 +59,14 @@
                                 <x-text-input wire:model="owner_contact" id="owner_contact" type="text" class="mt-0" />
                             </div>
                             <div>
-                                <x-input-label for="tax_id" value="GSTIN / VAT / Tax ID" />
-                                <x-text-input wire:model="tax_id" id="tax_id" type="text" class="mt-0" placeholder="e.g. 32ABBCS6427Q1ZY" />
+                                <x-input-label for="owner_phone" value="Phone Number" />
+                                <x-text-input wire:model="owner_phone" id="owner_phone" type="tel" class="mt-0" placeholder="e.g. +91 98765 43210" />
+                                <x-input-error :messages="$errors->get('owner_phone')" class="mt-1" />
                             </div>
+                        </div>
+                        <div>
+                            <x-input-label for="tax_id" value="GSTIN / VAT / Tax ID" />
+                            <x-text-input wire:model="tax_id" id="tax_id" type="text" class="mt-0" placeholder="e.g. 32ABBCS6427Q1ZY" />
                         </div>
                         <div class="flex justify-end gap-3">
                             <x-secondary-button type="button" wire:click="$set('showBusinessForm', false)">Cancel</x-secondary-button>

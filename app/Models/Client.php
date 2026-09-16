@@ -11,7 +11,7 @@ class Client extends Model
 {
     protected $fillable = [
         'lead_id', 'sales_person_id', 'business_name', 'business_type', 'business_address',
-        'owner_name', 'owner_designation', 'owner_contact', 'tax_id', 'agreement_file',
+        'owner_name', 'owner_designation', 'owner_contact', 'owner_phone', 'tax_id', 'agreement_file',
         'agreement_effective_date', 'agreement_scope_summary',
     ];
 

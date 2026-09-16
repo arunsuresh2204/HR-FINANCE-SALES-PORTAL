@@ -39,6 +39,9 @@ class ClientShow extends Component
     #[Validate('nullable|string|max:255')]
     public string $owner_contact = '';
 
+    #[Validate('nullable|string|max:30')]
+    public string $owner_phone = '';
+
     #[Validate('nullable|string|max:50')]
     public string $tax_id = '';
 
@@ -118,6 +121,7 @@ class ClientShow extends Component
         $this->owner_name = $this->client->owner_name ?? '';
         $this->owner_designation = $this->client->owner_designation ?? '';
         $this->owner_contact = $this->client->owner_contact ?? '';
+        $this->owner_phone = $this->client->owner_phone ?? '';
         $this->tax_id = $this->client->tax_id ?? '';
         $this->resetValidation();
         $this->showBusinessForm = true;
@@ -132,6 +136,7 @@ class ClientShow extends Component
             'owner_name' => 'nullable|string|max:255',
             'owner_designation' => 'nullable|string|max:255',
             'owner_contact' => 'nullable|string|max:255',
+            'owner_phone' => 'nullable|string|max:30',
             'tax_id' => 'nullable|string|max:50',
         ]);
 
@@ -142,6 +147,7 @@ class ClientShow extends Component
             'owner_name' => $this->owner_name ?: null,
             'owner_designation' => $this->owner_designation ?: null,
             'owner_contact' => $this->owner_contact ?: null,
+            'owner_phone' => $this->owner_phone ?: null,
             'tax_id' => $this->tax_id ?: null,
         ]);
 
