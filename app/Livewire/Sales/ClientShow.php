@@ -4,6 +4,7 @@ namespace App\Livewire\Sales;
 
 use App\Models\BillingRequest;
 use App\Models\Client;
+use App\Models\InvoiceEditRequest;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -99,8 +100,6 @@ class ClientShow extends Component
     public ?int $editingInvoiceId = null;
 
     public array $edit_line_items = [];
-
-    public string $edit_tax_percent = '0';
 
     public string $edit_due_date = '';
 
@@ -479,11 +478,16 @@ class ClientShow extends Component
         $this->dispatch('toast', message: 'Invoice marked as sent.', type: 'success');
     }
 
-    public function editInvoice(int $invoiceId): void
+    protected function canRequestInvoiceEdit($invoice): bool
+    {
+        return $this->canManageClientFinancials() && $invoice->isEditable() && ! $invoice->pendingEditRequest;
+    }
+
+    public function openEditRequestForm(int $invoiceId): void
     {
         $invoice = $this->client->invoices()->findOrFail($invoiceId);
 
-        if (! $this->canManageClientFinancials() || ! $invoice->isEditable()) {
+        if (! $this->canRequestInvoiceEdit($invoice)) {
             return;
         }
 
@@ -494,7 +498,6 @@ class ClientShow extends Component
             'description' => $item['description'] ?? '',
             'amount' => (string) ($item['amount'] ?? 0),
         ])->all();
-        $this->edit_tax_percent = (string) $invoice->tax_percent;
         $this->edit_due_date = $invoice->due_date?->toDateString() ?? '';
         $this->resetValidation();
         $this->showEditInvoiceForm = true;
@@ -513,11 +516,11 @@ class ClientShow extends Component
         }
     }
 
-    public function saveInvoiceEdit(): void
+    public function submitEditRequest(): void
     {
         $invoice = $this->client->invoices()->findOrFail($this->editingInvoiceId);
 
-        if (! $this->canManageClientFinancials() || ! $invoice->isEditable()) {
+        if (! $this->canRequestInvoiceEdit($invoice)) {
             return;
         }
 
@@ -525,7 +528,6 @@ class ClientShow extends Component
             'edit_line_items' => 'required|array|min:1',
             'edit_line_items.*.description' => 'required|string|max:255',
             'edit_line_items.*.amount' => 'required|numeric|min:0.01',
-            'edit_tax_percent' => 'required|numeric|min:0',
             'edit_due_date' => 'required|date',
         ]);
 
@@ -535,34 +537,23 @@ class ClientShow extends Component
         ])->values()->all();
 
         $amount = array_sum(array_column($lineItems, 'amount'));
-        $taxPercent = $invoice->currency === 'INR' ? (float) $this->edit_tax_percent : 0;
+        $taxPercent = (float) $invoice->tax_percent;
         $tax = $amount * ($taxPercent / 100);
 
-        $invoice->update([
+        InvoiceEditRequest::create([
+            'invoice_id' => $invoice->id,
+            'requested_by' => Auth::id(),
             'line_items' => $lineItems,
             'amount' => $amount,
             'tax_percent' => $taxPercent,
             'total_amount' => $amount + $tax,
             'due_date' => $this->edit_due_date,
+            'status' => 'pending',
         ]);
 
         $this->editingInvoiceId = null;
         $this->showEditInvoiceForm = false;
-        $this->dispatch('toast', message: 'Invoice updated.', type: 'success');
-    }
-
-    public function deleteInvoice(int $invoiceId): void
-    {
-        $invoice = $this->client->invoices()->findOrFail($invoiceId);
-
-        if (! $this->canManageClientFinancials() || ! $invoice->isEditable()) {
-            return;
-        }
-
-        $invoice->billingRequest?->update(['status' => 'pending']);
-        $invoice->delete();
-
-        $this->dispatch('toast', message: 'Invoice deleted.', type: 'success');
+        $this->dispatch('toast', message: 'Edit request submitted for finance review.', type: 'success');
     }
 
     public function render()

@@ -5,11 +5,17 @@
             <a href="{{ route('finance.invoices.pdf', $invoice) }}" target="_blank" class="btn-glass-secondary"><x-icon name="document" class="h-4 w-4" /> PDF</a>
             @if ($invoice->status === 'draft')
                 <button wire:click="markSent" class="btn-glass-secondary"><x-icon name="arrow-right" class="h-4 w-4" /> Mark Sent</button>
-                <button wire:click="cancel" class="btn-glass-secondary" onclick="return confirm('Cancel this invoice?')"><x-icon name="x" class="h-4 w-4" /> Cancel</button>
+            @endif
+            @if ($invoice->canBeCancelled())
+                <button wire:click="cancel" wire:confirm="Cancel this invoice?" class="btn-glass-secondary"><x-icon name="x" class="h-4 w-4" /> Cancel</button>
+            @endif
+            @if ($invoice->canBeDeleted())
+                <button wire:click="deleteInvoice" wire:confirm="Delete this invoice? This can't be undone." class="btn-glass-secondary !text-rose-300"><x-icon name="trash" class="h-4 w-4" /> Delete</button>
             @endif
             @if ($invoice->isEditable())
-                <button wire:click="openEditForm" class="btn-glass-secondary"><x-icon name="pencil" class="h-4 w-4" /> Edit</button>
-                <button wire:click="deleteInvoice" wire:confirm="Delete this invoice? This can't be undone and will remove any recorded payments." class="btn-glass-secondary !text-rose-300"><x-icon name="trash" class="h-4 w-4" /> Delete</button>
+                @unless ($pendingEditRequest)
+                    <button wire:click="openEditForm" class="btn-glass-secondary"><x-icon name="pencil" class="h-4 w-4" /> Edit</button>
+                @endunless
                 <button wire:click="openPaymentForm" class="btn-glass-primary"><x-icon name="cash" class="h-4 w-4" /> Record Payment</button>
             @endif
         </x-slot:actions>
@@ -35,6 +41,46 @@
                 <p class="mt-1 text-sm text-white/60">{{ $invoice->adjustment_reason }}</p>
             @endif
             <p class="mt-1 text-xs text-white/30">{{ $invoice->adjustedBy?->name }} &middot; {{ $invoice->adjustment_at?->format('M j, Y') }}</p>
+        </div>
+    @endif
+
+    @if ($pendingEditRequest)
+        <div class="glass-card mb-6 border border-gold-400/25">
+            <div class="mb-3 flex items-center justify-between">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gold-300">Pending Edit Request</p>
+                <span class="text-xs text-white/40">{{ $pendingEditRequest->requestedBy->name }} &middot; {{ $pendingEditRequest->created_at->format('M j, Y') }}</span>
+            </div>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <p class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-white/40">Current</p>
+                    <table class="table-glass !text-xs">
+                        <tbody>
+                            @foreach (($invoice->line_items ?: [['description' => 'Services rendered', 'amount' => $invoice->amount]]) as $item)
+                                <tr><td>{{ $item['description'] ?? 'Item' }}</td><td class="text-right">{{ $invoice->money($item['amount'] ?? 0) }}</td></tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                    <p class="mt-2 text-sm font-bold text-white">Total: {{ $invoice->money($invoice->total_amount) }}</p>
+                </div>
+                <div>
+                    <p class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gold-300">Proposed</p>
+                    <table class="table-glass !text-xs">
+                        <tbody>
+                            @foreach ($pendingEditRequest->line_items as $item)
+                                <tr><td>{{ $item['description'] ?? 'Item' }}</td><td class="text-right">{{ $invoice->money($item['amount'] ?? 0) }}</td></tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                    <p class="mt-2 text-sm font-bold text-gold-300">Total: {{ $invoice->money($pendingEditRequest->total_amount) }}</p>
+                    @if ($pendingEditRequest->due_date && $pendingEditRequest->due_date->toDateString() !== $invoice->due_date?->toDateString())
+                        <p class="mt-1 text-xs text-white/50">New due date: {{ $pendingEditRequest->due_date->format('M j, Y') }}</p>
+                    @endif
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end gap-3">
+                <button wire:click="openRejectEditRequestForm({{ $pendingEditRequest->id }})" class="btn-glass-secondary !text-rose-300">Reject</button>
+                <button wire:click="approveEditRequest({{ $pendingEditRequest->id }})" wire:confirm="Approve this edit request and apply it to the invoice?" class="btn-glass-primary">Approve &amp; Apply</button>
+            </div>
         </div>
     @endif
 
@@ -95,6 +141,33 @@
             </div>
         </div>
     </div>
+
+    @if ($amountChanges->isNotEmpty())
+        <div class="glass-panel relative mt-6 overflow-hidden">
+            <div class="glass-sheen"></div>
+            <div class="p-5 pb-0">
+                <h2 class="text-base font-bold text-white">Amount Change History</h2>
+                <p class="mt-1 text-xs text-white/40">Every time this invoice's billed amount changed, whether edited directly or via an approved edit request.</p>
+            </div>
+            <div class="overflow-x-auto p-5">
+                <table class="table-glass">
+                    <thead><tr><th>Date</th><th>Changed By</th><th>Before</th><th>After</th><th>Difference</th></tr></thead>
+                    <tbody>
+                        @foreach ($amountChanges as $change)
+                            @php $diff = (float) $change->new_amount - (float) $change->old_amount; @endphp
+                            <tr>
+                                <td class="whitespace-nowrap text-white/60">{{ $change->created_at->format('M j, Y g:ia') }}</td>
+                                <td class="text-white/60">{{ $change->changedBy?->name ?? '—' }}</td>
+                                <td class="whitespace-nowrap text-white/70">{{ $invoice->money($change->old_amount) }}</td>
+                                <td class="whitespace-nowrap font-semibold text-white">{{ $invoice->money($change->new_amount) }}</td>
+                                <td class="whitespace-nowrap font-semibold {{ $diff >= 0 ? 'text-emerald-300' : 'text-rose-300' }}">{{ $diff >= 0 ? '+' : '' }}{{ $invoice->money($diff) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
 
     <x-modal-glass wire-model="showPaymentForm" title="Record Payment">
         <form wire:submit="recordPayment" class="space-y-4">
@@ -186,6 +259,20 @@
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
                 <x-primary-button>Confirm</x-primary-button>
+            </div>
+        </form>
+    </x-modal-glass>
+
+    <x-modal-glass wire-model="showRejectRequestForm" title="Reject Edit Request">
+        <form wire:submit="rejectEditRequest" class="space-y-4">
+            <div>
+                <x-input-label value="Reason for the salesperson" for="reject_notes" />
+                <textarea wire:model="reject_notes" id="reject_notes" rows="3" class="input-glass"></textarea>
+                <x-input-error :messages="$errors->get('reject_notes')" class="mt-1" />
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
+                <x-primary-button>Reject Request</x-primary-button>
             </div>
         </form>
     </x-modal-glass>

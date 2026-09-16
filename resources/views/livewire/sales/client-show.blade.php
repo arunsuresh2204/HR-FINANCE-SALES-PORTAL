@@ -162,13 +162,14 @@
                                 <x-status-pill :status="$invoice->status" />
                             </div>
                             @if ($canManageClientFinancials)
-                                <div class="mt-2 flex flex-wrap gap-3">
+                                <div class="mt-2 flex flex-wrap items-center gap-3">
                                     @if ($invoice->status === 'draft')
                                         <button wire:click="markInvoiceSent({{ $invoice->id }})" class="text-xs font-semibold text-gold-300 hover:text-gold-200">Mark as Sent</button>
                                     @endif
-                                    @if ($invoice->isEditable())
-                                        <button wire:click="editInvoice({{ $invoice->id }})" class="text-xs font-semibold text-gold-300 hover:text-gold-200">Edit</button>
-                                        <button wire:click="deleteInvoice({{ $invoice->id }})" wire:confirm="Delete this invoice? This can't be undone." class="text-xs font-semibold text-white/40 hover:text-rose-300">Delete</button>
+                                    @if ($invoice->pendingEditRequest)
+                                        <span class="badge-glass !border-gold-400/25 !bg-gold-400/10 !text-gold-200 !text-[10px]">Edit Requested &middot; awaiting finance review</span>
+                                    @elseif ($invoice->isEditable())
+                                        <button wire:click="openEditRequestForm({{ $invoice->id }})" class="text-xs font-semibold text-gold-300 hover:text-gold-200">Request Edit</button>
                                     @endif
                                 </div>
                             @endif
@@ -372,8 +373,9 @@
         </form>
     </x-modal-glass>
 
-    <x-modal-glass wire-model="showEditInvoiceForm" title="Edit Invoice" max-width="2xl">
-        <form wire:submit="saveInvoiceEdit" class="space-y-4">
+    <x-modal-glass wire-model="showEditInvoiceForm" title="Request Invoice Edit" max-width="2xl">
+        <form wire:submit="submitEditRequest" class="space-y-4">
+            <p class="rounded-lg border border-gold-400/20 bg-gold-400/5 p-3 text-xs text-white/60">These changes won't apply immediately &mdash; they're sent to the Finance team for review and approval.</p>
             <div>
                 <div class="mb-2 flex items-center justify-between">
                     <x-input-label value="Line Items" class="mb-0" />
@@ -403,7 +405,7 @@
             </div>
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
-                <x-primary-button>Save Changes</x-primary-button>
+                <x-primary-button>Submit Request</x-primary-button>
             </div>
         </form>
     </x-modal-glass>

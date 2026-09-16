@@ -40,6 +40,13 @@ class InvoiceShow extends Component
 
     public string $edit_due_date = '';
 
+    public bool $showRejectRequestForm = false;
+
+    public ?int $rejectingRequestId = null;
+
+    #[Validate('required|string|max:1000')]
+    public string $reject_notes = '';
+
     public function mount(Invoice $invoice): void
     {
         $this->invoice = $invoice;
@@ -53,7 +60,7 @@ class InvoiceShow extends Component
 
     public function cancel(): void
     {
-        if ($this->invoice->isClosed() || (float) $this->invoice->amount_paid > 0) {
+        if (! $this->invoice->canBeCancelled()) {
             return;
         }
 
@@ -63,7 +70,7 @@ class InvoiceShow extends Component
 
     public function openEditForm(): void
     {
-        if (! $this->invoice->isEditable()) {
+        if (! $this->invoice->isEditable() || $this->invoice->pendingEditRequest) {
             return;
         }
 
@@ -93,7 +100,7 @@ class InvoiceShow extends Component
 
     public function saveEdit(): void
     {
-        if (! $this->invoice->isEditable()) {
+        if (! $this->invoice->isEditable() || $this->invoice->pendingEditRequest) {
             return;
         }
 
@@ -112,15 +119,18 @@ class InvoiceShow extends Component
 
         $amount = array_sum(array_column($lineItems, 'amount'));
         $taxPercent = $this->invoice->currency === 'INR' ? (float) $this->edit_tax_percent : 0;
-        $tax = $amount * ($taxPercent / 100);
+        $newTotal = $amount + ($amount * ($taxPercent / 100));
+        $oldTotal = (float) $this->invoice->total_amount;
 
         $this->invoice->update([
             'line_items' => $lineItems,
             'amount' => $amount,
             'tax_percent' => $taxPercent,
-            'total_amount' => $amount + $tax,
+            'total_amount' => $newTotal,
             'due_date' => $this->edit_due_date,
         ]);
+
+        $this->logAmountChangeIfAny($oldTotal, $newTotal);
 
         $this->showEditForm = false;
         $this->invoice->refresh();
@@ -129,7 +139,7 @@ class InvoiceShow extends Component
 
     public function deleteInvoice(): void
     {
-        if (! $this->invoice->isEditable()) {
+        if (! $this->invoice->canBeDeleted()) {
             return;
         }
 
@@ -138,6 +148,75 @@ class InvoiceShow extends Component
 
         $this->dispatch('toast', message: 'Invoice deleted.', type: 'success');
         $this->redirect(route('finance.invoices'), navigate: true);
+    }
+
+    protected function logAmountChangeIfAny(float $oldTotal, float $newTotal): void
+    {
+        if (abs($newTotal - $oldTotal) < 0.01) {
+            return;
+        }
+
+        $this->invoice->amountChanges()->create([
+            'old_amount' => $oldTotal,
+            'new_amount' => $newTotal,
+            'changed_by' => Auth::id(),
+        ]);
+    }
+
+    public function approveEditRequest(int $requestId): void
+    {
+        $request = $this->invoice->editRequests()->where('status', 'pending')->findOrFail($requestId);
+
+        if (! $this->invoice->isEditable()) {
+            return;
+        }
+
+        $oldTotal = (float) $this->invoice->total_amount;
+        $newTotal = (float) $request->total_amount;
+
+        $this->invoice->update([
+            'line_items' => $request->line_items,
+            'amount' => $request->amount,
+            'tax_percent' => $request->tax_percent,
+            'total_amount' => $newTotal,
+            'due_date' => $request->due_date,
+        ]);
+
+        $this->logAmountChangeIfAny($oldTotal, $newTotal);
+
+        $request->update([
+            'status' => 'approved',
+            'reviewed_by' => Auth::id(),
+            'reviewed_at' => now(),
+        ]);
+
+        $this->invoice->refresh();
+        $this->dispatch('toast', message: 'Edit request approved and applied.', type: 'success');
+    }
+
+    public function openRejectEditRequestForm(int $requestId): void
+    {
+        $this->rejectingRequestId = $requestId;
+        $this->reject_notes = '';
+        $this->resetValidation();
+        $this->showRejectRequestForm = true;
+    }
+
+    public function rejectEditRequest(): void
+    {
+        $this->validate(['reject_notes' => 'required|string|max:1000']);
+
+        $request = $this->invoice->editRequests()->where('status', 'pending')->findOrFail($this->rejectingRequestId);
+
+        $request->update([
+            'status' => 'rejected',
+            'reviewed_by' => Auth::id(),
+            'reviewed_at' => now(),
+            'review_notes' => $this->reject_notes,
+        ]);
+
+        $this->showRejectRequestForm = false;
+        $this->dispatch('toast', message: 'Edit request rejected.', type: 'success');
     }
 
     public function openPaymentForm(): void
@@ -248,6 +327,8 @@ class InvoiceShow extends Component
     {
         return view('livewire.finance.invoice-show', [
             'payments' => $this->invoice->payments()->with('recordedBy')->latest('payment_date')->get(),
+            'pendingEditRequest' => $this->invoice->editRequests()->where('status', 'pending')->with('requestedBy')->latest()->first(),
+            'amountChanges' => $this->invoice->amountChanges()->with('changedBy')->latest()->get(),
         ]);
     }
 }

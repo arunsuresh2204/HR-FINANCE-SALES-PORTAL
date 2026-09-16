@@ -6,6 +6,7 @@ use App\Support\Currency;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Invoice extends Model
 {
@@ -60,6 +61,21 @@ class Invoice extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function editRequests(): HasMany
+    {
+        return $this->hasMany(InvoiceEditRequest::class);
+    }
+
+    public function pendingEditRequest(): HasOne
+    {
+        return $this->hasOne(InvoiceEditRequest::class)->where('status', 'pending')->latestOfMany();
+    }
+
+    public function amountChanges(): HasMany
+    {
+        return $this->hasMany(InvoiceAmountChange::class);
+    }
+
     /**
      * amount_paid is always INR (what actually landed in the bank), summed
      * from the payments ledger. For an INR invoice this is directly
@@ -101,6 +117,25 @@ class Invoice extends Model
     public function isEditable(): bool
     {
         return ! $this->isClosed() && $this->status !== 'paid';
+    }
+
+    /**
+     * Once an invoice has actually gone out to the customer, it can no
+     * longer be deleted outright — only a draft (never sent) can be.
+     */
+    public function canBeDeleted(): bool
+    {
+        return $this->status === 'draft';
+    }
+
+    /**
+     * Cancelling only makes sense for a sent invoice nothing has been paid
+     * against yet; once money has moved, use a credit note, refund, or
+     * write-off instead.
+     */
+    public function canBeCancelled(): bool
+    {
+        return $this->status === 'sent' && (float) $this->amount_paid <= 0;
     }
 
     public function isOverdue(): bool
