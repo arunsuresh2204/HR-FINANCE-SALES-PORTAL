@@ -18,6 +18,7 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <x-status-pill :status="$project->status" />
+                        <button wire:click="openReassignForm({{ $project->id }})" class="btn-glass-secondary text-xs"><x-icon name="link" class="h-4 w-4" /> Reassign</button>
                         <button wire:click="openDeveloperForm({{ $project->id }})" class="btn-glass-secondary text-xs"><x-icon name="users" class="h-4 w-4" /> Manage Developers</button>
                     </div>
                 </div>
@@ -76,6 +77,26 @@
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
                 <x-primary-button>Save</x-primary-button>
+            </div>
+        </form>
+    </x-modal-glass>
+
+    <x-modal-glass wire-model="showReassignForm" title="Reassign Project" max-width="sm">
+        <form wire:submit="saveReassign" class="space-y-4">
+            <div>
+                <x-input-label for="reassign_to" value="Hand off to" />
+                <select wire:model="reassign_to" id="reassign_to" class="input-glass">
+                    <option value="">— Select a manager, team leader, or owner —</option>
+                    @foreach ($reassignableUsers as $user)
+                        <option value="{{ $user->id }}">{{ $user->name }}{{ $user->designation ? ' ('.$user->designation.')' : '' }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-white/35">Once reassigned, this project moves to their My Projects list and leaves yours.</p>
+                <x-input-error :messages="$errors->get('reassign_to')" class="mt-1" />
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
+                <x-primary-button>Reassign</x-primary-button>
             </div>
         </form>
     </x-modal-glass>

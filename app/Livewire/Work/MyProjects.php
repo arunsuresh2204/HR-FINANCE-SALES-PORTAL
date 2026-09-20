@@ -16,11 +16,55 @@ class MyProjects extends Component
 
     public array $developer_ids = [];
 
+    public bool $showReassignForm = false;
+
+    public ?int $reassigningProjectId = null;
+
+    public ?int $reassign_to = null;
+
     protected function canManage(Project $project): bool
     {
         $authUser = Auth::user();
 
         return $authUser->isSuperAdmin() || $authUser->isManager() || $project->assigned_to === $authUser->id;
+    }
+
+    public function openReassignForm(int $projectId): void
+    {
+        $project = Project::findOrFail($projectId);
+
+        if (! $this->canManage($project)) {
+            return;
+        }
+
+        $this->reassigningProjectId = $projectId;
+        $this->reassign_to = null;
+        $this->resetValidation();
+        $this->showReassignForm = true;
+    }
+
+    public function saveReassign(): void
+    {
+        $project = Project::findOrFail($this->reassigningProjectId);
+
+        if (! $this->canManage($project)) {
+            return;
+        }
+
+        $this->validate(['reassign_to' => 'required|exists:users,id']);
+
+        $assignee = User::findOrFail($this->reassign_to);
+
+        if (! $assignee->isManager() && ! $assignee->isSuperAdmin() && ! $assignee->isTeamLead()) {
+            $this->addError('reassign_to', 'Projects can only be assigned to a manager, team leader, or an owner.');
+
+            return;
+        }
+
+        $project->update(['assigned_to' => $this->reassign_to]);
+
+        $this->showReassignForm = false;
+        $this->dispatch('toast', message: 'Project reassigned.', type: 'success');
     }
 
     public function openDeveloperForm(int $projectId): void
@@ -86,6 +130,10 @@ class MyProjects extends Component
         return view('livewire.work.my-projects', [
             'rows' => $rows,
             'developersList' => User::role('programmer')->orderBy('name')->get(),
+            'reassignableUsers' => User::role(['manager_engineering', 'team_lead_it', 'super_admin'])
+                ->where('id', '!=', $authUser->id)
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 }
