@@ -90,7 +90,7 @@
                             <div wire:click="openTaskDetail({{ $task->id }})" wire:key="task-card-{{ $task->id }}" class="kanban-card {{ $tint }}">
                                 <div class="flex items-start justify-between gap-2">
                                     <p class="text-sm font-semibold text-white {{ $task->cancelled ? 'line-through' : '' }}">{{ $task->title }}</p>
-                                    <select onclick="event.stopPropagation()" onchange="$wire.setTaskStatus({{ $task->id }}, this.value)" class="input-glass !w-auto !py-1 !text-xs shrink-0">
+                                    <select x-on:click="event.stopPropagation()" x-on:change="$wire.setTaskStatus({{ $task->id }}, $event.target.value)" class="input-glass !w-auto !py-1 !text-xs shrink-0">
                                         @foreach ($statuses as $sKey => $sLabel)
                                             <option value="{{ $sKey }}" @selected($task->status === $sKey)>{{ $sLabel }}</option>
                                         @endforeach
@@ -382,7 +382,7 @@
                 </div>
                 <div>
                     <p class="label-glass !mb-1">Assignee</p>
-                    <select onchange="$wire.setTaskAssignee({{ $task->id }}, this.value || null)" class="input-glass !w-full !py-1 !text-xs">
+                    <select x-on:change="$wire.setTaskAssignee({{ $task->id }}, $event.target.value || null)" class="input-glass !w-full !py-1 !text-xs">
                         <option value="">Unassigned</option>
                         @foreach ($assignableUsers as $user)
                             <option value="{{ $user->id }}" @selected($task->assignee_id === $user->id)>{{ $user->name }}{{ $user->id === auth()->id() ? ' (you)' : '' }}</option>
@@ -394,7 +394,7 @@
                 </div>
                 <div>
                     <p class="label-glass !mb-1">Visibility</p>
-                    <select onchange="$wire.setTaskVisibility({{ $task->id }}, this.value)" class="input-glass !w-full !py-1 !text-xs">
+                    <select x-on:change="$wire.setTaskVisibility({{ $task->id }}, $event.target.value)" class="input-glass !w-full !py-1 !text-xs">
                         <option value="public" @selected($task->visibility !== 'private')>Public</option>
                         <option value="private" @selected($task->visibility === 'private')>Private</option>
                     </select>
@@ -415,7 +415,7 @@
 
             <div class="mt-4 border-t border-white/10 pt-4">
                 <label class="label-glass">Status</label>
-                <select onchange="$wire.setTaskStatus({{ $task->id }}, this.value)" class="input-glass !w-auto !py-1 !text-xs">
+                <select x-on:change="$wire.setTaskStatus({{ $task->id }}, $event.target.value)" class="input-glass !w-auto !py-1 !text-xs">
                     @foreach ($statuses as $sKey => $sLabel)
                         <option value="{{ $sKey }}" @selected($task->status === $sKey)>{{ $sLabel }}</option>
                     @endforeach
