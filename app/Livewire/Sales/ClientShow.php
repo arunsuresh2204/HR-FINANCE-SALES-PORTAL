@@ -84,7 +84,7 @@ class ClientShow extends Component
     #[Validate('nullable|exists:projects,id')]
     public ?int $project_id = null;
 
-    #[Validate('required|in:INR,USD,EUR')]
+    #[Validate('required|string|size:3')]
     public string $currency = 'INR';
 
     #[Validate('required|in:milestone,hourly')]
@@ -402,7 +402,7 @@ class ClientShow extends Component
         if ($this->billing_type === 'milestone') {
             $this->validate([
                 'project_id' => 'nullable|exists:projects,id',
-                'currency' => 'required|in:INR,USD,EUR',
+                'currency' => ['required', 'in:'.implode(',', \App\Support\Currency::codes())],
                 'amount' => 'required|numeric|min:0.01',
                 'milestone_description' => 'required|string|max:255',
             ]);
@@ -426,7 +426,7 @@ class ClientShow extends Component
         } else {
             $this->validate([
                 'project_id' => 'nullable|exists:projects,id',
-                'currency' => 'required|in:INR,USD,EUR',
+                'currency' => ['required', 'in:'.implode(',', \App\Support\Currency::codes())],
                 'tasks' => 'required|array|min:1',
                 'tasks.*.description' => 'required|string|max:255',
                 'tasks.*.hours' => 'required|numeric|min:0.25|max:1000',

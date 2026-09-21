@@ -297,9 +297,9 @@
                 <div>
                     <x-input-label for="currency" value="Currency" />
                     <select wire:model="currency" id="currency" class="input-glass">
-                        <option value="INR">INR (₹)</option>
-                        <option value="USD">USD ($)</option>
-                        <option value="EUR">EUR (€)</option>
+                        @foreach (\App\Support\Currency::options() as $code => $symbol)
+                            <option value="{{ $code }}">{{ $code }} ({{ $symbol }})</option>
+                        @endforeach
                     </select>
                 </div>
             </div>

@@ -17,7 +17,7 @@ class BillingRequestIndex extends Component
 
     public ?BillingRequest $converting = null;
 
-    #[Validate('required|in:INR,USD,EUR')]
+    #[Validate('required|string|size:3')]
     public string $currency = 'INR';
 
     #[Validate('required|numeric|min:0')]
@@ -42,6 +42,12 @@ class BillingRequestIndex extends Component
     public function createInvoice(): void
     {
         $this->validate();
+
+        if (! in_array($this->currency, \App\Support\Currency::allCodes(), true)) {
+            $this->addError('currency', 'That currency is not recognized.');
+
+            return;
+        }
 
         $billingRequest = $this->converting;
         $amount = (float) $billingRequest->amount;

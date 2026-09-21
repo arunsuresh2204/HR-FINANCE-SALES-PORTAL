@@ -25,7 +25,7 @@ class InvoiceIndex extends Component
     #[Validate('required|exists:clients,id')]
     public ?int $client_id = null;
 
-    #[Validate('required|in:INR,USD,EUR')]
+    #[Validate('required|string|size:3')]
     public string $currency = 'INR';
 
     #[Validate('required|numeric|min:0')]
@@ -98,6 +98,12 @@ class InvoiceIndex extends Component
     public function createInvoice(): void
     {
         $this->validate();
+
+        if (! in_array($this->currency, \App\Support\Currency::codes(), true)) {
+            $this->addError('currency', 'That currency is not active.');
+
+            return;
+        }
 
         $billingRequests = BillingRequest::whereIn('id', $this->selectedBillingRequestIds)
             ->where('client_id', $this->client_id)

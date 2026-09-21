@@ -40,6 +40,51 @@
             </form>
         </div>
 
+        <div class="glass-card lg:col-span-2">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-base font-bold text-white">Currencies</h2>
+                    <p class="mt-1 text-xs text-white/40">Invoices and billing requests only offer <span class="font-semibold text-white/70">active</span> currencies below. Deactivating one leaves past records formatted exactly as before &mdash; it just disappears from new-entry dropdowns.</p>
+                </div>
+                <button wire:click="openAddCurrencyForm" class="btn-glass-primary shrink-0"><x-icon name="plus" class="h-4 w-4" /> Add Currency</button>
+            </div>
+
+            <div class="mt-4 overflow-x-auto">
+                <table class="table-glass">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Symbol</th>
+                            <th>Sample</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($currencies as $currency)
+                            <tr wire:key="currency-{{ $currency->id }}">
+                                <td class="font-semibold text-white">{{ $currency->code }}</td>
+                                <td class="text-white/70">{{ $currency->symbol }}</td>
+                                <td class="text-white/60">{{ \App\Support\Currency::format(1234567.89, $currency->code) }}</td>
+                                <td>
+                                    @if ($currency->is_active)
+                                        <span class="badge-glass !border-emerald-400/25 !bg-emerald-400/10 !text-emerald-200">Active</span>
+                                    @else
+                                        <span class="badge-glass !border-white/15 !bg-white/5 !text-white/40">Inactive</span>
+                                    @endif
+                                </td>
+                                <td class="text-right">
+                                    <button wire:click="toggleCurrencyActive({{ $currency->id }})" class="text-xs font-semibold text-white/50 hover:text-white">{{ $currency->is_active ? 'Deactivate' : 'Activate' }}</button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5" class="py-8 text-center text-white/40">No currencies yet.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="glass-card">
             <h2 class="text-base font-bold text-white">Accounting Exports</h2>
             <p class="mt-1 text-xs text-white/40">Pick a date range, then download whichever records you need for your books.</p>
@@ -87,4 +132,38 @@
             </form>
         </div>
     </div>
+
+    <x-modal-glass wire-model="showAddCurrencyForm" title="Add Currency">
+        <form wire:submit="addCurrency" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <x-input-label for="currency_code" value="Code" />
+                    <x-text-input wire:model="currency_code" id="currency_code" type="text" maxlength="3" class="mt-0 uppercase" placeholder="e.g. GBP" autofocus />
+                    <x-input-error :messages="$errors->get('currency_code')" class="mt-1" />
+                </div>
+                <div>
+                    <x-input-label for="currency_symbol" value="Symbol" />
+                    <x-text-input wire:model="currency_symbol" id="currency_symbol" type="text" class="mt-0" placeholder="e.g. £" />
+                    <x-input-error :messages="$errors->get('currency_symbol')" class="mt-1" />
+                </div>
+            </div>
+            <div>
+                <x-input-label for="currency_format_style" value="Numbering Style" />
+                <select wire:model="currency_format_style" id="currency_format_style" class="input-glass">
+                    <option value="standard">Standard &mdash; 1,234.56</option>
+                    <option value="european">European &mdash; 1.234,56</option>
+                    <option value="indian">Indian &mdash; 1,23,456.78</option>
+                </select>
+                <x-input-error :messages="$errors->get('currency_format_style')" class="mt-1" />
+            </div>
+            <label class="flex items-center gap-2 text-sm text-white/70">
+                <input wire:model="currency_symbol_spaced" type="checkbox" class="rounded border-white/20 bg-white/5 text-gold-400 focus:ring-gold-400/40">
+                Put a space between the symbol and the amount (e.g. "€ 1,234.56")
+            </label>
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
+                <x-primary-button>Add Currency</x-primary-button>
+            </div>
+        </form>
+    </x-modal-glass>
 </div>
