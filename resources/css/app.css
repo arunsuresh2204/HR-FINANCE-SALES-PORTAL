@@ -149,6 +149,19 @@
         @apply glass-card-hover cursor-pointer p-4;
     }
 
+    /* Hides a horizontal-scroll container's scrollbar (e.g. a short tab row that
+       shouldn't visibly scroll) while keeping it scrollable if content ever does
+       overflow. Without this, a sliver of overflow on some viewports renders the
+       browser's native scrollbar — on Windows/Chrome that includes small arrow
+       buttons at each end, which looks exactly like a stray number-input spinner. */
+    .no-scrollbar {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
     .pill {
         @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold;
     }

@@ -39,7 +39,7 @@
     @endif
 
     <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-0">
-        <div class="flex gap-6 overflow-x-auto">
+        <div class="flex gap-6 overflow-x-auto no-scrollbar">
             <button wire:click="setTab('board')" class="tab-btn {{ $tab === 'board' ? 'active' : '' }}">
                 Board
                 @if ($pendingCount > 0)
