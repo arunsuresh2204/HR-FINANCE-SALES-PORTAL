@@ -173,12 +173,46 @@
                     <button wire:click="openCategoryForm" class="btn-glass-secondary text-xs"><x-icon name="plus" class="h-4 w-4" /> Add Category</button>
                 </div>
             @endif
+
+            @if ($isManager)
+                <div class="glass-inset flex flex-wrap items-center gap-3 p-3">
+                    <span class="text-[11px] font-semibold uppercase tracking-wide text-white/40">Date range</span>
+                    <select wire:change="applyCostPreset($event.target.value)" class="input-glass !w-auto !py-1.5 !text-xs">
+                        <option value="custom" @selected($cost_filter_preset === 'custom')>Custom range</option>
+                        <option value="all" @selected($cost_filter_preset === 'all')>All time</option>
+                        <option value="month" @selected($cost_filter_preset === 'month')>This month</option>
+                        <option value="last30" @selected($cost_filter_preset === 'last30')>Last 30 days</option>
+                    </select>
+                    <input type="date" wire:model="cost_filter_from" wire:change="setCostDateFilter" class="input-glass !w-auto !py-1.5 !text-xs">
+                    <span class="text-xs text-white/30">to</span>
+                    <input type="date" wire:model="cost_filter_to" wire:change="setCostDateFilter" class="input-glass !w-auto !py-1.5 !text-xs">
+                    <span class="ml-auto text-xs text-white/45">
+                        @if ($costFilterActive)
+                            Showing {{ $shownPricedCount }} of {{ $pricedCount }} priced task{{ $pricedCount === 1 ? '' : 's' }} in range
+                        @else
+                            {{ $pricedCount }} priced task{{ $pricedCount === 1 ? '' : 's' }} total
+                        @endif
+                    </span>
+                </div>
+            @endif
+
             @forelse ($categories as $category)
                 <div class="glass-card">
                     <div class="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                         <p class="font-bold text-white">{{ $category->name }}</p>
                         <div class="flex items-center gap-3">
-                            <span class="text-sm font-bold text-gold-300">{{ \App\Support\Currency::format($category->estimatedTotal(), $category->currency) }}</span>
+                            @if ($isManager)
+                                <span class="flex items-center gap-2">
+                                    <span class="text-xs font-normal text-white/35">est. {{ \App\Support\Currency::format($category->estimatedTotal(), $category->currency) }}</span>
+                                    <span class="text-sm font-bold text-gold-300">
+                                        @forelse (($categorySubtotals[$category->id] ?? []) as $currencyCode => $sum)
+                                            {{ !$loop->first ? ' + ' : '' }}{{ \App\Support\Currency::format($sum, $currencyCode) }}
+                                        @empty
+                                            {{ \App\Support\Currency::format(0, $category->currency) }}
+                                        @endforelse
+                                    </span>
+                                </span>
+                            @endif
                             @if ($canManage)
                                 <button wire:click="openCategoryForm({{ $category->id }})" class="text-white/40 hover:text-white"><x-icon name="pencil" class="h-4 w-4" /></button>
                                 <button wire:click="deleteCategory({{ $category->id }})" wire:confirm="Delete this category? Tasks in it become non-billable." class="text-white/40 hover:text-rose-300"><x-icon name="trash" class="h-4 w-4" /></button>
@@ -189,10 +223,10 @@
                         @forelse ($category->tasks as $task)
                             <div class="glass-inset flex items-center justify-between p-2 text-sm">
                                 <span class="text-white/80">{{ $task->title }}</span>
-                                <span class="text-white/50">{{ $isManager && $task->amount > 0 ? \App\Support\Currency::format($task->amount, $task->currency) : '—' }}</span>
+                                <span class="text-white/50">{{ $isManager ? \App\Support\Currency::format($task->effectiveAmount(), $task->currency) : '—' }}</span>
                             </div>
                         @empty
-                            <p class="text-xs text-white/30">No tasks in this category yet</p>
+                            <p class="text-xs text-white/30">No priced tasks in this range</p>
                         @endforelse
                     </div>
                 </div>

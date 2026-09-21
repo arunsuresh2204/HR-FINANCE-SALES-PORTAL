@@ -22,6 +22,15 @@ class MyProjects extends Component
 
     public ?int $reassign_to = null;
 
+    public string $search = '';
+
+    public string $statusFilter = 'all';
+
+    public function setStatusFilter(string $status): void
+    {
+        $this->statusFilter = $status;
+    }
+
     protected function canManage(Project $project): bool
     {
         $authUser = Auth::user();
@@ -113,7 +122,7 @@ class MyProjects extends Component
     {
         $authUser = Auth::user();
 
-        $rows = $this->visibleProjects($authUser)
+        $allRows = $this->visibleProjects($authUser)
             ->with(['client', 'developers'])
             ->latest()
             ->get()
@@ -141,8 +150,34 @@ class MyProjects extends Component
                 ];
             });
 
+        $rows = $allRows->filter(function (array $row) {
+            $project = $row['project'];
+
+            if ($this->statusFilter === 'awaiting_estimate') {
+                if (! $project->needsEstimate()) {
+                    return false;
+                }
+            } elseif ($this->statusFilter !== 'all' && $project->status !== $this->statusFilter) {
+                return false;
+            }
+
+            if ($this->search !== '') {
+                $needle = strtolower($this->search);
+                $haystack = strtolower($project->name.' '.$project->client->business_name);
+
+                if (! str_contains($haystack, $needle)) {
+                    return false;
+                }
+            }
+
+            return true;
+        })->values();
+
         return view('livewire.work.my-projects', [
             'rows' => $rows,
+            'assignedProjectsCount' => $allRows->count(),
+            'totalHoursAll' => $allRows->sum('totalHours'),
+            'blockedEntriesAll' => $allRows->sum('blockedEntries'),
             'developersList' => User::role('programmer')->orderBy('name')->get(),
             'reassignableUsers' => User::role(['manager_engineering', 'team_lead_it', 'super_admin'])
                 ->where('id', '!=', $authUser->id)

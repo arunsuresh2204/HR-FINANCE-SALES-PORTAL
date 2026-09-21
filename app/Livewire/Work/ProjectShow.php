@@ -101,6 +101,13 @@ class ProjectShow extends Component
 
     public string $notify_currency = 'INR';
 
+    // Cost Estimate date filter
+    public string $cost_filter_preset = 'all';
+
+    public string $cost_filter_from = '';
+
+    public string $cost_filter_to = '';
+
     public function mount(Project $project): void
     {
         $authUser = Auth::user();
@@ -615,6 +622,44 @@ class ProjectShow extends Component
         $this->dispatch('toast', message: 'Sent to Sales.', type: 'success');
     }
 
+    public function applyCostPreset(string $preset): void
+    {
+        $this->cost_filter_preset = $preset;
+
+        match ($preset) {
+            'month' => [$this->cost_filter_from, $this->cost_filter_to] = [now()->startOfMonth()->toDateString(), now()->toDateString()],
+            'last30' => [$this->cost_filter_from, $this->cost_filter_to] = [now()->subDays(30)->toDateString(), now()->toDateString()],
+            'all' => [$this->cost_filter_from, $this->cost_filter_to] = ['', ''],
+            default => null,
+        };
+    }
+
+    public function setCostDateFilter(): void
+    {
+        $this->cost_filter_preset = 'custom';
+    }
+
+    protected function taskInCostRange(Task $task): bool
+    {
+        if (! $this->cost_filter_from && ! $this->cost_filter_to) {
+            return true;
+        }
+
+        if (! $task->end_date) {
+            return false;
+        }
+
+        if ($this->cost_filter_from && $task->end_date->lt(\Illuminate\Support\Carbon::parse($this->cost_filter_from))) {
+            return false;
+        }
+
+        if ($this->cost_filter_to && $task->end_date->gt(\Illuminate\Support\Carbon::parse($this->cost_filter_to))) {
+            return false;
+        }
+
+        return true;
+    }
+
     public function render()
     {
         $authUser = Auth::user();
@@ -630,6 +675,24 @@ class ProjectShow extends Component
             fn ($status) => [$status => $tasks->where('status', $status)->values()]
         );
 
+        $pricedTasks = $tasks->filter(fn (Task $t) => $t->isPriced() && ! $t->cancelled);
+        $shownPricedTasks = $pricedTasks->filter(fn (Task $t) => $this->taskInCostRange($t));
+        $costFilterActive = (bool) ($this->cost_filter_from || $this->cost_filter_to);
+
+        $categories = $this->project->categories()->get();
+        $categorySubtotals = [];
+
+        foreach ($categories as $category) {
+            $categoryTasks = $shownPricedTasks->where('category_id', $category->id)->values();
+            $category->setRelation('tasks', $categoryTasks);
+
+            $subtotals = [];
+            foreach ($categoryTasks as $t) {
+                $subtotals[$t->currency] = ($subtotals[$t->currency] ?? 0) + $t->effectiveAmount();
+            }
+            $categorySubtotals[$category->id] = $subtotals;
+        }
+
         return view('livewire.work.project-show', [
             'tasks' => $tasks,
             'board' => $board,
@@ -637,7 +700,11 @@ class ProjectShow extends Component
             'canManage' => $this->canManage(),
             'isManager' => $isManager,
             'assignableUsers' => $this->project->assignableUsersFor($authUser),
-            'categories' => $this->project->categories()->with('tasks')->get(),
+            'categories' => $categories,
+            'categorySubtotals' => $categorySubtotals,
+            'pricedCount' => $pricedTasks->count(),
+            'shownPricedCount' => $shownPricedTasks->count(),
+            'costFilterActive' => $costFilterActive,
             'pendingCount' => $isManager ? $tasks->where('pending_approval', true)->count() : 0,
             'viewingTask' => $this->viewingTask(),
         ]);
