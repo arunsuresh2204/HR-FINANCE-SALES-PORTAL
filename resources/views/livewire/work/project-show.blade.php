@@ -49,7 +49,13 @@
             <button wire:click="setTab('list')" class="tab-btn {{ $tab === 'list' ? 'active' : '' }}">List</button>
             <button wire:click="setTab('categories')" class="tab-btn {{ $tab === 'categories' ? 'active' : '' }}">Cost Estimate</button>
         </div>
-        <button wire:click="openTaskModal" class="btn-glass-primary mb-2 text-xs"><x-icon name="plus" class="h-4 w-4" /> New Task</button>
+        <div class="mb-2 flex flex-wrap gap-2">
+            @if ($canManage)
+                <button wire:click="openReassignForm" class="btn-glass-secondary text-xs"><x-icon name="link" class="h-4 w-4" /> Reassign</button>
+                <button wire:click="openDeveloperForm" class="btn-glass-secondary text-xs"><x-icon name="users" class="h-4 w-4" /> Manage Developers</button>
+            @endif
+            <button wire:click="openTaskModal" class="btn-glass-primary text-xs"><x-icon name="plus" class="h-4 w-4" /> New Task</button>
+        </div>
     </div>
 
     @if ($pendingCount > 0)
@@ -532,6 +538,47 @@
                 </div>
                 <x-input-error :messages="$errors->get('category_estimated_amount')" class="mt-1" />
                 <x-input-error :messages="$errors->get('category_estimated_hours')" class="mt-1" />
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
+                <x-primary-button>Save</x-primary-button>
+            </div>
+        </form>
+    </x-modal-glass>
+
+    {{-- ================= REASSIGN MODAL ================= --}}
+    <x-modal-glass wire-model="showReassignForm" title="Reassign Project" max-width="sm">
+        <form wire:submit="saveReassign" class="space-y-4">
+            <div>
+                <x-input-label for="reassign_to" value="Hand off to" />
+                <select wire:model="reassign_to" id="reassign_to" class="input-glass">
+                    <option value="">— Select a manager, team leader, or owner —</option>
+                    @foreach ($reassignableUsers as $user)
+                        <option value="{{ $user->id }}">{{ $user->name }}{{ $user->designation ? ' ('.$user->designation.')' : '' }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-white/35">Once reassigned, this project moves to their My Projects list and leaves yours.</p>
+                <x-input-error :messages="$errors->get('reassign_to')" class="mt-1" />
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
+                <x-primary-button>Reassign</x-primary-button>
+            </div>
+        </form>
+    </x-modal-glass>
+
+    {{-- ================= MANAGE DEVELOPERS MODAL ================= --}}
+    <x-modal-glass wire-model="showDeveloperForm" title="Manage Developers" max-width="sm">
+        <form wire:submit="saveDevelopers" class="space-y-4">
+            <div class="max-h-64 space-y-2 overflow-y-auto">
+                @forelse ($developersList as $dev)
+                    <label class="glass-inset flex items-center gap-2 p-3 text-sm text-white/80">
+                        <input type="checkbox" wire:model="developer_ids" value="{{ $dev->id }}" class="rounded border-white/20 bg-white/5 text-gold-400 focus:ring-gold-400/40">
+                        {{ $dev->name }}
+                    </label>
+                @empty
+                    <p class="text-sm text-white/40">No developers on file yet.</p>
+                @endforelse
             </div>
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>

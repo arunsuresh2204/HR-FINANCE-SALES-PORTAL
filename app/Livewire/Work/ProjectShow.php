@@ -26,6 +26,15 @@ class ProjectShow extends Component
 
     public string $tab = 'board';
 
+    // Reassign / Manage Developers
+    public bool $showReassignForm = false;
+
+    public ?int $reassign_to = null;
+
+    public bool $showDeveloperForm = false;
+
+    public array $developer_ids = [];
+
     // Task modal (create + non-pricing edit)
     public bool $showTaskModal = false;
 
@@ -127,6 +136,62 @@ class ProjectShow extends Component
         $authUser = Auth::user();
 
         return $authUser->isSuperAdmin() || $authUser->isManager() || $this->project->assigned_to === $authUser->id;
+    }
+
+    public function openReassignForm(): void
+    {
+        if (! $this->canManage()) {
+            return;
+        }
+
+        $this->reassign_to = null;
+        $this->resetValidation();
+        $this->showReassignForm = true;
+    }
+
+    public function saveReassign(): void
+    {
+        if (! $this->canManage()) {
+            return;
+        }
+
+        $this->validate(['reassign_to' => 'required|exists:users,id']);
+
+        $assignee = User::findOrFail($this->reassign_to);
+
+        if (! $assignee->isManager() && ! $assignee->isSuperAdmin() && ! $assignee->isTeamLead()) {
+            $this->addError('reassign_to', 'Projects can only be assigned to a manager, team leader, or an owner.');
+
+            return;
+        }
+
+        $this->project->update(['assigned_to' => $this->reassign_to]);
+
+        $this->showReassignForm = false;
+        $this->dispatch('toast', message: 'Project reassigned.', type: 'success');
+    }
+
+    public function openDeveloperForm(): void
+    {
+        if (! $this->canManage()) {
+            return;
+        }
+
+        $this->developer_ids = $this->project->developers()->pluck('users.id')->all();
+        $this->resetValidation();
+        $this->showDeveloperForm = true;
+    }
+
+    public function saveDevelopers(): void
+    {
+        if (! $this->canManage()) {
+            return;
+        }
+
+        $this->project->developers()->sync($this->developer_ids);
+
+        $this->showDeveloperForm = false;
+        $this->dispatch('toast', message: 'Developers assigned.', type: 'success');
     }
 
     protected function viewingTask(): ?Task
@@ -707,6 +772,11 @@ class ProjectShow extends Component
             'costFilterActive' => $costFilterActive,
             'pendingCount' => $isManager ? $tasks->where('pending_approval', true)->count() : 0,
             'viewingTask' => $this->viewingTask(),
+            'developersList' => User::role('programmer')->orderBy('name')->get(),
+            'reassignableUsers' => User::role(['manager_engineering', 'team_lead_it', 'super_admin'])
+                ->where('id', '!=', $authUser->id)
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 }
