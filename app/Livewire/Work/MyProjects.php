@@ -36,32 +36,20 @@ class MyProjects extends Component
     public function render()
     {
         $authUser = Auth::user();
+        $isManager = $authUser->isManager() || $authUser->isSuperAdmin();
 
         $allRows = $this->visibleProjects($authUser)
-            ->with(['client', 'developers'])
+            ->with('client')
             ->latest()
             ->get()
-            ->map(function (Project $project) {
-                $developerRows = $project->developers->map(function (User $developer) use ($project) {
-                    $entries = Timesheet::where('user_id', $developer->id)->where('project_id', $project->id);
-
-                    return [
-                        'user' => $developer,
-                        'hours' => (clone $entries)->sum('hours'),
-                        'completed' => (clone $entries)->where('status', 'completed')->count(),
-                        'inProgress' => (clone $entries)->where('status', 'in_progress')->count(),
-                        'blocked' => (clone $entries)->where('status', 'blocked')->count(),
-                        'lastEntry' => (clone $entries)->latest('work_date')->first(),
-                    ];
-                });
+            ->map(function (Project $project) use ($isManager) {
+                $entries = Timesheet::where('project_id', $project->id);
 
                 return [
                     'project' => $project,
-                    'totalHours' => $developerRows->sum('hours'),
-                    'completedEntries' => $developerRows->sum('completed'),
-                    'inProgressEntries' => $developerRows->sum('inProgress'),
-                    'blockedEntries' => $developerRows->sum('blocked'),
-                    'developers' => $developerRows,
+                    'totalHours' => (clone $entries)->sum('hours'),
+                    'blockedEntries' => (clone $entries)->where('status', 'blocked')->count(),
+                    'pendingTaskCount' => $isManager ? $project->tasks()->where('pending_approval', true)->count() : 0,
                 ];
             });
 
