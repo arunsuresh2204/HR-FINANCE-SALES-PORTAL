@@ -274,10 +274,10 @@
                             @endforeach
                         </select>
                         @if ($task_pricing_mode === 'fixed')
-                            <x-text-input wire:model="task_amount" type="number" class="mt-0" placeholder="e.g. 15000" />
+                            <x-text-input wire:model="task_amount" type="number" class="mt-0 min-w-0 flex-1" placeholder="e.g. 15000" />
                         @else
-                            <x-text-input wire:model="task_hours" type="number" step="0.25" class="mt-0" placeholder="Hours" />
-                            <x-text-input wire:model="task_rate" type="number" class="mt-0" placeholder="Rate/hr" />
+                            <x-text-input wire:model="task_hours" type="number" step="0.25" class="mt-0 min-w-0 flex-1" placeholder="Hours" />
+                            <x-text-input wire:model="task_rate" type="number" class="mt-0 min-w-0 flex-1" placeholder="Rate/hr" />
                         @endif
                     </div>
                 </div>
@@ -396,10 +396,10 @@
                             @endforeach
                         </select>
                         @if ($approve_mode === 'fixed')
-                            <x-text-input wire:model="approve_amount" type="number" class="mt-0" placeholder="e.g. 15000" />
+                            <x-text-input wire:model="approve_amount" type="number" class="mt-0 min-w-0 flex-1" placeholder="e.g. 15000" />
                         @else
-                            <x-text-input wire:model="approve_hours" type="number" step="0.25" class="mt-0" placeholder="Hours" />
-                            <x-text-input wire:model="approve_rate" type="number" class="mt-0" placeholder="Rate/hr" />
+                            <x-text-input wire:model="approve_hours" type="number" step="0.25" class="mt-0 min-w-0 flex-1" placeholder="Hours" />
+                            <x-text-input wire:model="approve_rate" type="number" class="mt-0 min-w-0 flex-1" placeholder="Rate/hr" />
                         @endif
                     </div>
                     <x-input-error :messages="$errors->get('approve_amount')" class="mt-1" />
@@ -488,10 +488,10 @@
                         @endforeach
                     </select>
                     @if ($category_pricing_mode === 'fixed')
-                        <x-text-input wire:model="category_estimated_amount" type="number" class="mt-0" placeholder="Amount" />
+                        <x-text-input wire:model="category_estimated_amount" type="number" class="mt-0 min-w-0 flex-1" placeholder="Amount" />
                     @else
-                        <x-text-input wire:model="category_estimated_hours" type="number" step="0.25" class="mt-0" placeholder="Hours" />
-                        <x-text-input wire:model="category_estimated_rate" type="number" class="mt-0" placeholder="Rate/hr" />
+                        <x-text-input wire:model="category_estimated_hours" type="number" step="0.25" class="mt-0 min-w-0 flex-1" placeholder="Hours" />
+                        <x-text-input wire:model="category_estimated_rate" type="number" class="mt-0 min-w-0 flex-1" placeholder="Rate/hr" />
                     @endif
                 </div>
             </div>
