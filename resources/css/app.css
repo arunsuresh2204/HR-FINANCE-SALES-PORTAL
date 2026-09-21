@@ -135,4 +135,19 @@
     .kanban-card {
         @apply glass-card-hover cursor-pointer p-4;
     }
+
+    .pill {
+        @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold;
+    }
+
+    .tab-btn {
+        @apply relative px-0.5 pb-3 text-sm font-semibold text-white/45 transition hover:text-white/75;
+    }
+    .tab-btn.active {
+        @apply text-gold-300;
+    }
+    .tab-btn.active::after {
+        content: '';
+        @apply absolute left-0 right-0 -bottom-px h-0.5 rounded-full bg-gold-400;
+    }
 }

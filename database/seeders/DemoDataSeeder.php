@@ -20,7 +20,9 @@ use App\Models\Payment;
 use App\Models\Payroll;
 use App\Models\PolicyDocument;
 use App\Models\Project;
+use App\Models\ProjectCategory;
 use App\Models\SalesTarget;
+use App\Models\Task;
 use App\Models\Timesheet;
 use App\Models\User;
 use App\Support\FeatureCatalog;
@@ -535,6 +537,64 @@ class DemoDataSeeder extends Seeder
             'user_id' => $dev1->id, 'client_id' => $client1->id, 'project_id' => $project2->id,
             'project_name' => $project2->name, 'work_date' => now()->subDays(2),
             'task_description' => 'Set up React Native project scaffolding', 'hours' => 4, 'status' => 'in_progress',
+        ]);
+
+        // Project Management / Tasks demo data — walks the full lifecycle on project1
+        // (Karthik as Manager, Sneha as Developer) and shows the Team Lead angle on
+        // project2 (Vikram as Team Lead, Sneha as Developer under him).
+        $storefrontCategory = ProjectCategory::create([
+            'project_id' => $project1->id, 'name' => 'Storefront Core Build', 'currency' => 'USD',
+            'estimated_amount' => 3200, 'created_by' => $owner4->id,
+        ]);
+
+        $taskDone = Task::create([
+            'project_id' => $project1->id, 'category_id' => $storefrontCategory->id,
+            'title' => 'Build product listing grid', 'description' => 'Responsive grid with filtering and pagination.',
+            'assignee_id' => $dev1->id, 'status' => 'done',
+            'start_date' => now()->subDays(10), 'end_date' => now()->subDays(3),
+            'tags' => ['frontend', 'catalog'], 'amount' => 650, 'currency' => 'USD',
+            'visibility' => 'public', 'created_by' => $owner4->id, 'pending_approval' => false,
+        ]);
+
+        Task::create([
+            'project_id' => $project1->id, 'category_id' => $storefrontCategory->id,
+            'title' => 'Add wishlist button to product page', 'description' => 'Heart icon toggle, persisted per session.',
+            'assignee_id' => $dev1->id, 'status' => 'backlog',
+            'start_date' => now()->subDays(20), 'end_date' => now()->subDays(12),
+            'tags' => ['frontend'], 'visibility' => 'public', 'created_by' => $dev1->id, 'pending_approval' => true,
+        ]);
+
+        Task::create([
+            'project_id' => $project1->id, 'title' => 'Refactor checkout API error handling',
+            'description' => 'Retry logic and clearer error surfaces for payment failures.',
+            'assignee_id' => $dev1->id, 'status' => 'in_progress',
+            'start_date' => now()->subDays(2), 'end_date' => now()->addDays(3),
+            'tags' => ['backend', 'payments'], 'visibility' => 'private', 'created_by' => $dev1->id, 'pending_approval' => true,
+        ]);
+
+        Task::create([
+            'project_id' => $project1->id, 'title' => 'Old prototype cleanup',
+            'assignee_id' => $dev1->id, 'status' => 'backlog',
+            'visibility' => 'public', 'created_by' => $dev1->id, 'pending_approval' => false,
+            'cancelled' => true, 'cancel_reason' => 'Superseded by the new requirements doc.',
+            'cancelled_by' => $dev1->id, 'cancelled_at' => now()->subDay(),
+        ]);
+
+        Task::create([
+            'project_id' => $project2->id, 'title' => 'Set up push notification service',
+            'description' => 'FCM integration for booking reminders.',
+            'assignee_id' => $dev1->id, 'status' => 'todo',
+            'start_date' => now(), 'end_date' => now()->addDays(6),
+            'tags' => ['mobile'], 'visibility' => 'public', 'created_by' => $dev2->id, 'pending_approval' => true,
+        ]);
+
+        // Karthik notified Sales on the priced, Done task above — Priya (Sales) has
+        // sent it to the client and is awaiting their response.
+        BillingRequest::create([
+            'client_id' => $client1->id, 'project_id' => $project1->id, 'task_id' => $taskDone->id,
+            'created_by' => $owner4->id, 'currency' => 'USD', 'billing_type' => 'milestone',
+            'amount' => 650, 'milestone_description' => $taskDone->title,
+            'status' => 'pending', 'client_response' => 'sent',
         ]);
 
         // Vishnu's pipeline: 20 leads, 10 of which are won and converted to clients

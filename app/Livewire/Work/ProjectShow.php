@@ -1,0 +1,613 @@
+<?php
+
+namespace App\Livewire\Work;
+
+use App\Models\BillingRequest;
+use App\Models\Notification;
+use App\Models\Project;
+use App\Models\ProjectCategory;
+use App\Models\Task;
+use App\Models\User;
+use App\Support\Currency;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
+
+class ProjectShow extends Component
+{
+    public const STATUSES = [
+        'backlog' => 'Backlog',
+        'todo' => 'To Do',
+        'in_progress' => 'In Progress',
+        'review' => 'Review',
+        'done' => 'Done',
+    ];
+
+    public Project $project;
+
+    public string $tab = 'board';
+
+    // Task modal (create + non-pricing edit)
+    public bool $showTaskModal = false;
+
+    public ?int $editingTaskId = null;
+
+    public string $task_title = '';
+
+    public string $task_description = '';
+
+    public ?int $task_category_id = null;
+
+    public ?int $task_assignee_id = null;
+
+    public string $task_start_date = '';
+
+    public string $task_end_date = '';
+
+    public string $task_tags = '';
+
+    public string $task_visibility = 'public';
+
+    public string $task_pricing_mode = 'fixed';
+
+    public string $task_amount = '';
+
+    public string $task_currency = 'INR';
+
+    public string $task_hours = '';
+
+    public string $task_rate = '';
+
+    // Task detail
+    public bool $showTaskDetail = false;
+
+    public ?int $viewingTaskId = null;
+
+    public string $approve_mode = 'fixed';
+
+    public string $approve_amount = '';
+
+    public string $approve_currency = 'INR';
+
+    public string $approve_hours = '';
+
+    public string $approve_rate = '';
+
+    // Cancel
+    public bool $showCancelForm = false;
+
+    public string $cancel_reason = '';
+
+    // Category
+    public bool $showCategoryForm = false;
+
+    public ?int $editingCategoryId = null;
+
+    public string $category_name = '';
+
+    public string $category_currency = 'INR';
+
+    public string $category_pricing_mode = 'fixed';
+
+    public string $category_estimated_amount = '';
+
+    public string $category_estimated_hours = '';
+
+    public string $category_estimated_rate = '';
+
+    // Notify Sales
+    public bool $showNotifySalesForm = false;
+
+    public string $notify_amount = '';
+
+    public string $notify_currency = 'INR';
+
+    public function mount(Project $project): void
+    {
+        $authUser = Auth::user();
+
+        $canView = $authUser->isSuperAdmin()
+            || $authUser->isManager()
+            || $project->assigned_to === $authUser->id
+            || $project->developers()->where('users.id', $authUser->id)->exists();
+
+        abort_unless($canView, 403);
+
+        $this->project = $project;
+    }
+
+    protected function canManage(): bool
+    {
+        $authUser = Auth::user();
+
+        return $authUser->isSuperAdmin() || $authUser->isManager() || $this->project->assigned_to === $authUser->id;
+    }
+
+    protected function viewingTask(): ?Task
+    {
+        return $this->viewingTaskId ? $this->project->tasks()->find($this->viewingTaskId) : null;
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->tab = $tab;
+    }
+
+    public function openTaskModal(?int $taskId = null): void
+    {
+        $authUser = Auth::user();
+        $this->editingTaskId = $taskId;
+        $this->resetValidation();
+
+        if ($taskId) {
+            $task = $this->project->tasks()->findOrFail($taskId);
+
+            if (! $task->canBeSeenBy($authUser)) {
+                return;
+            }
+
+            $this->task_title = $task->title;
+            $this->task_description = $task->description ?? '';
+            $this->task_category_id = $task->category_id;
+            $this->task_assignee_id = $task->assignee_id;
+            $this->task_start_date = $task->start_date?->toDateString() ?? '';
+            $this->task_end_date = $task->end_date?->toDateString() ?? '';
+            $this->task_tags = $task->tags ? implode(', ', $task->tags) : '';
+            $this->task_visibility = $task->visibility;
+        } else {
+            $this->task_title = '';
+            $this->task_description = '';
+            $this->task_category_id = null;
+            $this->task_assignee_id = null;
+            $this->task_start_date = now()->toDateString();
+            $this->task_end_date = now()->addDays(5)->toDateString();
+            $this->task_tags = '';
+            $this->task_visibility = 'public';
+            $this->task_pricing_mode = 'fixed';
+            $this->task_amount = '';
+            $this->task_currency = 'INR';
+            $this->task_hours = '';
+            $this->task_rate = '';
+        }
+
+        $this->showTaskModal = true;
+    }
+
+    public function saveTask(): void
+    {
+        $authUser = Auth::user();
+        $isManager = $authUser->isManager() || $authUser->isSuperAdmin();
+        $editing = $this->editingTaskId ? $this->project->tasks()->find($this->editingTaskId) : null;
+
+        if ($editing && ! ($editing->canBeSeenBy($authUser) && ($isManager || $authUser->id === $editing->created_by))) {
+            return;
+        }
+
+        $this->validate([
+            'task_title' => 'required|string|max:255',
+            'task_description' => 'nullable|string|max:2000',
+            'task_category_id' => 'nullable|exists:project_categories,id',
+            'task_assignee_id' => 'nullable|exists:users,id',
+            'task_start_date' => 'nullable|date',
+            'task_end_date' => 'nullable|date|after_or_equal:task_start_date',
+            'task_visibility' => 'required|in:public,private',
+        ]);
+
+        $assigneeChanged = ! $editing || $this->task_assignee_id !== $editing->assignee_id;
+
+        if ($this->task_assignee_id && $assigneeChanged) {
+            $allowed = $this->project->assignableUsersFor($authUser)->contains('id', $this->task_assignee_id);
+
+            if (! $allowed) {
+                $this->addError('task_assignee_id', 'That person cannot be assigned on this project.');
+
+                return;
+            }
+        }
+
+        $tags = collect(explode(',', $this->task_tags))->map(fn ($t) => trim($t))->filter()->values()->all();
+
+        $data = [
+            'title' => $this->task_title,
+            'description' => $this->task_description ?: null,
+            'category_id' => $this->task_category_id ?: null,
+            'assignee_id' => $this->task_assignee_id ?: null,
+            'start_date' => $this->task_start_date ?: null,
+            'end_date' => $this->task_end_date ?: null,
+            'tags' => $tags,
+            'visibility' => $this->task_visibility,
+        ];
+
+        if ($editing) {
+            $editing->update($data);
+            $this->showTaskModal = false;
+            $this->dispatch('toast', message: 'Task updated.', type: 'success');
+
+            return;
+        }
+
+        $pendingApproval = ! $isManager;
+        $amount = null;
+        $hours = null;
+        $rate = null;
+        $currency = null;
+
+        if ($isManager) {
+            if ($this->task_pricing_mode === 'hourly') {
+                $hours = $this->task_hours !== '' ? (float) $this->task_hours : null;
+                $rate = $this->task_rate !== '' ? (float) $this->task_rate : null;
+                $amount = ($hours && $rate) ? $hours * $rate : null;
+            } else {
+                $amount = $this->task_amount !== '' ? (float) $this->task_amount : null;
+            }
+
+            if ($amount !== null) {
+                $currency = $this->task_currency;
+            }
+        }
+
+        $task = $this->project->tasks()->create($data + [
+            'status' => 'backlog',
+            'amount' => $amount,
+            'currency' => $currency,
+            'hours' => $hours,
+            'rate' => $rate,
+            'created_by' => $authUser->id,
+            'pending_approval' => $pendingApproval,
+        ]);
+
+        $this->showTaskModal = false;
+
+        if ($pendingApproval) {
+            Notification::sendToMany(
+                User::role(['manager_engineering', 'super_admin'])->get(),
+                'task_created',
+                'New task requested',
+                "{$task->title} on {$this->project->name}",
+                route('work.project-show', $this->project)
+            );
+            $this->dispatch('toast', message: 'Task created — sent to your manager for approval and pricing.', type: 'success');
+        } else {
+            $this->dispatch('toast', message: 'Task created.', type: 'success');
+        }
+    }
+
+    public function openTaskDetail(int $taskId): void
+    {
+        $task = $this->project->tasks()->find($taskId);
+
+        if (! $task || ! $task->canBeSeenBy(Auth::user())) {
+            return;
+        }
+
+        $this->viewingTaskId = $taskId;
+        $this->approve_mode = 'fixed';
+        $this->approve_amount = '';
+        $this->approve_currency = 'INR';
+        $this->approve_hours = '';
+        $this->approve_rate = '';
+        $this->showCancelForm = false;
+        $this->cancel_reason = '';
+        $this->resetValidation();
+        $this->showTaskDetail = true;
+    }
+
+    public function setTaskStatus(int $taskId, string $status): void
+    {
+        $task = $this->project->tasks()->find($taskId);
+
+        if (! $task || ! $task->canBeSeenBy(Auth::user()) || ! array_key_exists($status, self::STATUSES)) {
+            return;
+        }
+
+        $task->update(['status' => $status]);
+    }
+
+    public function setTaskAssignee(int $taskId, ?int $userId): void
+    {
+        $authUser = Auth::user();
+        $task = $this->project->tasks()->find($taskId);
+
+        if (! $task || ! $task->canBeSeenBy($authUser)) {
+            return;
+        }
+
+        if ($userId && ! $this->project->assignableUsersFor($authUser)->contains('id', $userId)) {
+            return;
+        }
+
+        $task->update(['assignee_id' => $userId]);
+    }
+
+    public function setTaskVisibility(int $taskId, string $visibility): void
+    {
+        $task = $this->project->tasks()->find($taskId);
+
+        if (! $task || ! $task->canBeSeenBy(Auth::user()) || ! in_array($visibility, ['public', 'private'], true)) {
+            return;
+        }
+
+        $task->update(['visibility' => $visibility]);
+    }
+
+    public function approveTask(): void
+    {
+        $authUser = Auth::user();
+
+        if (! $authUser->isManager() && ! $authUser->isSuperAdmin()) {
+            return;
+        }
+
+        $task = $this->viewingTask();
+
+        if (! $task || ! $task->pending_approval) {
+            return;
+        }
+
+        $amount = null;
+        $hours = null;
+        $rate = null;
+
+        if ($this->approve_mode === 'hourly') {
+            $hours = $this->approve_hours !== '' ? (float) $this->approve_hours : null;
+            $rate = $this->approve_rate !== '' ? (float) $this->approve_rate : null;
+            $amount = ($hours && $rate) ? $hours * $rate : null;
+        } else {
+            $amount = $this->approve_amount !== '' ? (float) $this->approve_amount : null;
+        }
+
+        if (! $amount) {
+            $this->addError('approve_amount', 'Enter an amount (or hours × rate) before approving.');
+
+            return;
+        }
+
+        $task->update([
+            'amount' => $amount,
+            'currency' => $this->approve_currency,
+            'hours' => $hours,
+            'rate' => $rate,
+            'pending_approval' => false,
+        ]);
+
+        Notification::send(
+            $task->creator,
+            'task_approved',
+            'Task approved',
+            "{$task->title} was approved and priced at ".Currency::format($amount, $this->approve_currency).'.',
+            route('work.project-show', $this->project)
+        );
+
+        $this->showTaskDetail = false;
+        $this->dispatch('toast', message: 'Task approved and priced.', type: 'success');
+    }
+
+    public function openCancelForm(): void
+    {
+        $task = $this->viewingTask();
+
+        if (! $task || ! $task->canBeCancelledBy(Auth::user())) {
+            return;
+        }
+
+        $this->cancel_reason = '';
+        $this->showCancelForm = true;
+    }
+
+    public function confirmCancelTask(): void
+    {
+        $authUser = Auth::user();
+        $task = $this->viewingTask();
+
+        if (! $task || ! $task->canBeCancelledBy($authUser)) {
+            return;
+        }
+
+        $this->validate(['cancel_reason' => 'required|string|max:500']);
+
+        $task->update([
+            'cancelled' => true,
+            'cancel_reason' => $this->cancel_reason,
+            'cancelled_by' => $authUser->id,
+            'cancelled_at' => now(),
+            'pending_approval' => false,
+        ]);
+
+        Notification::send(
+            $task->assignee ?? $task->creator,
+            'task_cancelled',
+            'Task cancelled',
+            "\"{$task->title}\" was cancelled: {$this->cancel_reason}",
+            route('work.project-show', $this->project)
+        );
+
+        $this->showTaskDetail = false;
+        $this->showCancelForm = false;
+        $this->dispatch('toast', message: 'Task cancelled.', type: 'success');
+    }
+
+    public function openCategoryForm(?int $categoryId = null): void
+    {
+        if (! $this->canManage()) {
+            return;
+        }
+
+        $this->editingCategoryId = $categoryId;
+        $this->resetValidation();
+
+        if ($categoryId) {
+            $category = $this->project->categories()->findOrFail($categoryId);
+            $this->category_name = $category->name;
+            $this->category_currency = $category->currency;
+            $this->category_pricing_mode = $category->estimated_hours !== null ? 'hourly' : 'fixed';
+            $this->category_estimated_amount = $category->estimated_amount !== null ? (string) $category->estimated_amount : '';
+            $this->category_estimated_hours = $category->estimated_hours !== null ? (string) $category->estimated_hours : '';
+            $this->category_estimated_rate = $category->estimated_rate !== null ? (string) $category->estimated_rate : '';
+        } else {
+            $this->category_name = '';
+            $this->category_currency = 'INR';
+            $this->category_pricing_mode = 'fixed';
+            $this->category_estimated_amount = '';
+            $this->category_estimated_hours = '';
+            $this->category_estimated_rate = '';
+        }
+
+        $this->showCategoryForm = true;
+    }
+
+    public function saveCategory(): void
+    {
+        $authUser = Auth::user();
+
+        if (! $this->canManage()) {
+            return;
+        }
+
+        $this->validate([
+            'category_name' => 'required|string|max:255',
+            'category_currency' => ['required', 'in:'.implode(',', Currency::codes())],
+        ]);
+
+        $estimatedAmount = null;
+        $estimatedHours = null;
+        $estimatedRate = null;
+
+        if ($this->category_pricing_mode === 'hourly') {
+            $estimatedHours = $this->category_estimated_hours !== '' ? (float) $this->category_estimated_hours : null;
+            $estimatedRate = $this->category_estimated_rate !== '' ? (float) $this->category_estimated_rate : null;
+        } else {
+            $estimatedAmount = $this->category_estimated_amount !== '' ? (float) $this->category_estimated_amount : null;
+        }
+
+        $data = [
+            'name' => $this->category_name,
+            'currency' => $this->category_currency,
+            'estimated_amount' => $estimatedAmount,
+            'estimated_hours' => $estimatedHours,
+            'estimated_rate' => $estimatedRate,
+        ];
+
+        if ($this->editingCategoryId) {
+            $this->project->categories()->findOrFail($this->editingCategoryId)->update($data);
+        } else {
+            $this->project->categories()->create($data + ['created_by' => $authUser->id]);
+        }
+
+        $this->showCategoryForm = false;
+        $this->dispatch('toast', message: 'Category saved.', type: 'success');
+    }
+
+    public function deleteCategory(int $categoryId): void
+    {
+        if (! $this->canManage()) {
+            return;
+        }
+
+        $this->project->categories()->findOrFail($categoryId)->delete();
+        $this->dispatch('toast', message: 'Category deleted.', type: 'success');
+    }
+
+    public function openNotifySalesForm(): void
+    {
+        $authUser = Auth::user();
+        $task = $this->viewingTask();
+
+        if (! $task || (! $authUser->isManager() && ! $authUser->isSuperAdmin())) {
+            return;
+        }
+
+        if (! $task->isPriced() || $task->status !== 'done' || $task->cancelled) {
+            $this->dispatch('toast', message: 'Only a priced, Done task can be sent to Sales.', type: 'error');
+
+            return;
+        }
+
+        $existing = $task->billingRequests()->latest()->first();
+
+        if ($existing && $existing->status === 'pending' && $existing->client_response !== 'declined') {
+            $this->dispatch('toast', message: 'Already sent to Sales — awaiting the client\'s response.', type: 'error');
+
+            return;
+        }
+
+        $this->notify_amount = (string) $task->effectiveAmount();
+        $this->notify_currency = $task->currency ?? 'INR';
+        $this->showNotifySalesForm = true;
+    }
+
+    public function sendToSales(): void
+    {
+        $authUser = Auth::user();
+        $task = $this->viewingTask();
+
+        if (! $task || (! $authUser->isManager() && ! $authUser->isSuperAdmin())) {
+            return;
+        }
+
+        $this->validate([
+            'notify_amount' => 'required|numeric|min:0.01',
+            'notify_currency' => ['required', 'in:'.implode(',', Currency::codes())],
+        ]);
+
+        $existing = $task->billingRequests()->latest()->first();
+
+        if ($existing && $existing->status === 'pending' && $existing->client_response === 'declined') {
+            $existing->update([
+                'currency' => $this->notify_currency,
+                'amount' => $this->notify_amount,
+                'client_response' => null,
+            ]);
+        } else {
+            BillingRequest::create([
+                'client_id' => $this->project->client_id,
+                'project_id' => $this->project->id,
+                'task_id' => $task->id,
+                'created_by' => $authUser->id,
+                'currency' => $this->notify_currency,
+                'billing_type' => ($task->hours !== null && $task->rate !== null) ? 'hourly' : 'milestone',
+                'amount' => $this->notify_amount,
+                'milestone_description' => $task->title,
+                'status' => 'pending',
+                'client_response' => null,
+            ]);
+        }
+
+        Notification::sendToMany(
+            User::role(['sales_exec', 'super_admin'])->get(),
+            'billing_request_ready',
+            'New billing request',
+            "{$task->title} — {$this->project->name}",
+            route('work.project-show', $this->project)
+        );
+
+        $this->showNotifySalesForm = false;
+        $this->dispatch('toast', message: 'Sent to Sales.', type: 'success');
+    }
+
+    public function render()
+    {
+        $authUser = Auth::user();
+        $isManager = $authUser->isManager() || $authUser->isSuperAdmin();
+
+        $tasks = $this->project->tasks()
+            ->with(['category', 'assignee', 'creator', 'canceller', 'billingRequests'])
+            ->get()
+            ->filter(fn (Task $task) => $task->canBeSeenBy($authUser))
+            ->values();
+
+        $board = collect(self::STATUSES)->keys()->mapWithKeys(
+            fn ($status) => [$status => $tasks->where('status', $status)->values()]
+        );
+
+        return view('livewire.work.project-show', [
+            'tasks' => $tasks,
+            'board' => $board,
+            'statuses' => self::STATUSES,
+            'canManage' => $this->canManage(),
+            'isManager' => $isManager,
+            'assignableUsers' => $this->project->assignableUsersFor($authUser),
+            'categories' => $this->project->categories()->with('tasks')->get(),
+            'pendingCount' => $isManager ? $tasks->where('pending_approval', true)->count() : 0,
+            'viewingTask' => $this->viewingTask(),
+        ]);
+    }
+}

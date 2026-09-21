@@ -95,12 +95,26 @@ class MyProjects extends Component
         $this->dispatch('toast', message: 'Developers assigned.', type: 'success');
     }
 
+    protected function visibleProjects(User $authUser)
+    {
+        if ($authUser->isSuperAdmin() || $authUser->isManager()) {
+            return Project::query();
+        }
+
+        if ($authUser->isTeamLead()) {
+            return Project::where('assigned_to', $authUser->id);
+        }
+
+        return Project::where('assigned_to', $authUser->id)
+            ->orWhereHas('developers', fn ($q) => $q->where('users.id', $authUser->id));
+    }
+
     public function render()
     {
         $authUser = Auth::user();
 
-        $rows = Project::with(['client', 'developers'])
-            ->where('assigned_to', $authUser->id)
+        $rows = $this->visibleProjects($authUser)
+            ->with(['client', 'developers'])
             ->latest()
             ->get()
             ->map(function (Project $project) {

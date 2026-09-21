@@ -8,6 +8,7 @@ use App\Http\Controllers\PayslipPdfController;
 use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\Lead;
+use App\Models\Project;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +48,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
     Route::middleware(['permission:access_projects'])->group(function () {
         Route::view('my-projects', 'pages.work.my-projects')->name('work.my-projects');
+        Route::get('projects/{project}', function (Project $project) {
+            return view('pages.work.project-show', compact('project'));
+        })->name('work.project-show');
     });
     Route::middleware(['permission:access_marketing_logs'])->group(function () {
         Route::view('marketing-logs', 'pages.work.marketing-log-index')->name('work.marketing-logs');

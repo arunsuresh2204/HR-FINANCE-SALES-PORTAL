@@ -50,6 +50,13 @@ class BillingRequestIndex extends Component
         }
 
         $billingRequest = $this->converting;
+
+        if ($billingRequest->isFromTask() && $billingRequest->client_response !== 'approved') {
+            $this->addError('currency', 'This billing request needs client approval before it can be invoiced.');
+
+            return;
+        }
+
         $amount = (float) $billingRequest->amount;
         $taxPercent = $this->currency === 'INR' ? (float) $this->tax_percent : 0;
         $tax = $amount * ($taxPercent / 100);

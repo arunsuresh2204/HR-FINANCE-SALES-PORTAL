@@ -22,11 +22,20 @@
                             <td>{{ $req->summary() }}</td>
                             <td class="font-semibold text-white">{{ \App\Support\Currency::format($req->amount, $req->currency) }}</td>
                             <td>{{ $req->creator->name }}</td>
-                            <td><x-status-pill :status="$req->status" /></td>
+                            <td>
+                                <x-status-pill :status="$req->status" />
+                                @if ($req->isFromTask() && $req->client_response)
+                                    <x-status-pill :status="$req->client_response" class="ml-1" />
+                                @endif
+                            </td>
                             <td class="text-right">
                                 @if ($req->status === 'pending')
                                     <div class="flex justify-end gap-2">
-                                        <button wire:click="openConvert({{ $req->id }})" class="rounded-lg bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-300 hover:bg-emerald-400/25">Create Invoice</button>
+                                        @if ($req->isFromTask() && $req->client_response !== 'approved')
+                                            <span class="rounded-lg bg-white/5 px-2.5 py-1 text-xs font-semibold text-white/40">Awaiting client approval</span>
+                                        @else
+                                            <button wire:click="openConvert({{ $req->id }})" class="rounded-lg bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-300 hover:bg-emerald-400/25">Create Invoice</button>
+                                        @endif
                                         <button wire:click="reject({{ $req->id }})" class="rounded-lg bg-rose-400/15 px-2.5 py-1 text-xs font-semibold text-rose-300 hover:bg-rose-400/25">Reject</button>
                                         <button wire:click="deleteBillingRequest({{ $req->id }})" wire:confirm="Delete this billing request? This can't be undone." class="rounded-lg bg-white/5 px-2.5 py-1 text-xs font-semibold text-white/50 hover:bg-white/10 hover:text-white">Delete</button>
                                     </div>

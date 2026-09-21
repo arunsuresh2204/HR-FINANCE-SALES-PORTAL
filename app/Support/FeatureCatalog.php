@@ -40,7 +40,7 @@ class FeatureCatalog
     public const FEATURE_DESCRIPTIONS = [
         'access_org_chart' => 'Company org chart and reporting lines',
         'access_timesheets' => 'Daily timesheet logs',
-        'access_projects' => 'Projects assigned to you: manage developers and view progress',
+        'access_projects' => 'Projects assigned to you: manage developers, tasks, and cost estimates',
         'access_marketing_logs' => 'Marketer daily activity logs',
         'access_sales_leads' => 'Leads pipeline (add/track cold-outreach contacts)',
         'access_sales_clients' => 'Client list and client detail pages',
@@ -66,7 +66,7 @@ class FeatureCatalog
         'finance_admin' => ['access_finance_admin'],
         'sales_exec' => ['access_sales_leads', 'access_sales_clients', 'access_sales_targets'],
         'digital_marketer' => ['access_marketing_logs', 'access_sales_leads'],
-        'programmer' => ['access_timesheets'],
+        'programmer' => ['access_timesheets', 'access_projects'],
         'team_lead_it' => ['access_projects'],
     ];
 }

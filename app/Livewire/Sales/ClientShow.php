@@ -5,6 +5,7 @@ namespace App\Livewire\Sales;
 use App\Models\BillingRequest;
 use App\Models\Client;
 use App\Models\InvoiceEditRequest;
+use App\Models\Notification;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -470,6 +471,59 @@ class ClientShow extends Component
         $this->editingBillingRequestId = null;
         $this->showBillingForm = false;
         $this->dispatch('toast', message: $editing ? 'Billing request updated.' : 'Billing request sent to Finance.', type: 'success');
+    }
+
+    protected function canRecordClientResponse(BillingRequest $billingRequest): bool
+    {
+        return $billingRequest->isFromTask()
+            && $billingRequest->status === 'pending'
+            && $this->canManageClientFinancials();
+    }
+
+    public function markBillingRequestSent(int $billingRequestId): void
+    {
+        $billingRequest = BillingRequest::with('project')->findOrFail($billingRequestId);
+
+        if (! $this->canRecordClientResponse($billingRequest)) {
+            return;
+        }
+
+        $billingRequest->update(['client_response' => 'sent']);
+        $this->dispatch('toast', message: 'Marked as sent to client.', type: 'success');
+
+        $project = $billingRequest->project;
+        Notification::send(
+            $project->assignedTo ?? $project->creator,
+            'billing_sent_to_client',
+            'Sent to client',
+            $billingRequest->milestone_description,
+            route('work.project-show', $project)
+        );
+    }
+
+    public function setClientResponse(int $billingRequestId, string $response): void
+    {
+        if (! in_array($response, ['approved', 'declined'], true)) {
+            return;
+        }
+
+        $billingRequest = BillingRequest::with('project')->findOrFail($billingRequestId);
+
+        if (! $this->canRecordClientResponse($billingRequest)) {
+            return;
+        }
+
+        $billingRequest->update(['client_response' => $response]);
+        $this->dispatch('toast', message: 'Client response recorded.', type: 'success');
+
+        $project = $billingRequest->project;
+        Notification::send(
+            $project->assignedTo ?? $project->creator,
+            'client_responded',
+            'Client '.$response,
+            $billingRequest->milestone_description,
+            route('work.project-show', $project)
+        );
     }
 
     public function markInvoiceSent(int $invoiceId): void

@@ -18,6 +18,7 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <x-status-pill :status="$project->status" />
+                        <a href="{{ route('work.project-show', $project) }}" class="btn-glass-secondary text-xs"><x-icon name="grid" class="h-4 w-4" /> Tasks</a>
                         <button wire:click="openReassignForm({{ $project->id }})" class="btn-glass-secondary text-xs"><x-icon name="link" class="h-4 w-4" /> Reassign</button>
                         <button wire:click="openDeveloperForm({{ $project->id }})" class="btn-glass-secondary text-xs"><x-icon name="users" class="h-4 w-4" /> Manage Developers</button>
                     </div>

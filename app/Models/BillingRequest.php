@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class BillingRequest extends Model
 {
     protected $fillable = [
-        'client_id', 'project_id', 'created_by', 'currency', 'billing_type',
-        'amount', 'milestone_description', 'status',
+        'client_id', 'project_id', 'task_id', 'created_by', 'currency', 'billing_type',
+        'amount', 'milestone_description', 'status', 'client_response',
     ];
 
     protected function casts(): array
@@ -29,6 +29,11 @@ class BillingRequest extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function task(): BelongsTo
+    {
+        return $this->belongsTo(Task::class);
     }
 
     public function creator(): BelongsTo
@@ -49,6 +54,11 @@ class BillingRequest extends Model
     public function isHourly(): bool
     {
         return $this->billing_type === 'hourly';
+    }
+
+    public function isFromTask(): bool
+    {
+        return $this->task_id !== null;
     }
 
     public function summary(): string

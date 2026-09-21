@@ -195,15 +195,32 @@
                         <div class="glass-inset p-3">
                             <div class="flex items-center justify-between">
                                 <p class="text-sm font-semibold text-white">{{ \App\Support\Currency::format($br->amount, $br->currency) }}</p>
-                                <x-status-pill :status="$br->status" />
+                                <div class="flex items-center gap-1.5">
+                                    <x-status-pill :status="$br->status" />
+                                    @if ($br->isFromTask() && $br->client_response)
+                                        <x-status-pill :status="$br->client_response" />
+                                    @endif
+                                </div>
                             </div>
                             <p class="mt-1 text-xs text-white/45">{{ $br->summary() }}</p>
                             @if ($br->project)
                                 <p class="mt-1 text-[11px] text-white/30">Project: {{ $br->project->name }}</p>
                             @endif
+                            @if ($br->isFromTask() && $br->status === 'pending' && $canManageClientFinancials)
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    @if (! $br->client_response)
+                                        <button wire:click="markBillingRequestSent({{ $br->id }})" class="rounded-lg bg-sky-400/15 px-2.5 py-1 text-[11px] font-semibold text-sky-300 hover:bg-sky-400/25">Mark Sent to Client</button>
+                                    @elseif ($br->client_response === 'sent')
+                                        <button wire:click="setClientResponse({{ $br->id }}, 'approved')" class="rounded-lg bg-emerald-400/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-400/25">Client Approved</button>
+                                        <button wire:click="setClientResponse({{ $br->id }}, 'declined')" class="rounded-lg bg-rose-400/15 px-2.5 py-1 text-[11px] font-semibold text-rose-300 hover:bg-rose-400/25">Client Declined</button>
+                                    @elseif ($br->client_response === 'declined')
+                                        <p class="text-[11px] text-white/40">Declined — the project manager needs to revise and re-send this.</p>
+                                    @endif
+                                </div>
+                            @endif
                             <div class="mt-1 flex items-center justify-between">
                                 <p class="text-[11px] text-white/30">{{ $br->created_at->format('M j, Y') }}</p>
-                                @if ($br->status === 'pending' && (auth()->id() === $br->created_by || $canManageClientFinancials))
+                                @if ($br->status === 'pending' && ! $br->isFromTask() && (auth()->id() === $br->created_by || $canManageClientFinancials))
                                     <div class="flex gap-3">
                                         <button wire:click="editBillingRequest({{ $br->id }})" class="text-[11px] font-semibold text-gold-300 hover:text-gold-200">Edit</button>
                                         <button wire:click="deleteBillingRequest({{ $br->id }})" wire:confirm="Delete this billing request? This can't be undone." class="text-[11px] font-semibold text-white/40 hover:text-rose-300">Delete</button>
