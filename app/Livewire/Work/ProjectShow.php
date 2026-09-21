@@ -465,7 +465,7 @@ class ProjectShow extends Component
             $task->creator,
             'task_approved',
             'Task approved',
-            "{$task->title} was approved and priced at ".Currency::format($amount, $this->approve_currency).'.',
+            "{$task->title} was approved and is ready to start.",
             route('work.project-show', $this->project)
         );
 
