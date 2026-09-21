@@ -105,7 +105,7 @@
                                     @if ($task->pending_approval)
                                         <span class="pill border-violet-400/20 bg-violet-400/15 text-violet-300">Pending Approval</span>
                                     @endif
-                                    @if ($isManager && $task->amount)
+                                    @if ($isManager && $task->amount > 0)
                                         <span class="pill border-white/15 bg-white/10 text-white/70">{{ \App\Support\Currency::format($task->amount, $task->currency) }}</span>
                                     @endif
                                 </div>
@@ -148,7 +148,7 @@
                             <td class="text-white/60">{{ $task->category->name ?? '—' }}</td>
                             <td class="text-white/60">
                                 @if (! $isManager) &mdash;
-                                @elseif ($task->amount) {{ \App\Support\Currency::format($task->amount, $task->currency) }}
+                                @elseif ($task->amount > 0) {{ \App\Support\Currency::format($task->amount, $task->currency) }}
                                 @elseif ($task->pending_approval) Pending
                                 @else &mdash;
                                 @endif
@@ -189,7 +189,7 @@
                         @forelse ($category->tasks as $task)
                             <div class="glass-inset flex items-center justify-between p-2 text-sm">
                                 <span class="text-white/80">{{ $task->title }}</span>
-                                <span class="text-white/50">{{ $isManager && $task->amount ? \App\Support\Currency::format($task->amount, $task->currency) : '—' }}</span>
+                                <span class="text-white/50">{{ $isManager && $task->amount > 0 ? \App\Support\Currency::format($task->amount, $task->currency) : '—' }}</span>
                             </div>
                         @empty
                             <p class="text-xs text-white/30">No tasks in this category yet</p>
@@ -274,12 +274,14 @@
                             @endforeach
                         </select>
                         @if ($task_pricing_mode === 'fixed')
-                            <x-text-input wire:model="task_amount" type="number" class="mt-0 min-w-0 flex-1" placeholder="e.g. 15000" />
+                            <x-text-input wire:model="task_amount" type="number" min="0.01" class="mt-0 min-w-0 flex-1" placeholder="e.g. 15000" />
                         @else
-                            <x-text-input wire:model="task_hours" type="number" step="0.25" class="mt-0 min-w-0 flex-1" placeholder="Hours" />
-                            <x-text-input wire:model="task_rate" type="number" class="mt-0 min-w-0 flex-1" placeholder="Rate/hr" />
+                            <x-text-input wire:model="task_hours" type="number" min="0.01" step="0.25" class="mt-0 min-w-0 flex-1" placeholder="Hours" />
+                            <x-text-input wire:model="task_rate" type="number" min="0.01" class="mt-0 min-w-0 flex-1" placeholder="Rate/hr" />
                         @endif
                     </div>
+                    <x-input-error :messages="$errors->get('task_amount')" class="mt-1" />
+                    <x-input-error :messages="$errors->get('task_hours')" class="mt-1" />
                 </div>
             @elseif (! $editingTaskId)
                 <p class="text-xs text-violet-300/80">This task will need your manager's review — they'll set the price before it can be sent to Sales.</p>
@@ -329,7 +331,7 @@
                     <p class="label-glass !mb-1">Amount</p>
                     <p class="font-semibold text-gold-300">
                         @if (! $isManager) &mdash;
-                        @elseif ($task->amount)
+                        @elseif ($task->amount > 0)
                             {{ \App\Support\Currency::format($task->amount, $task->currency) }}
                             @if ($task->hours !== null && $task->rate !== null)
                                 ({{ $task->hours }}h &times; {{ \App\Support\Currency::format($task->rate, $task->currency) }}/hr)
@@ -396,10 +398,10 @@
                             @endforeach
                         </select>
                         @if ($approve_mode === 'fixed')
-                            <x-text-input wire:model="approve_amount" type="number" class="mt-0 min-w-0 flex-1" placeholder="e.g. 15000" />
+                            <x-text-input wire:model="approve_amount" type="number" min="0.01" class="mt-0 min-w-0 flex-1" placeholder="e.g. 15000" />
                         @else
-                            <x-text-input wire:model="approve_hours" type="number" step="0.25" class="mt-0 min-w-0 flex-1" placeholder="Hours" />
-                            <x-text-input wire:model="approve_rate" type="number" class="mt-0 min-w-0 flex-1" placeholder="Rate/hr" />
+                            <x-text-input wire:model="approve_hours" type="number" min="0.01" step="0.25" class="mt-0 min-w-0 flex-1" placeholder="Hours" />
+                            <x-text-input wire:model="approve_rate" type="number" min="0.01" class="mt-0 min-w-0 flex-1" placeholder="Rate/hr" />
                         @endif
                     </div>
                     <x-input-error :messages="$errors->get('approve_amount')" class="mt-1" />
@@ -454,7 +456,7 @@
                 </div>
                 <div>
                     <x-input-label value="Amount" />
-                    <x-text-input wire:model="notify_amount" type="number" class="mt-0" />
+                    <x-text-input wire:model="notify_amount" type="number" min="0.01" class="mt-0" />
                     <x-input-error :messages="$errors->get('notify_amount')" class="mt-1" />
                 </div>
             </div>
@@ -488,12 +490,14 @@
                         @endforeach
                     </select>
                     @if ($category_pricing_mode === 'fixed')
-                        <x-text-input wire:model="category_estimated_amount" type="number" class="mt-0 min-w-0 flex-1" placeholder="Amount" />
+                        <x-text-input wire:model="category_estimated_amount" type="number" min="0.01" class="mt-0 min-w-0 flex-1" placeholder="Amount" />
                     @else
-                        <x-text-input wire:model="category_estimated_hours" type="number" step="0.25" class="mt-0 min-w-0 flex-1" placeholder="Hours" />
-                        <x-text-input wire:model="category_estimated_rate" type="number" class="mt-0 min-w-0 flex-1" placeholder="Rate/hr" />
+                        <x-text-input wire:model="category_estimated_hours" type="number" min="0.01" step="0.25" class="mt-0 min-w-0 flex-1" placeholder="Hours" />
+                        <x-text-input wire:model="category_estimated_rate" type="number" min="0.01" class="mt-0 min-w-0 flex-1" placeholder="Rate/hr" />
                     @endif
                 </div>
+                <x-input-error :messages="$errors->get('category_estimated_amount')" class="mt-1" />
+                <x-input-error :messages="$errors->get('category_estimated_hours')" class="mt-1" />
             </div>
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>

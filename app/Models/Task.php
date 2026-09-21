@@ -90,7 +90,7 @@ class Task extends Model
 
     public function isPriced(): bool
     {
-        return $this->amount !== null || ($this->hours !== null && $this->rate !== null);
+        return $this->amount > 0 || ($this->hours > 0 && $this->rate > 0);
     }
 
     public function effectiveAmount(): float

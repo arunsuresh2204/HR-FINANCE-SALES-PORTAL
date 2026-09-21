@@ -235,9 +235,22 @@ class ProjectShow extends Component
             if ($this->task_pricing_mode === 'hourly') {
                 $hours = $this->task_hours !== '' ? (float) $this->task_hours : null;
                 $rate = $this->task_rate !== '' ? (float) $this->task_rate : null;
+
+                if (($hours !== null && $hours <= 0) || ($rate !== null && $rate <= 0)) {
+                    $this->addError('task_hours', 'Hours and rate must be greater than zero.');
+
+                    return;
+                }
+
                 $amount = ($hours && $rate) ? $hours * $rate : null;
             } else {
                 $amount = $this->task_amount !== '' ? (float) $this->task_amount : null;
+
+                if ($amount !== null && $amount <= 0) {
+                    $this->addError('task_amount', 'Amount must be greater than zero.');
+
+                    return;
+                }
             }
 
             if ($amount !== null) {
@@ -350,15 +363,22 @@ class ProjectShow extends Component
         if ($this->approve_mode === 'hourly') {
             $hours = $this->approve_hours !== '' ? (float) $this->approve_hours : null;
             $rate = $this->approve_rate !== '' ? (float) $this->approve_rate : null;
-            $amount = ($hours && $rate) ? $hours * $rate : null;
+
+            if (! $hours || $hours <= 0 || ! $rate || $rate <= 0) {
+                $this->addError('approve_amount', 'Enter hours and a rate greater than zero.');
+
+                return;
+            }
+
+            $amount = $hours * $rate;
         } else {
             $amount = $this->approve_amount !== '' ? (float) $this->approve_amount : null;
-        }
 
-        if (! $amount) {
-            $this->addError('approve_amount', 'Enter an amount (or hours × rate) before approving.');
+            if (! $amount || $amount <= 0) {
+                $this->addError('approve_amount', 'Enter an amount greater than zero before approving.');
 
-            return;
+                return;
+            }
         }
 
         $task->update([
@@ -474,8 +494,20 @@ class ProjectShow extends Component
         if ($this->category_pricing_mode === 'hourly') {
             $estimatedHours = $this->category_estimated_hours !== '' ? (float) $this->category_estimated_hours : null;
             $estimatedRate = $this->category_estimated_rate !== '' ? (float) $this->category_estimated_rate : null;
+
+            if (($estimatedHours !== null && $estimatedHours <= 0) || ($estimatedRate !== null && $estimatedRate <= 0)) {
+                $this->addError('category_estimated_hours', 'Hours and rate must be greater than zero.');
+
+                return;
+            }
         } else {
             $estimatedAmount = $this->category_estimated_amount !== '' ? (float) $this->category_estimated_amount : null;
+
+            if ($estimatedAmount !== null && $estimatedAmount <= 0) {
+                $this->addError('category_estimated_amount', 'Amount must be greater than zero.');
+
+                return;
+            }
         }
 
         $data = [

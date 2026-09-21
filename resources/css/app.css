@@ -27,6 +27,19 @@
         background: rgba(247, 200, 30, 0.35);
         color: #0a0a0b;
     }
+
+    /* Native number-input spin buttons don't match the glass design system and can
+       be clicked on an empty field to silently produce -1 — hide them app-wide and
+       rely on the min="0.01" attribute + server-side validation instead. */
+    input[type='number']::-webkit-inner-spin-button,
+    input[type='number']::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type='number'] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
 }
 
 @layer components {
