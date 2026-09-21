@@ -40,51 +40,6 @@
             </form>
         </div>
 
-        <div class="glass-card lg:col-span-2">
-            <div class="flex items-start justify-between gap-4">
-                <div>
-                    <h2 class="text-base font-bold text-white">Currencies</h2>
-                    <p class="mt-1 text-xs text-white/40">Invoices and billing requests only offer <span class="font-semibold text-white/70">active</span> currencies below. Deactivating one leaves past records formatted exactly as before &mdash; it just disappears from new-entry dropdowns.</p>
-                </div>
-                <button wire:click="openAddCurrencyForm" class="btn-glass-primary shrink-0"><x-icon name="plus" class="h-4 w-4" /> Add Currency</button>
-            </div>
-
-            <div class="mt-4 overflow-x-auto">
-                <table class="table-glass">
-                    <thead>
-                        <tr>
-                            <th>Code</th>
-                            <th>Symbol</th>
-                            <th>Sample</th>
-                            <th>Status</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($currencies as $currency)
-                            <tr wire:key="currency-{{ $currency->id }}">
-                                <td class="font-semibold text-white">{{ $currency->code }}</td>
-                                <td class="text-white/70">{{ $currency->symbol }}</td>
-                                <td class="text-white/60">{{ \App\Support\Currency::format(1234567.89, $currency->code) }}</td>
-                                <td>
-                                    @if ($currency->is_active)
-                                        <span class="badge-glass !border-emerald-400/25 !bg-emerald-400/10 !text-emerald-200">Active</span>
-                                    @else
-                                        <span class="badge-glass !border-white/15 !bg-white/5 !text-white/40">Inactive</span>
-                                    @endif
-                                </td>
-                                <td class="text-right">
-                                    <button wire:click="toggleCurrencyActive({{ $currency->id }})" class="text-xs font-semibold text-white/50 hover:text-white">{{ $currency->is_active ? 'Deactivate' : 'Activate' }}</button>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="5" class="py-8 text-center text-white/40">No currencies yet.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
         <div class="glass-card">
             <h2 class="text-base font-bold text-white">Accounting Exports</h2>
             <p class="mt-1 text-xs text-white/40">Pick a date range, then download whichever records you need for your books.</p>
@@ -130,6 +85,51 @@
                     </div>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div class="glass-card mt-6">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <h2 class="text-base font-bold text-white">Currencies</h2>
+                <p class="mt-1 text-xs text-white/40">Invoices and billing requests only offer <span class="font-semibold text-white/70">active</span> currencies below. Deactivating one leaves past records formatted exactly as before &mdash; it just disappears from new-entry dropdowns.</p>
+            </div>
+            <button wire:click="openAddCurrencyForm" class="btn-glass-primary shrink-0"><x-icon name="plus" class="h-4 w-4" /> Add Currency</button>
+        </div>
+
+        <div class="mt-4 overflow-x-auto">
+            <table class="table-glass">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Symbol</th>
+                        <th>Sample</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($currencies as $currency)
+                        <tr wire:key="currency-{{ $currency->id }}">
+                            <td class="font-semibold text-white">{{ $currency->code }}</td>
+                            <td class="text-white/70">{{ $currency->symbol }}</td>
+                            <td class="text-white/60">{{ \App\Support\Currency::format(1234567.89, $currency->code) }}</td>
+                            <td>
+                                @if ($currency->is_active)
+                                    <span class="badge-glass !border-emerald-400/25 !bg-emerald-400/10 !text-emerald-200">Active</span>
+                                @else
+                                    <span class="badge-glass !border-white/15 !bg-white/5 !text-white/40">Inactive</span>
+                                @endif
+                            </td>
+                            <td class="text-right">
+                                <button wire:click="toggleCurrencyActive({{ $currency->id }})" class="text-xs font-semibold text-white/50 hover:text-white">{{ $currency->is_active ? 'Deactivate' : 'Activate' }}</button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="py-8 text-center text-white/40">No currencies yet.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 
