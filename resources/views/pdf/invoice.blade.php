@@ -147,7 +147,7 @@
             <tr><td class="label">{{ $invoice->taxLabel() }} ({{ rtrim(rtrim(number_format((float) $invoice->tax_percent, 2), '0'), '.') }}%)</td><td class="value">{{ $invoice->money($invoice->total_amount - $invoice->amount) }}</td></tr>
         @endif
         <tr class="total-row"><td class="label">Total</td><td class="value">{{ $invoice->money($invoice->total_amount) }} {{ $invoice->currency }}</td></tr>
-        @if ($invoice->status === 'paid')
+        @if ((float) $invoice->amount_paid > 0)
             <tr><td class="label paid-label">Amount Paid</td><td class="value paid-value">{{ \App\Support\Currency::format($invoice->amount_paid, 'INR') }} INR</td></tr>
         @endif
     </table>
