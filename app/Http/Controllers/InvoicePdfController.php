@@ -15,6 +15,11 @@ class InvoicePdfController extends Controller
             'financeSetting' => FinanceSetting::current(),
         ]);
 
-        return $pdf->stream("{$invoice->invoice_number}.pdf");
+        // The invoice's status, amount paid, and adjustments can all change
+        // after it's first downloaded, so the browser must never serve a
+        // stale cached copy of this same URL.
+        return $pdf->stream("{$invoice->invoice_number}.pdf")
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache');
     }
 }

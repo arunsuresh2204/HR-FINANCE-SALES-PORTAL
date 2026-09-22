@@ -19,6 +19,8 @@ class CreditNotePdfController extends Controller
             'financeSetting' => FinanceSetting::current(),
         ]);
 
-        return $pdf->stream("{$adjustment->document_number}.pdf");
+        return $pdf->stream("{$adjustment->document_number}.pdf")
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache');
     }
 }
