@@ -2,13 +2,10 @@
 
 namespace App\Livewire\Work;
 
-use App\Models\BillingRequest;
 use App\Models\Notification;
 use App\Models\Project;
-use App\Models\ProjectCategory;
 use App\Models\Task;
 use App\Models\User;
-use App\Support\Currency;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -62,8 +59,6 @@ class ProjectShow extends Component
 
     public string $task_amount = '';
 
-    public string $task_currency = 'INR';
-
     public string $task_hours = '';
 
     public string $task_rate = '';
@@ -76,8 +71,6 @@ class ProjectShow extends Component
     public string $approve_mode = 'fixed';
 
     public string $approve_amount = '';
-
-    public string $approve_currency = 'INR';
 
     public string $approve_hours = '';
 
@@ -93,16 +86,6 @@ class ProjectShow extends Component
 
     public string $category_name = '';
 
-    public string $category_currency = 'INR';
-
-    public string $category_pricing_mode = 'fixed';
-
-    public string $category_estimated_amount = '';
-
-    public string $category_estimated_hours = '';
-
-    public string $category_estimated_rate = '';
-
     // Edit task amount (post-approval price adjustment, e.g. a client discount)
     public bool $showEditAmountForm = false;
 
@@ -111,8 +94,6 @@ class ProjectShow extends Component
     public string $edit_amount_mode = 'fixed';
 
     public string $edit_amount_value = '';
-
-    public string $edit_amount_currency = 'INR';
 
     public string $edit_amount_hours = '';
 
@@ -246,7 +227,6 @@ class ProjectShow extends Component
             $this->task_urgency = 'medium';
             $this->task_pricing_mode = 'fixed';
             $this->task_amount = '';
-            $this->task_currency = 'INR';
             $this->task_hours = '';
             $this->task_rate = '';
         }
@@ -335,7 +315,7 @@ class ProjectShow extends Component
             }
 
             if ($amount !== null) {
-                $currency = $this->task_currency;
+                $currency = $this->project->currency;
             }
         }
 
@@ -378,7 +358,6 @@ class ProjectShow extends Component
         $this->viewingTaskId = $taskId;
         $this->approve_mode = 'fixed';
         $this->approve_amount = '';
-        $this->approve_currency = 'INR';
         $this->approve_hours = '';
         $this->approve_rate = '';
         $this->showCancelForm = false;
@@ -481,7 +460,7 @@ class ProjectShow extends Component
 
         $task->update([
             'amount' => $amount,
-            'currency' => $this->approve_currency,
+            'currency' => $this->project->currency,
             'hours' => $hours,
             'rate' => $rate,
             'pending_approval' => false,
@@ -551,11 +530,6 @@ class ProjectShow extends Component
 
         $this->resetValidation();
         $this->category_name = '';
-        $this->category_currency = 'INR';
-        $this->category_pricing_mode = 'fixed';
-        $this->category_estimated_amount = '';
-        $this->category_estimated_hours = '';
-        $this->category_estimated_rate = '';
 
         $this->showCategoryForm = true;
     }
@@ -570,38 +544,10 @@ class ProjectShow extends Component
 
         $this->validate([
             'category_name' => 'required|string|max:255',
-            'category_currency' => ['required', 'in:'.implode(',', Currency::codes())],
         ]);
-
-        $estimatedAmount = null;
-        $estimatedHours = null;
-        $estimatedRate = null;
-
-        if ($this->category_pricing_mode === 'hourly') {
-            $estimatedHours = $this->category_estimated_hours !== '' ? (float) $this->category_estimated_hours : null;
-            $estimatedRate = $this->category_estimated_rate !== '' ? (float) $this->category_estimated_rate : null;
-
-            if (($estimatedHours !== null && $estimatedHours <= 0) || ($estimatedRate !== null && $estimatedRate <= 0)) {
-                $this->addError('category_estimated_hours', 'Hours and rate must be greater than zero.');
-
-                return;
-            }
-        } else {
-            $estimatedAmount = $this->category_estimated_amount !== '' ? (float) $this->category_estimated_amount : null;
-
-            if ($estimatedAmount !== null && $estimatedAmount <= 0) {
-                $this->addError('category_estimated_amount', 'Amount must be greater than zero.');
-
-                return;
-            }
-        }
 
         $this->project->categories()->create([
             'name' => $this->category_name,
-            'currency' => $this->category_currency,
-            'estimated_amount' => $estimatedAmount,
-            'estimated_hours' => $estimatedHours,
-            'estimated_rate' => $estimatedRate,
             'created_by' => $authUser->id,
         ]);
 
@@ -684,7 +630,6 @@ class ProjectShow extends Component
         $this->editingAmountTaskId = $taskId;
         $this->edit_amount_mode = ($task->hours !== null && $task->rate !== null) ? 'hourly' : 'fixed';
         $this->edit_amount_value = $task->amount !== null ? (string) $task->amount : '';
-        $this->edit_amount_currency = $task->currency ?? 'INR';
         $this->edit_amount_hours = $task->hours !== null ? (string) $task->hours : '';
         $this->edit_amount_rate = $task->rate !== null ? (string) $task->rate : '';
         $this->resetValidation();
@@ -706,12 +651,6 @@ class ProjectShow extends Component
         }
 
         $pendingRequests = $task->billingRequests()->where('status', 'pending')->get();
-
-        if ($pendingRequests->contains(fn (BillingRequest $br) => $br->currency !== $this->edit_amount_currency)) {
-            $this->addError('edit_amount_value', 'Can\'t change currency — this task is already part of a billing request.');
-
-            return;
-        }
 
         $amount = null;
         $hours = null;
@@ -740,7 +679,7 @@ class ProjectShow extends Component
 
         $task->update([
             'amount' => $amount,
-            'currency' => $this->edit_amount_currency,
+            'currency' => $this->project->currency,
             'hours' => $hours,
             'rate' => $rate,
         ]);

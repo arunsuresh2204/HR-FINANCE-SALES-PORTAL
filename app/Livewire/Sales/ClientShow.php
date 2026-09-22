@@ -64,6 +64,8 @@ class ClientShow extends Component
     #[Validate('nullable|string|max:1000')]
     public string $project_description = '';
 
+    public string $project_currency = 'INR';
+
     #[Validate('nullable|file|max:10240')]
     public $project_requirement_file = null;
 
@@ -177,6 +179,7 @@ class ClientShow extends Component
     {
         $this->editingProjectId = null;
         $this->reset(['project_name', 'project_description', 'project_requirement_file']);
+        $this->project_currency = 'INR';
         $this->assigned_to = Auth::user()->isManager() || Auth::user()->isSuperAdmin() ? Auth::id() : null;
         $this->resetValidation();
         $this->showProjectForm = true;
@@ -227,6 +230,7 @@ class ClientShow extends Component
             'project_description' => 'nullable|string|max:1000',
             'project_requirement_file' => 'nullable|file|max:10240',
             'assigned_to' => $canManage ? 'nullable|exists:users,id' : 'required|exists:users,id',
+            'project_currency' => $editing ? 'nullable' : ['required', 'in:'.implode(',', \App\Support\Currency::codes())],
         ]);
 
         if ($this->assigned_to) {
@@ -262,6 +266,7 @@ class ClientShow extends Component
                 'client_id' => $this->client->id,
                 'created_by' => Auth::id(),
                 'status' => 'active',
+                'currency' => $this->project_currency,
             ]);
         }
 

@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 
 class Project extends Model
 {
-    protected $fillable = ['client_id', 'created_by', 'assigned_to', 'name', 'description', 'requirement_file', 'status'];
+    protected $fillable = ['client_id', 'created_by', 'assigned_to', 'name', 'description', 'requirement_file', 'status', 'currency'];
 
     public function client(): BelongsTo
     {

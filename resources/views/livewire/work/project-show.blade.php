@@ -25,13 +25,19 @@
                     <p class="mt-0.5 font-semibold text-white">{{ $project->developers->pluck('name')->join(', ') ?: 'None yet' }}</p>
                 </div>
             @endif
+            @if ($isManager)
+                <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-white/35">Currency</p>
+                    <p class="mt-0.5 font-semibold text-white">{{ $project->currency }}</p>
+                </div>
+            @endif
         </div>
     </div>
 
     @if ($project->needsEstimate())
         <div class="glass-card mt-4 border-gold-400/25">
             <p class="text-sm font-semibold text-white">This project is awaiting a cost estimate.</p>
-            <p class="mt-1 text-xs text-white/45">Add at least one category with an estimated amount to move it to Active and start creating tasks against it.</p>
+            <p class="mt-1 text-xs text-white/45">Add at least one category to move it to Active and start creating tasks against it.</p>
             @if ($canManage)
                 <button wire:click="openCategoryForm" class="btn-glass-primary mt-3 text-xs"><x-icon name="plus" class="h-4 w-4" /> Add Category</button>
             @endif
@@ -351,11 +357,7 @@
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <select wire:model="task_currency" class="input-glass !w-24 shrink-0">
-                            @foreach (\App\Support\Currency::options() as $code => $symbol)
-                                <option value="{{ $code }}">{{ $code }}</option>
-                            @endforeach
-                        </select>
+                        <span class="input-glass !w-24 shrink-0 !cursor-default text-center text-white/50">{{ $project->currency }}</span>
                         @if ($task_pricing_mode === 'fixed')
                             <x-text-input wire:model="task_amount" type="number" min="0" step="0.01" class="mt-0 min-w-0 flex-1" placeholder="e.g. 15000" />
                         @else
@@ -485,11 +487,7 @@
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <select wire:model="approve_currency" class="input-glass !w-24 shrink-0">
-                            @foreach (\App\Support\Currency::options() as $code => $symbol)
-                                <option value="{{ $code }}">{{ $code }}</option>
-                            @endforeach
-                        </select>
+                        <span class="input-glass !w-24 shrink-0 !cursor-default text-center text-white/50">{{ $project->currency }}</span>
                         @if ($approve_mode === 'fixed')
                             <x-text-input wire:model="approve_amount" type="number" min="0" step="0.01" class="mt-0 min-w-0 flex-1" placeholder="e.g. 15000" />
                         @else
@@ -552,11 +550,7 @@
                 <button type="button" wire:click="$set('edit_amount_mode', 'hourly')" class="rounded-md px-2.5 py-1 {{ $edit_amount_mode === 'hourly' ? 'bg-gold-400/[0.16] text-gold-300' : 'text-white/55' }}">Hourly</button>
             </div>
             <div class="flex gap-2">
-                <select wire:model="edit_amount_currency" class="input-glass !w-24 shrink-0">
-                    @foreach (\App\Support\Currency::options() as $code => $symbol)
-                        <option value="{{ $code }}">{{ $code }}</option>
-                    @endforeach
-                </select>
+                <span class="input-glass !w-24 shrink-0 !cursor-default text-center text-white/50">{{ $project->currency }}</span>
                 @if ($edit_amount_mode === 'fixed')
                     <x-text-input wire:model="edit_amount_value" type="number" min="0" step="0.01" class="mt-0 min-w-0 flex-1" placeholder="e.g. 15000" />
                 @else
@@ -579,30 +573,6 @@
                 <x-input-label for="category_name" value="Category name" />
                 <x-text-input wire:model="category_name" id="category_name" type="text" class="mt-0" placeholder="e.g. Loyalty points engine" />
                 <x-input-error :messages="$errors->get('category_name')" class="mt-1" />
-            </div>
-            <div>
-                <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                    <x-input-label value="Estimated cost (optional)" class="!mb-0" />
-                    <div class="inline-flex rounded-lg border border-white/10 bg-white/5 p-0.5 text-[11px] font-semibold">
-                        <button type="button" wire:click="$set('category_pricing_mode', 'fixed')" class="rounded-md px-2.5 py-1 {{ $category_pricing_mode === 'fixed' ? 'bg-gold-400/[0.16] text-gold-300' : 'text-white/55' }}">Fixed amount</button>
-                        <button type="button" wire:click="$set('category_pricing_mode', 'hourly')" class="rounded-md px-2.5 py-1 {{ $category_pricing_mode === 'hourly' ? 'bg-gold-400/[0.16] text-gold-300' : 'text-white/55' }}">Hourly</button>
-                    </div>
-                </div>
-                <div class="flex gap-2">
-                    <select wire:model="category_currency" class="input-glass !w-24 shrink-0">
-                        @foreach (\App\Support\Currency::options() as $code => $symbol)
-                            <option value="{{ $code }}">{{ $code }}</option>
-                        @endforeach
-                    </select>
-                    @if ($category_pricing_mode === 'fixed')
-                        <x-text-input wire:model="category_estimated_amount" type="number" min="0" step="0.01" class="mt-0 min-w-0 flex-1" placeholder="Amount" />
-                    @else
-                        <x-text-input wire:model="category_estimated_hours" type="number" min="0" step="0.25" class="mt-0 min-w-0 flex-1" placeholder="Hours" />
-                        <x-text-input wire:model="category_estimated_rate" type="number" min="0" step="0.01" class="mt-0 min-w-0 flex-1" placeholder="Rate/hr" />
-                    @endif
-                </div>
-                <x-input-error :messages="$errors->get('category_estimated_amount')" class="mt-1" />
-                <x-input-error :messages="$errors->get('category_estimated_hours')" class="mt-1" />
             </div>
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>

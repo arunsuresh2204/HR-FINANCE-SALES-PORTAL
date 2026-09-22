@@ -524,6 +524,7 @@ class DemoDataSeeder extends Seeder
         $project1 = Project::create([
             'client_id' => $client1->id, 'created_by' => $sales1->id, 'assigned_to' => $owner4->id,
             'name' => 'PawCare Storefront Build', 'description' => 'Full e-commerce site for pet supplies.', 'status' => 'active',
+            'currency' => 'USD',
         ]);
         $project1->developers()->attach([$dev1->id, $dev2->id]);
 
@@ -543,8 +544,7 @@ class DemoDataSeeder extends Seeder
         // (Karthik as Manager, Sneha as Developer) and shows the Team Lead angle on
         // project2 (Vikram as Team Lead, Sneha as Developer under him).
         $storefrontCategory = ProjectCategory::create([
-            'project_id' => $project1->id, 'name' => 'Storefront Core Build', 'currency' => 'USD',
-            'estimated_amount' => 3200, 'created_by' => $owner4->id,
+            'project_id' => $project1->id, 'name' => 'Storefront Core Build', 'created_by' => $owner4->id,
         ]);
 
         $taskDone = Task::create([
