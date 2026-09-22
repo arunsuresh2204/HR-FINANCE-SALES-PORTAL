@@ -37,6 +37,7 @@
         .totals-table .label { color: #555; }
         .totals-table .value { text-align: right; }
         .totals-table .total-row td { border-top: 1px solid #999; font-weight: bold; font-size: 12px; padding-top: 8px; }
+        .totals-table .paid-label, .totals-table .paid-value { color: #2f8f4e; font-weight: bold; }
 
         .export-note { margin-top: 10px; font-size: 10px; color: #777; }
 
@@ -146,6 +147,9 @@
             <tr><td class="label">{{ $invoice->taxLabel() }} ({{ rtrim(rtrim(number_format((float) $invoice->tax_percent, 2), '0'), '.') }}%)</td><td class="value">{{ $invoice->money($invoice->total_amount - $invoice->amount) }}</td></tr>
         @endif
         <tr class="total-row"><td class="label">Total</td><td class="value">{{ $invoice->money($invoice->total_amount) }} {{ $invoice->currency }}</td></tr>
+        @if ($invoice->status === 'paid')
+            <tr><td class="label paid-label">Amount Paid</td><td class="value paid-value">{{ \App\Support\Currency::format($invoice->amount_paid, 'INR') }} INR</td></tr>
+        @endif
     </table>
 
     @if ($invoice->isExport())
