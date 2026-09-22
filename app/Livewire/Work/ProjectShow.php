@@ -46,7 +46,7 @@ class ProjectShow extends Component
 
     public ?int $task_category_id = null;
 
-    public ?int $task_assignee_id = null;
+    public array $task_assignee_ids = [];
 
     public string $task_start_date = '';
 
@@ -55,6 +55,8 @@ class ProjectShow extends Component
     public string $task_tags = '';
 
     public string $task_visibility = 'public';
+
+    public string $task_urgency = 'medium';
 
     public string $task_pricing_mode = 'fixed';
 
@@ -226,20 +228,22 @@ class ProjectShow extends Component
             $this->task_title = $task->title;
             $this->task_description = $task->description ?? '';
             $this->task_category_id = $task->category_id;
-            $this->task_assignee_id = $task->assignee_id;
+            $this->task_assignee_ids = $task->assignees->pluck('id')->all();
             $this->task_start_date = $task->start_date?->toDateString() ?? '';
             $this->task_end_date = $task->end_date?->toDateString() ?? '';
             $this->task_tags = $task->tags ? implode(', ', $task->tags) : '';
             $this->task_visibility = $task->visibility;
+            $this->task_urgency = $task->urgency;
         } else {
             $this->task_title = '';
             $this->task_description = '';
             $this->task_category_id = null;
-            $this->task_assignee_id = null;
+            $this->task_assignee_ids = [];
             $this->task_start_date = now()->toDateString();
             $this->task_end_date = now()->addDays(5)->toDateString();
             $this->task_tags = '';
             $this->task_visibility = 'public';
+            $this->task_urgency = 'medium';
             $this->task_pricing_mode = 'fixed';
             $this->task_amount = '';
             $this->task_currency = 'INR';
@@ -264,22 +268,20 @@ class ProjectShow extends Component
             'task_title' => 'required|string|max:255',
             'task_description' => 'nullable|string|max:2000',
             'task_category_id' => 'nullable|exists:project_categories,id',
-            'task_assignee_id' => 'nullable|exists:users,id',
+            'task_assignee_ids' => 'array',
+            'task_assignee_ids.*' => 'integer|exists:users,id',
             'task_start_date' => 'nullable|date',
             'task_end_date' => 'nullable|date|after_or_equal:task_start_date',
             'task_visibility' => 'required|in:public,private',
+            'task_urgency' => ['required', 'in:'.implode(',', array_keys(Task::URGENCIES))],
         ]);
 
-        $assigneeChanged = ! $editing || $this->task_assignee_id !== $editing->assignee_id;
+        $allowedAssigneeIds = $this->project->assignableUsersFor($authUser)->pluck('id');
 
-        if ($this->task_assignee_id && $assigneeChanged) {
-            $allowed = $this->project->assignableUsersFor($authUser)->contains('id', $this->task_assignee_id);
+        if (collect($this->task_assignee_ids)->diff($allowedAssigneeIds)->isNotEmpty()) {
+            $this->addError('task_assignee_ids', 'One or more selected people can\'t be assigned on this project.');
 
-            if (! $allowed) {
-                $this->addError('task_assignee_id', 'That person cannot be assigned on this project.');
-
-                return;
-            }
+            return;
         }
 
         $tags = collect(explode(',', $this->task_tags))->map(fn ($t) => trim($t))->filter()->values()->all();
@@ -288,15 +290,16 @@ class ProjectShow extends Component
             'title' => $this->task_title,
             'description' => $this->task_description ?: null,
             'category_id' => $this->task_category_id ?: null,
-            'assignee_id' => $this->task_assignee_id ?: null,
             'start_date' => $this->task_start_date ?: null,
             'end_date' => $this->task_end_date ?: null,
             'tags' => $tags,
             'visibility' => $this->task_visibility,
+            'urgency' => $this->task_urgency,
         ];
 
         if ($editing) {
             $editing->update($data);
+            $editing->assignees()->sync($this->task_assignee_ids);
             $this->showTaskModal = false;
             $this->dispatch('toast', message: 'Task updated.', type: 'success');
 
@@ -346,6 +349,8 @@ class ProjectShow extends Component
             'pending_approval' => $pendingApproval,
         ]);
 
+        $task->assignees()->sync($this->task_assignee_ids);
+
         $this->showTaskModal = false;
 
         if ($pendingApproval) {
@@ -393,7 +398,7 @@ class ProjectShow extends Component
         $task->update(['status' => $status]);
     }
 
-    public function setTaskAssignee(int $taskId, ?int $userId): void
+    public function toggleTaskAssignee(int $taskId, int $userId): void
     {
         $authUser = Auth::user();
         $task = $this->project->tasks()->find($taskId);
@@ -402,11 +407,26 @@ class ProjectShow extends Component
             return;
         }
 
-        if ($userId && ! $this->project->assignableUsersFor($authUser)->contains('id', $userId)) {
+        if (! $this->project->assignableUsersFor($authUser)->contains('id', $userId)) {
             return;
         }
 
-        $task->update(['assignee_id' => $userId]);
+        if ($task->assignees()->where('users.id', $userId)->exists()) {
+            $task->assignees()->detach($userId);
+        } else {
+            $task->assignees()->attach($userId);
+        }
+    }
+
+    public function setTaskUrgency(int $taskId, string $urgency): void
+    {
+        $task = $this->project->tasks()->find($taskId);
+
+        if (! $task || ! $task->canBeSeenBy(Auth::user()) || ! array_key_exists($urgency, Task::URGENCIES)) {
+            return;
+        }
+
+        $task->update(['urgency' => $urgency]);
     }
 
     public function setTaskVisibility(int $taskId, string $visibility): void
@@ -510,8 +530,8 @@ class ProjectShow extends Component
             'pending_approval' => false,
         ]);
 
-        Notification::send(
-            $task->assignee ?? $task->creator,
+        Notification::sendToMany(
+            $task->assignees->isNotEmpty() ? $task->assignees : collect([$task->creator]),
             'task_cancelled',
             'Task cancelled',
             "\"{$task->title}\" was cancelled: {$this->cancel_reason}",
@@ -780,7 +800,7 @@ class ProjectShow extends Component
         $isManager = $authUser->isManager() || $authUser->isSuperAdmin();
 
         $tasks = $this->project->tasks()
-            ->with(['category', 'assignee', 'creator', 'canceller', 'billingRequests'])
+            ->with(['category', 'assignees', 'creator', 'canceller', 'billingRequests'])
             ->get()
             ->filter(fn (Task $task) => $task->canBeSeenBy($authUser))
             ->values();

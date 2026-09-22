@@ -100,6 +100,13 @@
                                     @if ($task->cancelled)
                                         <span class="pill border-rose-400/20 bg-rose-400/15 text-rose-300">Cancelled</span>
                                     @endif
+                                    @php($urgencyClasses = match ($task->urgency) {
+                                        'urgent' => 'border-rose-400/30 bg-rose-400/15 text-rose-300',
+                                        'high' => 'border-amber-400/30 bg-amber-400/15 text-amber-300',
+                                        'low' => 'border-white/15 bg-white/5 text-white/40',
+                                        default => 'border-sky-400/20 bg-sky-400/15 text-sky-300',
+                                    })
+                                    <span class="pill {{ $urgencyClasses }}">{{ \App\Models\Task::URGENCIES[$task->urgency] ?? 'Medium' }}</span>
                                     @if ($task->category)
                                         <span class="pill border-gold-400/20 bg-gold-400/10 text-gold-300">{{ $task->category->name }}</span>
                                     @else
@@ -116,7 +123,7 @@
                                     @endif
                                 </div>
                                 <div class="mt-3 flex items-center justify-between text-xs text-white/45">
-                                    <span>{{ $task->assignee->name ?? 'Unassigned' }}</span>
+                                    <span class="truncate">{{ $task->assignees->pluck('name')->join(', ') ?: 'Unassigned' }}</span>
                                     <span class="{{ $weeksLate > 0 ? 'font-semibold text-rose-300' : '' }}">
                                         {{ $task->end_date?->format('M j') ?? '—' }}
                                         @if ($weeksLate > 0)
@@ -138,7 +145,7 @@
     @if ($tab === 'list')
         <div class="glass-card mt-4 overflow-x-auto !p-0">
             <table class="table-glass">
-                <thead><tr><th>Task</th><th>Category</th><th>Amount</th><th>Assignee</th><th>Status</th><th>Due</th></tr></thead>
+                <thead><tr><th>Task</th><th>Category</th><th>Amount</th><th>Assignees</th><th>Urgency</th><th>Status</th><th>Due</th></tr></thead>
                 <tbody>
                     @forelse ($tasks as $task)
                         <tr wire:click="openTaskDetail({{ $task->id }})" wire:key="task-row-{{ $task->id }}" class="cursor-pointer {{ $task->cancelled ? 'opacity-55' : '' }}">
@@ -159,12 +166,21 @@
                                 @else &mdash;
                                 @endif
                             </td>
-                            <td class="text-white/60">{{ $task->assignee->name ?? 'Unassigned' }}</td>
+                            <td class="text-white/60">{{ $task->assignees->pluck('name')->join(', ') ?: 'Unassigned' }}</td>
+                            <td>
+                                @php($urgencyClasses = match ($task->urgency) {
+                                    'urgent' => 'border-rose-400/30 bg-rose-400/15 text-rose-300',
+                                    'high' => 'border-amber-400/30 bg-amber-400/15 text-amber-300',
+                                    'low' => 'border-white/15 bg-white/5 text-white/40',
+                                    default => 'border-sky-400/20 bg-sky-400/15 text-sky-300',
+                                })
+                                <span class="pill {{ $urgencyClasses }}">{{ \App\Models\Task::URGENCIES[$task->urgency] ?? 'Medium' }}</span>
+                            </td>
                             <td><x-status-pill :status="$task->status" /></td>
                             <td class="text-white/60">{{ $task->end_date?->format('M j, Y') ?? '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="py-8 text-center text-white/40">No tasks yet — click New Task to add the first one.</td></tr>
+                        <tr><td colspan="7" class="py-8 text-center text-white/40">No tasks yet — click New Task to add the first one.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -290,15 +306,28 @@
                     </select>
                 </div>
                 <div>
-                    <x-input-label for="task_assignee_id" value="Assignee" />
-                    <select wire:model="task_assignee_id" id="task_assignee_id" class="input-glass">
-                        <option value="">Unassigned</option>
-                        @foreach ($assignableUsers as $user)
-                            <option value="{{ $user->id }}">{{ $user->name }}{{ $user->id === auth()->id() ? ' (you)' : '' }}</option>
+                    <x-input-label for="task_urgency" value="Urgency" />
+                    <select wire:model="task_urgency" id="task_urgency" class="input-glass">
+                        @foreach (\App\Models\Task::URGENCIES as $key => $label)
+                            <option value="{{ $key }}">{{ $label }}</option>
                         @endforeach
                     </select>
-                    <x-input-error :messages="$errors->get('task_assignee_id')" class="mt-1" />
                 </div>
+            </div>
+
+            <div>
+                <x-input-label value="Assignees" />
+                <div class="mt-1 max-h-40 space-y-1.5 overflow-y-auto rounded-xl border border-white/10 bg-white/5 p-2">
+                    @forelse ($assignableUsers as $user)
+                        <label class="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-white/80 hover:bg-white/5">
+                            <input type="checkbox" wire:model="task_assignee_ids" value="{{ $user->id }}" class="rounded border-white/20 bg-white/5 text-gold-400 focus:ring-gold-400/40">
+                            {{ $user->name }}{{ $user->id === auth()->id() ? ' (you)' : '' }}
+                        </label>
+                    @empty
+                        <p class="px-2 py-1.5 text-xs text-white/40">Nobody assignable on this project yet.</p>
+                    @endforelse
+                </div>
+                <x-input-error :messages="$errors->get('task_assignee_ids')" class="mt-1" />
             </div>
 
             <div>
@@ -395,15 +424,11 @@
                     </p>
                 </div>
                 <div>
-                    <p class="label-glass !mb-1">Assignee</p>
-                    <select x-on:change="$wire.setTaskAssignee({{ $task->id }}, $event.target.value || null)" class="input-glass !w-full !py-1 !text-xs">
-                        <option value="">Unassigned</option>
-                        @foreach ($assignableUsers as $user)
-                            <option value="{{ $user->id }}" @selected($task->assignee_id === $user->id)>{{ $user->name }}{{ $user->id === auth()->id() ? ' (you)' : '' }}</option>
+                    <p class="label-glass !mb-1">Urgency</p>
+                    <select x-on:change="$wire.setTaskUrgency({{ $task->id }}, $event.target.value)" class="input-glass !w-full !py-1 !text-xs">
+                        @foreach (\App\Models\Task::URGENCIES as $uKey => $uLabel)
+                            <option value="{{ $uKey }}" @selected($task->urgency === $uKey)>{{ $uLabel }}</option>
                         @endforeach
-                        @if ($task->assignee && ! $assignableUsers->contains('id', $task->assignee_id))
-                            <option value="{{ $task->assignee_id }}" selected>{{ $task->assignee->name }}</option>
-                        @endif
                     </select>
                 </div>
                 <div>
@@ -416,6 +441,20 @@
                 <div>
                     <p class="label-glass !mb-1">Dates</p>
                     <p class="text-white/80">{{ $task->start_date?->format('M j') }} &ndash; {{ $task->end_date?->format('M j') ?? '—' }}</p>
+                </div>
+            </div>
+
+            <div class="mt-4 border-t border-white/10 pt-4">
+                <p class="label-glass">Assignees <span class="normal-case text-white/30">&middot; click to toggle</span></p>
+                <div class="flex flex-wrap gap-1.5">
+                    @forelse ($assignableUsers as $user)
+                        @php($isAssigned = $task->assignees->contains('id', $user->id))
+                        <button type="button" wire:click="toggleTaskAssignee({{ $task->id }}, {{ $user->id }})" class="pill {{ $isAssigned ? 'border-gold-400/30 bg-gold-400/15 text-gold-300' : 'border-white/15 bg-white/5 text-white/40 hover:text-white/70' }}">
+                            {{ $user->name }}{{ $user->id === auth()->id() ? ' (you)' : '' }}
+                        </button>
+                    @empty
+                        <p class="text-xs text-white/40">Nobody assignable on this project yet.</p>
+                    @endforelse
                 </div>
             </div>
 

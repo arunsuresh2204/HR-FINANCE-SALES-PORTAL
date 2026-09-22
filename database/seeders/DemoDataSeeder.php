@@ -550,44 +550,50 @@ class DemoDataSeeder extends Seeder
         $taskDone = Task::create([
             'project_id' => $project1->id, 'category_id' => $storefrontCategory->id,
             'title' => 'Build product listing grid', 'description' => 'Responsive grid with filtering and pagination.',
-            'assignee_id' => $dev1->id, 'status' => 'done',
+            'status' => 'done', 'urgency' => 'medium',
             'start_date' => now()->subDays(10), 'end_date' => now()->subDays(3),
             'tags' => ['frontend', 'catalog'], 'amount' => 650, 'currency' => 'USD',
             'visibility' => 'public', 'created_by' => $owner4->id, 'pending_approval' => false,
             'ready_to_bill' => true,
         ]);
+        $taskDone->assignees()->attach($dev1->id);
 
-        Task::create([
+        $wishlistTask = Task::create([
             'project_id' => $project1->id, 'category_id' => $storefrontCategory->id,
             'title' => 'Add wishlist button to product page', 'description' => 'Heart icon toggle, persisted per session.',
-            'assignee_id' => $dev1->id, 'status' => 'backlog',
+            'status' => 'backlog', 'urgency' => 'low',
             'start_date' => now()->subDays(20), 'end_date' => now()->subDays(12),
             'tags' => ['frontend'], 'visibility' => 'public', 'created_by' => $dev1->id, 'pending_approval' => true,
         ]);
+        $wishlistTask->assignees()->attach($dev1->id);
 
-        Task::create([
+        // Shared between Sneha and Vikram — shows multiple developers on one task.
+        $checkoutTask = Task::create([
             'project_id' => $project1->id, 'title' => 'Refactor checkout API error handling',
             'description' => 'Retry logic and clearer error surfaces for payment failures.',
-            'assignee_id' => $dev1->id, 'status' => 'in_progress',
+            'status' => 'in_progress', 'urgency' => 'urgent',
             'start_date' => now()->subDays(2), 'end_date' => now()->addDays(3),
             'tags' => ['backend', 'payments'], 'visibility' => 'private', 'created_by' => $dev1->id, 'pending_approval' => true,
         ]);
+        $checkoutTask->assignees()->attach([$dev1->id, $dev2->id]);
 
-        Task::create([
+        $cleanupTask = Task::create([
             'project_id' => $project1->id, 'title' => 'Old prototype cleanup',
-            'assignee_id' => $dev1->id, 'status' => 'backlog',
+            'status' => 'backlog', 'urgency' => 'low',
             'visibility' => 'public', 'created_by' => $dev1->id, 'pending_approval' => false,
             'cancelled' => true, 'cancel_reason' => 'Superseded by the new requirements doc.',
             'cancelled_by' => $dev1->id, 'cancelled_at' => now()->subDay(),
         ]);
+        $cleanupTask->assignees()->attach($dev1->id);
 
-        Task::create([
+        $pushTask = Task::create([
             'project_id' => $project2->id, 'title' => 'Set up push notification service',
             'description' => 'FCM integration for booking reminders.',
-            'assignee_id' => $dev1->id, 'status' => 'todo',
+            'status' => 'todo', 'urgency' => 'high',
             'start_date' => now(), 'end_date' => now()->addDays(6),
             'tags' => ['mobile'], 'visibility' => 'public', 'created_by' => $dev2->id, 'pending_approval' => true,
         ]);
+        $pushTask->assignees()->attach($dev1->id);
 
         // Karthik marked the task above ready to bill — Priya (Sales) picked it up and
         // sent this billing request on to Finance, awaiting invoicing.

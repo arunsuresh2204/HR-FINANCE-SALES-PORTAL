@@ -8,8 +8,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Task extends Model
 {
+    public const URGENCIES = [
+        'low' => 'Low',
+        'medium' => 'Medium',
+        'high' => 'High',
+        'urgent' => 'Urgent',
+    ];
+
     protected $fillable = [
-        'project_id', 'category_id', 'title', 'description', 'assignee_id', 'status',
+        'project_id', 'category_id', 'title', 'description', 'status', 'urgency',
         'start_date', 'end_date', 'tags', 'amount', 'currency', 'hours', 'rate',
         'visibility', 'created_by', 'pending_approval',
         'cancelled', 'cancel_reason', 'cancelled_by', 'cancelled_at', 'ready_to_bill',
@@ -41,9 +48,9 @@ class Task extends Model
         return $this->belongsTo(ProjectCategory::class, 'category_id');
     }
 
-    public function assignee(): BelongsTo
+    public function assignees(): BelongsToMany
     {
-        return $this->belongsTo(User::class, 'assignee_id');
+        return $this->belongsToMany(User::class, 'task_assignees')->withTimestamps();
     }
 
     public function creator(): BelongsTo
