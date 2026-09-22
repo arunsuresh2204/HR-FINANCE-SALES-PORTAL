@@ -73,8 +73,9 @@ class Currency
      * the European comma-decimal/period-thousands style for EUR-like
      * currencies, and standard grouping otherwise.
      */
-    public static function format(float|string $amount, string $code = 'INR'): string
+    public static function format(float|string $amount, ?string $code = null): string
     {
+        $code ??= 'INR';
         $amount = (float) $amount;
         $currency = self::all()[$code] ?? null;
 
