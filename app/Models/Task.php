@@ -107,12 +107,13 @@ class Task extends Model
     }
 
     /**
-     * A Backlog task overdue on its own end date turns progressively redder —
+     * Any task still open past its own end date turns progressively redder —
      * light the first week, deeper each week after. Blade caps the tint tier.
+     * Done/cancelled tasks are excluded — they're no longer "in flight".
      */
     public function weeksLate(): int
     {
-        if ($this->status !== 'backlog' || ! $this->end_date) {
+        if ($this->cancelled || $this->status === 'done' || ! $this->end_date) {
             return 0;
         }
 
