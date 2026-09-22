@@ -9,13 +9,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class InvoiceAdjustment extends Model
 {
     protected $fillable = [
-        'invoice_id', 'type', 'amount', 'currency', 'reason', 'document_number', 'created_by',
+        'invoice_id', 'type', 'amount', 'native_amount', 'currency', 'reason', 'document_number', 'created_by',
     ];
 
     protected function casts(): array
     {
         return [
             'amount' => 'decimal:2',
+            'native_amount' => 'decimal:2',
         ];
     }
 
@@ -32,6 +33,21 @@ class InvoiceAdjustment extends Model
     public function money(): string
     {
         return \App\Support\Currency::format($this->amount, $this->currency);
+    }
+
+    /**
+     * For a refund against a foreign-currency invoice, the portion of the
+     * invoice's own total this refund reverses — null when not applicable
+     * (credit note/write-off, an INR invoice, or an older refund recorded
+     * before this was tracked).
+     */
+    public function nativeMoney(): ?string
+    {
+        if ($this->native_amount === null) {
+            return null;
+        }
+
+        return \App\Support\Currency::format($this->native_amount, $this->invoice->currency);
     }
 
     public function label(): string

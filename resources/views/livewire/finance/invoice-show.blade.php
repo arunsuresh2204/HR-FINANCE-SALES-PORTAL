@@ -54,7 +54,12 @@
                                     <span class="text-white/40">&middot; {{ $adjustment->document_number }}</span>
                                 @endif
                             </p>
-                            <p class="mt-1 text-sm text-white">{{ $adjustment->money() }}</p>
+                            <p class="mt-1 text-sm text-white">
+                                {{ $adjustment->money() }}
+                                @if ($adjustment->nativeMoney())
+                                    <span class="text-white/40">&middot; {{ $adjustment->nativeMoney() }} of the invoice reversed</span>
+                                @endif
+                            </p>
                             <p class="mt-1 text-sm text-white/60">{{ $adjustment->reason }}</p>
                             <p class="mt-1 text-xs text-white/30">{{ $adjustment->issuedBy?->name }} &middot; {{ $adjustment->created_at->format('M j, Y') }}</p>
                         </div>
@@ -139,8 +144,8 @@
                 <div class="flex justify-between border-t border-white/10 pt-1.5 text-base font-bold text-white"><span>Total</span><span>{{ $invoice->money($invoice->total_amount) }}</span></div>
                 <div class="flex justify-between text-emerald-300"><span>Received (INR)</span><span>{{ \App\Support\Currency::format($invoice->amount_paid, 'INR') }}</span></div>
                 <div class="flex justify-between font-semibold text-gold-300"><span>Balance Due</span><span>{{ $invoice->money($invoice->balanceDue()) }}</span></div>
-                @if ($invoice->currency !== 'INR' && ! $invoice->isClosed() && $invoice->status !== 'paid')
-                    <p class="text-right text-[11px] text-white/30">Full {{ $invoice->currency }} total until marked paid — receipts above are tracked in INR only.</p>
+                @if ($invoice->currency !== 'INR')
+                    <p class="text-right text-[11px] text-white/30">Based on the {{ $invoice->currency }} amount settled per payment/refund above — receipts themselves are tracked in INR only.</p>
                 @endif
             </div>
 
@@ -151,7 +156,12 @@
                         @foreach ($payments as $payment)
                             <div class="flex items-center justify-between text-sm">
                                 <span class="text-white/60">{{ $payment->payment_date->format('M j, Y') }} &middot; {{ $payment->recordedBy->name }}</span>
-                                <span class="{{ $payment->amount < 0 ? 'text-rose-300' : 'text-white' }}">{{ \App\Support\Currency::format($payment->amount, 'INR') }}</span>
+                                <span class="{{ $payment->amount < 0 ? 'text-rose-300' : 'text-white' }}">
+                                    {{ \App\Support\Currency::format($payment->amount, 'INR') }}
+                                    @if ($payment->nativeMoney())
+                                        <span class="text-white/40">&middot; {{ $payment->nativeMoney() }} settled</span>
+                                    @endif
+                                </span>
                             </div>
                         @endforeach
                     </div>
@@ -215,6 +225,14 @@
                     <p class="mt-1 text-xs text-white/40">Invoice total: {{ $invoice->money($invoice->total_amount) }} &mdash; enter what actually landed in the bank, in INR.</p>
                 @endif
             </div>
+            @if ($invoice->currency !== 'INR' && ! $payment_completes_invoice)
+                <div>
+                    <x-input-label :value="'Amount Settled ('.$invoice->currency.')'" for="payment_native_amount" />
+                    <x-text-input wire:model="payment_native_amount" id="payment_native_amount" type="number" step="0.01" class="mt-0" />
+                    <x-input-error :messages="$errors->get('payment_native_amount')" class="mt-1" />
+                    <p class="mt-1 text-xs text-white/40">How much of the {{ $invoice->money($invoice->balanceDue()) }} still due this payment settles &mdash; needed so Balance Due stays accurate.</p>
+                </div>
+            @endif
             <div>
                 <x-input-label value="Payment Date" for="payment_date" />
                 <x-text-input wire:model="payment_date" id="payment_date" type="date" class="mt-0" />
@@ -222,7 +240,7 @@
             </div>
             @if ($invoice->currency !== 'INR')
                 <label class="flex items-center gap-2 text-sm text-white/70">
-                    <input type="checkbox" wire:model="payment_completes_invoice" class="rounded border-white/20 bg-white/5 text-gold-400 focus:ring-gold-400/40">
+                    <input type="checkbox" wire:model.live="payment_completes_invoice" class="rounded border-white/20 bg-white/5 text-gold-400 focus:ring-gold-400/40">
                     This payment completes the invoice in full
                 </label>
             @endif
@@ -285,6 +303,14 @@
                 <x-text-input wire:model="adjustment_amount" id="adjustment_amount" type="number" step="0.01" class="mt-0" />
                 <x-input-error :messages="$errors->get('adjustment_amount')" class="mt-1" />
             </div>
+            @if ($adjustment_type === 'refund' && $invoice->currency !== 'INR')
+                <div>
+                    <x-input-label :value="'Amount Reversed ('.$invoice->currency.')'" for="adjustment_native_amount" />
+                    <x-text-input wire:model="adjustment_native_amount" id="adjustment_native_amount" type="number" step="0.01" class="mt-0" />
+                    <x-input-error :messages="$errors->get('adjustment_native_amount')" class="mt-1" />
+                    <p class="mt-1 text-xs text-white/40">How much of the {{ $invoice->currency }} total this refund undoes &mdash; needed so Balance Due stays accurate.</p>
+                </div>
+            @endif
             <div>
                 <x-input-label value="Reason" for="adjustment_reason" />
                 <textarea wire:model="adjustment_reason" id="adjustment_reason" rows="3" class="input-glass"></textarea>

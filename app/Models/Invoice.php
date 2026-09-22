@@ -19,7 +19,8 @@ class Invoice extends Model
 
     protected $fillable = [
         'billing_request_id', 'client_id', 'project_id', 'created_by', 'invoice_number', 'line_items',
-        'currency', 'amount', 'tax_percent', 'total_amount', 'amount_paid', 'due_date', 'status', 'pdf_path',
+        'currency', 'amount', 'tax_percent', 'total_amount', 'amount_paid', 'native_amount_settled',
+        'due_date', 'status', 'pdf_path',
     ];
 
     protected function casts(): array
@@ -31,6 +32,7 @@ class Invoice extends Model
             'tax_percent' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'amount_paid' => 'decimal:2',
+            'native_amount_settled' => 'decimal:2',
         ];
     }
 
@@ -91,10 +93,17 @@ class Invoice extends Model
      * comparable to total_amount; for a foreign-currency invoice it's a
      * running received-in-INR figure, so paid/partially_paid there is set
      * explicitly rather than derived by subtraction.
+     *
+     * native_amount_settled is the companion figure for a foreign-currency
+     * invoice: how much of its own total has actually been settled,
+     * entered directly by Finance per payment/refund since there's no
+     * stored FX rate to derive it from the INR figure above.
      */
     public function recalculatePaid(): void
     {
         $paid = (float) $this->payments()->sum('amount');
+        $nativeSettled = (float) $this->payments->sum('native_amount')
+            - (float) $this->adjustments->where('type', 'refund')->sum('native_amount');
         $status = $this->status;
 
         if (! in_array($status, self::CLOSED_STATUSES, true)) {
@@ -105,7 +114,7 @@ class Invoice extends Model
             }
         }
 
-        $this->update(['amount_paid' => $paid, 'status' => $status]);
+        $this->update(['amount_paid' => $paid, 'native_amount_settled' => $nativeSettled, 'status' => $status]);
     }
 
     /**
@@ -143,13 +152,13 @@ class Invoice extends Model
      * (post-credit/write-off) total — same currency, so plain subtraction
      * is correct, and it already reflects any refund since a refund is
      * recorded as a negative entry in the payments ledger amount_paid sums.
-     * For a foreign-currency invoice, amount_paid is a running INR-received
-     * figure (see recalculatePaid()) with no stored FX rate to convert it
-     * back to the invoice's own currency, so it's left out of this
-     * currency's math entirely — only credits/write-offs (already in the
-     * invoice's own currency) reduce what's due. Cancelled or explicitly
-     * marked paid always means nothing further is owed, regardless of the
-     * numbers above.
+     * For a foreign-currency invoice, amount_paid (always INR) can't be
+     * netted the same way — native_amount_settled is the figure Finance
+     * entered directly in the invoice's own currency for that purpose (see
+     * recalculatePaid()); it's 0 until they start entering it, so an older
+     * partial payment recorded before this existed won't net here until
+     * it's re-entered. Cancelled or explicitly marked paid always means
+     * nothing further is owed, regardless of the numbers above.
      */
     public function balanceDue(): float
     {
@@ -160,7 +169,7 @@ class Invoice extends Model
         $remaining = (float) $this->total_amount - $this->totalCreditedOrWrittenOff();
 
         if ($this->currency !== 'INR') {
-            return max(0.0, $remaining);
+            return max(0.0, $remaining - (float) $this->native_amount_settled);
         }
 
         return max(0.0, $remaining - (float) $this->amount_paid);

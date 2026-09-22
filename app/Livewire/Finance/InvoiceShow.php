@@ -18,6 +18,8 @@ class InvoiceShow extends Component
     #[Validate('required|numeric|min:0.01')]
     public string $payment_amount = '';
 
+    public string $payment_native_amount = '';
+
     #[Validate('required|date|before_or_equal:today')]
     public string $payment_date = '';
 
@@ -29,6 +31,8 @@ class InvoiceShow extends Component
 
     #[Validate('required|numeric|min:0.01')]
     public string $adjustment_amount = '';
+
+    public string $adjustment_native_amount = '';
 
     #[Validate('required|string|max:1000')]
     public string $adjustment_reason = '';
@@ -223,6 +227,7 @@ class InvoiceShow extends Component
     public function openPaymentForm(): void
     {
         $this->payment_amount = '';
+        $this->payment_native_amount = '';
         $this->payment_date = now()->toDateString();
         $this->payment_completes_invoice = false;
         $this->resetValidation();
@@ -238,6 +243,11 @@ class InvoiceShow extends Component
 
         if ($this->invoice->currency === 'INR') {
             $rules['payment_amount'] .= '|max:'.$this->invoice->balanceDue();
+        } elseif (! $this->payment_completes_invoice) {
+            // Without this, there's no way to know how much of the
+            // invoice's own (non-INR) total this INR payment actually
+            // settles — see Invoice::balanceDue().
+            $rules['payment_native_amount'] = ['required', 'numeric', 'min:0.01', 'max:'.max(0.01, $this->invoice->balanceDue())];
         }
 
         $this->validate($rules);
@@ -245,6 +255,7 @@ class InvoiceShow extends Component
         $this->invoice->payments()->create([
             'recorded_by' => Auth::id(),
             'amount' => $this->payment_amount,
+            'native_amount' => $this->invoice->currency === 'INR' ? $this->payment_amount : ($this->payment_native_amount ?: null),
             'payment_date' => $this->payment_date,
         ]);
 
@@ -280,6 +291,7 @@ class InvoiceShow extends Component
             $type === 'refund' ? (float) $this->invoice->amount_paid : max(0, $this->invoice->balanceDue()),
             2, '.', ''
         );
+        $this->adjustment_native_amount = '';
         $this->adjustment_reason = '';
         $this->resetValidation();
         $this->showAdjustmentForm = true;
@@ -307,10 +319,20 @@ class InvoiceShow extends Component
             ? (float) $this->invoice->amount_paid
             : (float) $this->invoice->total_amount - $this->invoice->totalCreditedOrWrittenOff();
 
-        $this->validate([
+        $rules = [
             'adjustment_amount' => ['required', 'numeric', 'min:0.01', 'max:'.max(0.01, $cap)],
             'adjustment_reason' => 'required|string|max:1000',
-        ]);
+        ];
+
+        // A refund on a foreign-currency invoice also needs to know how
+        // much of the invoice's own total it reverses — otherwise
+        // Invoice::balanceDue() has no way to reflect it, same issue as a
+        // partial payment. Capped at what's actually on record as settled.
+        if ($this->adjustment_type === 'refund' && $this->invoice->currency !== 'INR') {
+            $rules['adjustment_native_amount'] = ['required', 'numeric', 'min:0.01', 'max:'.max(0.01, (float) $this->invoice->native_amount_settled)];
+        }
+
+        $this->validate($rules);
 
         $status = $this->adjustment_type === 'refund' ? 'refunded' : $this->adjustment_type;
 
@@ -323,6 +345,9 @@ class InvoiceShow extends Component
         $adjustment = $this->invoice->adjustments()->create([
             'type' => $this->adjustment_type,
             'amount' => $this->adjustment_amount,
+            'native_amount' => $this->adjustment_type === 'refund' && $this->invoice->currency !== 'INR'
+                ? $this->adjustment_native_amount
+                : null,
             'currency' => $this->adjustment_type === 'refund' ? 'INR' : $this->invoice->currency,
             'reason' => $this->adjustment_reason,
             'document_number' => $documentNumber,
@@ -343,10 +368,11 @@ class InvoiceShow extends Component
                 'notes' => 'Refund: '.$this->adjustment_reason,
             ]);
 
-            // Keep the received-to-date figure in sync without letting the
-            // usual paid/partially_paid recompute clobber the 'refunded'
-            // status just set above.
-            $this->invoice->update(['amount_paid' => (float) $this->invoice->payments()->sum('amount')]);
+            // Keep amount_paid and native_amount_settled in sync without
+            // letting the usual auto status-transition clobber the
+            // 'refunded' status just set above (recalculatePaid() already
+            // skips that for a closed status).
+            $this->invoice->recalculatePaid();
         }
 
         $this->showAdjustmentForm = false;
