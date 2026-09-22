@@ -233,7 +233,7 @@
                                 @forelse (($categorySubtotals[$category->id] ?? []) as $currencyCode => $sum)
                                     {{ !$loop->first ? ' + ' : '' }}{{ \App\Support\Currency::format($sum, $currencyCode) }}
                                 @empty
-                                    {{ \App\Support\Currency::format(0, $category->currency) }}
+                                    {{ \App\Support\Currency::format(0, $project->currency) }}
                                 @endforelse
                             </span>
                         @endif
