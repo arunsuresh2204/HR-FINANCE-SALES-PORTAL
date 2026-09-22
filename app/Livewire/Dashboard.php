@@ -75,7 +75,10 @@ class Dashboard extends Component
 
         if ($user->can('access_finance_admin')) {
             $data['pendingBillingRequests'] = BillingRequest::where('status', 'pending')->count();
-            $data['outstandingInvoices'] = Invoice::whereIn('status', ['sent', 'partially_paid', 'overdue'])->get()->sum(fn ($i) => $i->balanceDue());
+            $data['outstandingInvoicesByCurrency'] = Invoice::whereIn('status', ['sent', 'partially_paid', 'overdue'])
+                ->get()
+                ->groupBy('currency')
+                ->map(fn ($group) => $group->sum(fn ($i) => $i->balanceDue()));
             $data['pendingExpenseApprovals'] = Expense::where('status', 'pending')->count();
             $data['revenueThisMonth'] = Invoice::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->sum('amount_paid');
         }

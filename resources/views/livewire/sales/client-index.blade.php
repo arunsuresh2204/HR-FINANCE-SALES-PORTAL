@@ -47,7 +47,14 @@
                     <p class="text-sm text-white/45">{{ $client->business_type ?? 'Client' }}</p>
                     <div class="mt-3 flex items-center justify-between text-xs text-white/40">
                         <span>{{ $client->salesPerson->name }}</span>
-                        <span class="font-semibold text-gold-300">${{ number_format($client->totalInvoiced(), 0) }} invoiced</span>
+                        <span class="font-semibold text-gold-300">
+                            @forelse ($client->invoicedByCurrency() as $currencyCode => $sum)
+                                {{ !$loop->first ? ' + ' : '' }}{{ \App\Support\Currency::format($sum, $currencyCode) }}
+                            @empty
+                                {{ \App\Support\Currency::format(0, 'INR') }}
+                            @endforelse
+                            invoiced
+                        </span>
                     </div>
                 </a>
             @empty
@@ -82,7 +89,13 @@
                                         <span class="text-white/25">—</span>
                                     @endif
                                 </td>
-                                <td class="font-semibold text-gold-300">${{ number_format($client->totalInvoiced(), 0) }}</td>
+                                <td class="font-semibold text-gold-300">
+                                    @forelse ($client->invoicedByCurrency() as $currencyCode => $sum)
+                                        {{ !$loop->first ? ' + ' : '' }}{{ \App\Support\Currency::format($sum, $currencyCode) }}
+                                    @empty
+                                        {{ \App\Support\Currency::format(0, 'INR') }}
+                                    @endforelse
+                                </td>
                                 <td class="text-right"><a href="{{ route('sales.clients.show', $client) }}" wire:navigate class="text-xs font-semibold text-gold-300 hover:text-gold-200">Open</a></td>
                             </tr>
                         @empty

@@ -57,6 +57,22 @@ class Client extends Model
         return (float) $this->invoices()->sum('total_amount');
     }
 
+    /**
+     * Invoiced total per currency — a client can be billed in more than one
+     * currency (e.g. an INR project and a USD one), so a single summed
+     * figure would silently add unlike currencies together. Keyed by
+     * currency code.
+     */
+    public function invoicedByCurrency(): \Illuminate\Support\Collection
+    {
+        return $this->invoices->groupBy('currency')->map(fn ($group) => (float) $group->sum('total_amount'));
+    }
+
+    /**
+     * amount_paid is always recorded in INR regardless of the invoice's own
+     * currency (see Invoice::recalculatePaid()), so this sum is already a
+     * single valid figure — no per-currency breakdown needed.
+     */
     public function totalPaid(): float
     {
         return (float) $this->invoices()->sum('amount_paid');

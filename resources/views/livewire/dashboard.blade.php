@@ -71,7 +71,7 @@
             @endif
             @if (auth()->user()->can('access_finance_admin'))
                 <x-stat-card label="Pending Billing Requests" :value="$pendingBillingRequests" icon="inbox" accent="sky" :href="route('finance.billing-requests')" />
-                <x-stat-card label="Outstanding Invoices" value="${{ number_format($outstandingInvoices, 2) }}" icon="cash" accent="rose" :href="route('finance.invoices')" />
+                <x-stat-card label="Outstanding Invoices" value="{{ $outstandingInvoicesByCurrency->map(fn ($sum, $code) => \App\Support\Currency::format($sum, $code))->join(' + ') ?: \App\Support\Currency::format(0, 'INR') }}" icon="cash" accent="rose" :href="route('finance.invoices')" />
                 <x-stat-card label="Pending Expense Approvals" :value="$pendingExpenseApprovals" icon="receipt" accent="violet" :href="route('finance.expenses')" />
                 <x-stat-card label="Revenue This Month" value="{{ \App\Support\Currency::format($revenueThisMonth, 'INR') }}" icon="wallet" accent="emerald" :href="route('finance.reports')" />
             @endif
