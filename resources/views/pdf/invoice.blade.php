@@ -38,6 +38,7 @@
         .totals-table .value { text-align: right; }
         .totals-table .total-row td { border-top: 1px solid #999; font-weight: bold; font-size: 12px; padding-top: 8px; }
         .totals-table .paid-label, .totals-table .paid-value { color: #2f8f4e; font-weight: bold; }
+        .totals-table .paid-native { font-size: 9px; font-weight: normal; color: #6ba97f; }
 
         .export-note { margin-top: 10px; font-size: 10px; color: #777; }
 
@@ -148,7 +149,15 @@
         @endif
         <tr class="total-row"><td class="label">Total</td><td class="value">{{ $invoice->money($invoice->total_amount) }} {{ $invoice->currency }}</td></tr>
         @if ((float) $invoice->amount_paid > 0)
-            <tr><td class="label paid-label">Amount Paid</td><td class="value paid-value">{{ \App\Support\Currency::format($invoice->amount_paid, 'INR') }} INR</td></tr>
+            <tr>
+                <td class="label paid-label">Amount Paid</td>
+                <td class="value paid-value">
+                    {{ \App\Support\Currency::format($invoice->amount_paid, 'INR') }} INR
+                    @if ($invoice->currency !== 'INR' && (float) $invoice->native_amount_settled > 0)
+                        <div class="paid-native">({{ $invoice->money($invoice->native_amount_settled) }} settled)</div>
+                    @endif
+                </td>
+            </tr>
         @endif
     </table>
 
