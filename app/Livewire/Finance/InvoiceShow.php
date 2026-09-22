@@ -306,6 +306,12 @@ class InvoiceShow extends Component
 
         $status = $this->adjustment_type === 'refund' ? 'refunded' : $this->adjustment_type;
 
+        $documentNumber = match ($this->adjustment_type) {
+            'credit_note' => Invoice::nextCreditNoteNumber(),
+            'refund' => Invoice::nextRefundVoucherNumber(),
+            default => null,
+        };
+
         $this->invoice->update([
             'status' => $status,
             'adjustment_type' => $this->adjustment_type,
@@ -313,6 +319,7 @@ class InvoiceShow extends Component
             'adjustment_reason' => $this->adjustment_reason,
             'adjustment_at' => now(),
             'adjusted_by' => Auth::id(),
+            'adjustment_document_number' => $documentNumber,
         ]);
 
         // A refund pays real money back out, so it nets against the

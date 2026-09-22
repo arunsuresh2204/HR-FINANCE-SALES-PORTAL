@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\CreditNotePdfController;
 use App\Http\Controllers\ExpenseExportController;
 use App\Http\Controllers\InvoiceExportController;
 use App\Http\Controllers\InvoicePdfController;
 use App\Http\Controllers\PayrollExportController;
 use App\Http\Controllers\PayslipPdfController;
+use App\Http\Controllers\RefundVoucherPdfController;
 use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\Lead;
@@ -110,6 +112,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             return view('pages.finance.invoice-show', compact('invoice'));
         })->name('invoices.show');
         Route::get('invoices/{invoice}/pdf', InvoicePdfController::class)->name('invoices.pdf');
+        Route::get('invoices/{invoice}/credit-note', CreditNotePdfController::class)->name('invoices.credit-note-pdf');
+        Route::get('invoices/{invoice}/refund-voucher', RefundVoucherPdfController::class)->name('invoices.refund-voucher-pdf');
         Route::view('expenses', 'pages.finance.expense-approvals')->name('expenses');
         Route::view('operational-expenses', 'pages.finance.operational-expenses')->name('operational-expenses');
         Route::view('payroll', 'pages.finance.payroll-run')->name('payroll');

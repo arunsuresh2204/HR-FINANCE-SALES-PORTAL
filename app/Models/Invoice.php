@@ -21,6 +21,7 @@ class Invoice extends Model
         'billing_request_id', 'client_id', 'project_id', 'created_by', 'invoice_number', 'line_items',
         'currency', 'amount', 'tax_percent', 'total_amount', 'amount_paid', 'due_date', 'status', 'pdf_path',
         'adjustment_type', 'adjustment_amount', 'adjustment_reason', 'adjustment_at', 'adjusted_by',
+        'adjustment_document_number',
     ];
 
     protected function casts(): array
@@ -251,5 +252,58 @@ class Invoice extends Model
         $count = static::whereBetween('created_at', [$fyStart, $fyEnd])->count();
 
         return 'INV-'.$fyStartYear.'-'.str_pad((string) ($count + 1), 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * The next credit note number, numbered within the Indian financial
+     * year it's issued in (CN-2026-0001, ...), independent of the invoice
+     * number sequence.
+     */
+    public static function nextCreditNoteNumber(): string
+    {
+        return static::nextAdjustmentDocumentNumber('credit_note', 'CN');
+    }
+
+    /**
+     * The next refund voucher number, same scheme as a credit note but its
+     * own sequence (RV-2026-0001, ...).
+     */
+    public static function nextRefundVoucherNumber(): string
+    {
+        return static::nextAdjustmentDocumentNumber('refund', 'RV');
+    }
+
+    protected static function nextAdjustmentDocumentNumber(string $adjustmentType, string $prefix): string
+    {
+        $today = now();
+        $fyStartYear = $today->month >= 4 ? $today->year : $today->year - 1;
+        $fyStart = Carbon::create($fyStartYear, 4, 1)->startOfDay();
+        $fyEnd = Carbon::create($fyStartYear + 1, 3, 31)->endOfDay();
+
+        $count = static::where('adjustment_type', $adjustmentType)
+            ->whereBetween('adjustment_at', [$fyStart, $fyEnd])
+            ->count();
+
+        return $prefix.'-'.$fyStartYear.'-'.str_pad((string) ($count + 1), 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Splits a credit note's flat adjustment amount into taxable value and
+     * GST, backing out the split using the original invoice's tax rate —
+     * the credited amount is treated as tax-inclusive, same as the invoice
+     * total it reduces. For a zero-rated export invoice (tax_percent = 0)
+     * the whole amount is taxable value with no GST component.
+     */
+    public function creditNoteBreakdown(): array
+    {
+        $total = (float) $this->adjustment_amount;
+        $taxPercent = (float) $this->tax_percent;
+        $taxable = $taxPercent > 0 ? $total / (1 + $taxPercent / 100) : $total;
+
+        return [
+            'taxable' => round($taxable, 2),
+            'tax' => round($total - $taxable, 2),
+            'total' => $total,
+        ];
     }
 }
