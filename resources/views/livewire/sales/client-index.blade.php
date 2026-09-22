@@ -36,7 +36,8 @@
     @if ($view === 'grid')
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @forelse ($clients as $client)
-                <a href="{{ route('sales.clients.show', $client) }}" wire:navigate class="glass-card-hover">
+                @php $draftInvoiceCount = $client->invoices->where('status', 'draft')->count(); @endphp
+                <a href="{{ route('sales.clients.show', $client) }}{{ $draftInvoiceCount > 0 ? '#invoices' : '' }}" wire:navigate class="glass-card-hover">
                     <div class="flex items-start justify-between">
                         <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/15 text-sky-300"><x-icon name="briefcase" class="h-5 w-5" /></span>
                         @if ($client->agreement_file)
@@ -44,7 +45,16 @@
                         @endif
                     </div>
                     <p class="mt-3 font-semibold text-white">{{ $client->business_name }}</p>
+                    @if ($client->owner_name)
+                        <p class="text-xs text-white/40">Contact: {{ $client->owner_name }}</p>
+                    @endif
                     <p class="text-sm text-white/45">{{ $client->business_type ?? 'Client' }}</p>
+                    @if ($draftInvoiceCount > 0)
+                        <span class="mt-2 inline-flex items-center gap-1 rounded-lg border border-amber-400/25 bg-amber-400/10 px-2 py-1 text-[11px] font-semibold text-amber-300">
+                            <x-icon name="warning" class="h-3 w-3" />
+                            {{ $draftInvoiceCount }} invoice{{ $draftInvoiceCount > 1 ? 's' : '' }} awaiting send
+                        </span>
+                    @endif
                     <div class="mt-3 flex items-center justify-between text-xs text-white/40">
                         <span>{{ $client->salesPerson->name }}</span>
                         <span class="font-semibold text-gold-300">
@@ -78,8 +88,20 @@
                     </thead>
                     <tbody>
                         @forelse ($clients as $client)
+                            @php $draftInvoiceCount = $client->invoices->where('status', 'draft')->count(); @endphp
                             <tr wire:key="client-row-{{ $client->id }}" onclick="if (!event.target.closest('a')) { Livewire.navigate('{{ route('sales.clients.show', $client) }}') }" class="cursor-pointer">
-                                <td class="font-medium text-white">{{ $client->business_name }}</td>
+                                <td class="font-medium text-white">
+                                    {{ $client->business_name }}
+                                    @if ($client->owner_name)
+                                        <span class="block text-xs font-normal text-white/40">Contact: {{ $client->owner_name }}</span>
+                                    @endif
+                                    @if ($draftInvoiceCount > 0)
+                                        <a href="{{ route('sales.clients.show', $client) }}#invoices" wire:navigate class="mt-1 inline-flex items-center gap-1 rounded-lg border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
+                                            <x-icon name="warning" class="h-3 w-3" />
+                                            {{ $draftInvoiceCount }} invoice{{ $draftInvoiceCount > 1 ? 's' : '' }} awaiting send
+                                        </a>
+                                    @endif
+                                </td>
                                 <td class="text-white/60">{{ $client->business_type ?? '—' }}</td>
                                 <td class="text-white/60">{{ $client->salesPerson->name }}</td>
                                 <td>

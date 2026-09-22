@@ -156,7 +156,7 @@
                 @endif
             </div>
 
-            <div class="glass-card">
+            <div class="glass-card" id="invoices">
                 <h2 class="mb-4 text-base font-bold text-white">Invoices</h2>
                 <div class="space-y-2">
                     @forelse ($invoices as $invoice)

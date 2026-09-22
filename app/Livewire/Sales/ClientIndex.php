@@ -73,7 +73,10 @@ class ClientIndex extends Component
         }
 
         if ($this->search) {
-            $query->where('business_name', 'like', "%{$this->search}%");
+            $query->where(function ($q) {
+                $q->where('business_name', 'like', "%{$this->search}%")
+                    ->orWhere('owner_name', 'like', "%{$this->search}%");
+            });
         }
 
         return view('livewire.sales.client-index', [
