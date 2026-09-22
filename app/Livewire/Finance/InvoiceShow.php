@@ -272,12 +272,13 @@ class InvoiceShow extends Component
         }
 
         $this->adjustment_type = $type;
-        $this->adjustment_amount = number_format(match (true) {
-            // A refund gives back what was actually received.
-            $type === 'refund' => (float) $this->invoice->amount_paid,
-            $this->invoice->currency === 'INR' => max(0, $this->invoice->balanceDue()),
-            default => (float) $this->invoice->total_amount,
-        }, 2, '.', '');
+        $this->adjustment_amount = number_format(
+            // A refund gives back what was actually received; a credit
+            // note or write-off reduces what's still owed in the
+            // invoice's own currency.
+            $type === 'refund' ? (float) $this->invoice->amount_paid : max(0, $this->invoice->balanceDue()),
+            2, '.', ''
+        );
         $this->adjustment_reason = '';
         $this->resetValidation();
         $this->showAdjustmentForm = true;

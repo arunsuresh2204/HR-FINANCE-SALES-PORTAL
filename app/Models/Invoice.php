@@ -105,9 +105,27 @@ class Invoice extends Model
         $this->update(['amount_paid' => $paid, 'status' => $status]);
     }
 
+    /**
+     * For an INR invoice, amount_paid nets directly against total_amount —
+     * same currency, so plain subtraction is correct. For a foreign-currency
+     * invoice, amount_paid is a running INR-received figure (see
+     * recalculatePaid()) with no stored FX rate to convert it back to the
+     * invoice's own currency, so subtracting it here would silently mix
+     * currencies. Once closed or explicitly marked paid there's nothing
+     * further owed either way; otherwise a foreign invoice's balance due is
+     * simply its full native-currency total until Finance marks it paid.
+     */
     public function balanceDue(): float
     {
-        return (float) $this->total_amount - (float) $this->amount_paid;
+        if ($this->isClosed() || $this->status === 'paid') {
+            return 0.0;
+        }
+
+        if ($this->currency !== 'INR') {
+            return (float) $this->total_amount;
+        }
+
+        return max(0.0, (float) $this->total_amount - (float) $this->amount_paid);
     }
 
     public function isClosed(): bool

@@ -32,7 +32,7 @@ class InvoiceExportController extends Controller
                 'Invoice Number', 'Invoice Date', 'Due Date', 'Client', 'Client Tax ID',
                 'Currency', 'Subtotal', 'Tax %', 'Tax Amount', 'Total Amount',
                 'Amount Paid (INR)', 'Balance Due', 'Status', 'Adjustment Type',
-                'Adjustment Amount (INR)', 'Adjustment Reason', 'Adjustment Date',
+                'Adjustment Amount (invoice currency, or INR for a refund)', 'Adjustment Reason', 'Adjustment Date',
             ]);
 
             foreach ($invoices as $invoice) {

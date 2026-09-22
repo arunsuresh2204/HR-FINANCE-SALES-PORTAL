@@ -42,7 +42,7 @@
         <div class="glass-card mb-6 border border-rose-400/20">
             <p class="text-xs font-semibold uppercase tracking-wide text-rose-300">{{ str($invoice->status)->replace('_', ' ')->title() }}</p>
             @if ($invoice->adjustment_amount)
-                <p class="mt-1 text-sm text-white">{{ \App\Support\Currency::format($invoice->adjustment_amount, 'INR') }}</p>
+                <p class="mt-1 text-sm text-white">{{ \App\Support\Currency::format($invoice->adjustment_amount, $invoice->adjustment_type === 'refund' ? 'INR' : $invoice->currency) }}</p>
             @endif
             @if ($invoice->adjustment_reason)
                 <p class="mt-1 text-sm text-white/60">{{ $invoice->adjustment_reason }}</p>
@@ -120,8 +120,9 @@
                 <div class="flex justify-between text-white/60"><span>{{ $invoice->taxLabel() }} ({{ rtrim(rtrim(number_format((float) $invoice->tax_percent, 2), '0'), '.') }}%)</span><span>{{ $invoice->money($invoice->total_amount - $invoice->amount) }}</span></div>
                 <div class="flex justify-between border-t border-white/10 pt-1.5 text-base font-bold text-white"><span>Total</span><span>{{ $invoice->money($invoice->total_amount) }}</span></div>
                 <div class="flex justify-between text-emerald-300"><span>Received (INR)</span><span>{{ \App\Support\Currency::format($invoice->amount_paid, 'INR') }}</span></div>
-                @if ($invoice->currency === 'INR')
-                    <div class="flex justify-between font-semibold text-gold-300"><span>Balance Due</span><span>{{ $invoice->money($invoice->balanceDue()) }}</span></div>
+                <div class="flex justify-between font-semibold text-gold-300"><span>Balance Due</span><span>{{ $invoice->money($invoice->balanceDue()) }}</span></div>
+                @if ($invoice->currency !== 'INR' && ! $invoice->isClosed() && $invoice->status !== 'paid')
+                    <p class="text-right text-[11px] text-white/30">Full {{ $invoice->currency }} total until marked paid — receipts above are tracked in INR only.</p>
                 @endif
             </div>
 
@@ -262,7 +263,7 @@
     <x-modal-glass wire-model="showAdjustmentForm" :title="match($adjustment_type) { 'credit_note' => 'Issue Credit Note', 'refund' => 'Record Refund', 'written_off' => 'Write Off Invoice', default => 'Adjust Invoice' }">
         <form wire:submit="saveAdjustment" class="space-y-4">
             <div>
-                <x-input-label value="Amount (INR)" for="adjustment_amount" />
+                <x-input-label :value="'Amount ('.($adjustment_type === 'refund' ? 'INR' : $invoice->currency).')'" for="adjustment_amount" />
                 <x-text-input wire:model="adjustment_amount" id="adjustment_amount" type="number" step="0.01" class="mt-0" />
                 <x-input-error :messages="$errors->get('adjustment_amount')" class="mt-1" />
             </div>
