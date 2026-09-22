@@ -112,8 +112,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             return view('pages.finance.invoice-show', compact('invoice'));
         })->name('invoices.show');
         Route::get('invoices/{invoice}/pdf', InvoicePdfController::class)->name('invoices.pdf');
-        Route::get('invoices/{invoice}/credit-note', CreditNotePdfController::class)->name('invoices.credit-note-pdf');
-        Route::get('invoices/{invoice}/refund-voucher', RefundVoucherPdfController::class)->name('invoices.refund-voucher-pdf');
+        Route::get('invoices/{invoice}/adjustments/{adjustment}/credit-note', CreditNotePdfController::class)->name('invoices.credit-note-pdf');
+        Route::get('invoices/{invoice}/adjustments/{adjustment}/refund-voucher', RefundVoucherPdfController::class)->name('invoices.refund-voucher-pdf');
         Route::view('expenses', 'pages.finance.expense-approvals')->name('expenses');
         Route::view('operational-expenses', 'pages.finance.operational-expenses')->name('operational-expenses');
         Route::view('payroll', 'pages.finance.payroll-run')->name('payroll');

@@ -62,13 +62,13 @@
             <td style="width: 45%;">
                 <div class="doc-title">Credit Note</div>
                 <table class="no-border meta-row" style="margin-top: 10px;">
-                    <tr><td class="meta-label">Credit Note #</td><td class="meta-value">{{ $invoice->adjustment_document_number }}</td></tr>
-                    <tr><td class="meta-label">Date issued</td><td class="meta-value">{{ $invoice->adjustment_at->format('d-M-Y') }}</td></tr>
+                    <tr><td class="meta-label">Credit Note #</td><td class="meta-value">{{ $adjustment->document_number }}</td></tr>
+                    <tr><td class="meta-label">Date issued</td><td class="meta-value">{{ $adjustment->created_at->format('d-M-Y') }}</td></tr>
                     <tr><td class="meta-label">Against Invoice</td><td class="meta-value">{{ $invoice->invoice_number }}</td></tr>
                 </table>
                 <div class="amount-box">
                     <div class="amount-label">Total credited:</div>
-                    <div class="amount-value">{{ $invoice->money($invoice->adjustment_amount) }}</div>
+                    <div class="amount-value">{{ $adjustment->money() }}</div>
                 </div>
             </td>
         </tr>
@@ -89,15 +89,15 @@
     @endif
 
     <div class="reason-label">Reason</div>
-    <div class="reason-text">{{ $invoice->adjustment_reason }}</div>
+    <div class="reason-text">{{ $adjustment->reason }}</div>
 
-    @php $breakdown = $invoice->creditNoteBreakdown(); @endphp
+    @php $breakdown = $adjustment->taxBreakdown(); @endphp
     <table class="totals-table">
         <tr><td class="label">Taxable Value</td><td class="value">{{ $invoice->money($breakdown['taxable']) }}</td></tr>
         @if ((float) $invoice->tax_percent > 0)
             <tr><td class="label">{{ $invoice->taxLabel() }} ({{ rtrim(rtrim(number_format((float) $invoice->tax_percent, 2), '0'), '.') }}%)</td><td class="value">{{ $invoice->money($breakdown['tax']) }}</td></tr>
         @endif
-        <tr class="total-row"><td class="label">Total Credited</td><td class="value">{{ $invoice->money($breakdown['total']) }} {{ $invoice->currency }}</td></tr>
+        <tr class="total-row"><td class="label">Total Credited</td><td class="value">{{ $invoice->money($breakdown['total']) }} {{ $adjustment->currency }}</td></tr>
     </table>
 
     @if ($invoice->isExport())

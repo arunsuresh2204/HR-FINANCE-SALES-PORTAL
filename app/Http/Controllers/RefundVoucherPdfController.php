@@ -4,19 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\FinanceSetting;
 use App\Models\Invoice;
+use App\Models\InvoiceAdjustment;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class RefundVoucherPdfController extends Controller
 {
-    public function __invoke(Invoice $invoice)
+    public function __invoke(Invoice $invoice, InvoiceAdjustment $adjustment)
     {
-        abort_unless($invoice->adjustment_type === 'refund' && $invoice->adjustment_document_number, 404);
+        abort_unless($adjustment->invoice_id === $invoice->id && $adjustment->type === 'refund', 404);
 
         $pdf = Pdf::loadView('pdf.refund-voucher', [
             'invoice' => $invoice->load('client'),
+            'adjustment' => $adjustment,
             'financeSetting' => FinanceSetting::current(),
         ]);
 
-        return $pdf->stream("{$invoice->adjustment_document_number}.pdf");
+        return $pdf->stream("{$adjustment->document_number}.pdf");
     }
 }

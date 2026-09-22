@@ -20,8 +20,6 @@ class Invoice extends Model
     protected $fillable = [
         'billing_request_id', 'client_id', 'project_id', 'created_by', 'invoice_number', 'line_items',
         'currency', 'amount', 'tax_percent', 'total_amount', 'amount_paid', 'due_date', 'status', 'pdf_path',
-        'adjustment_type', 'adjustment_amount', 'adjustment_reason', 'adjustment_at', 'adjusted_by',
-        'adjustment_document_number',
     ];
 
     protected function casts(): array
@@ -33,8 +31,6 @@ class Invoice extends Model
             'tax_percent' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'amount_paid' => 'decimal:2',
-            'adjustment_amount' => 'decimal:2',
-            'adjustment_at' => 'datetime',
         ];
     }
 
@@ -58,9 +54,15 @@ class Invoice extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function adjustedBy(): BelongsTo
+    /**
+     * Every credit note, refund, and write-off ever issued against this
+     * invoice, oldest first — an invoice can carry more than one over its
+     * life (e.g. a partial credit note now, a further write-off later),
+     * unlike the single adjustment slot this replaced.
+     */
+    public function adjustments(): HasMany
     {
-        return $this->belongsTo(User::class, 'adjusted_by');
+        return $this->hasMany(InvoiceAdjustment::class)->oldest();
     }
 
     public function payments(): HasMany
@@ -107,26 +109,61 @@ class Invoice extends Model
     }
 
     /**
-     * For an INR invoice, amount_paid nets directly against total_amount —
-     * same currency, so plain subtraction is correct. For a foreign-currency
-     * invoice, amount_paid is a running INR-received figure (see
-     * recalculatePaid()) with no stored FX rate to convert it back to the
-     * invoice's own currency, so subtracting it here would silently mix
-     * currencies. Once closed or explicitly marked paid there's nothing
-     * further owed either way; otherwise a foreign invoice's balance due is
-     * simply its full native-currency total until Finance marks it paid.
+     * Credit notes and write-offs both reduce what's actually owed, in the
+     * invoice's own currency (unlike a refund, which is cash paid back and
+     * doesn't change what was owed).
+     */
+    public function totalCreditedOrWrittenOff(): float
+    {
+        return $this->totalCredited() + $this->totalWrittenOff();
+    }
+
+    public function totalCredited(): float
+    {
+        return (float) $this->adjustments->where('type', 'credit_note')->sum('amount');
+    }
+
+    public function totalWrittenOff(): float
+    {
+        return (float) $this->adjustments->where('type', 'written_off')->sum('amount');
+    }
+
+    public function totalRefunded(): float
+    {
+        return (float) $this->adjustments->where('type', 'refund')->sum('amount');
+    }
+
+    public function hasAdjustments(): bool
+    {
+        return $this->adjustments->isNotEmpty();
+    }
+
+    /**
+     * For an INR invoice, amount_paid nets directly against the remaining
+     * (post-credit/write-off) total — same currency, so plain subtraction
+     * is correct, and it already reflects any refund since a refund is
+     * recorded as a negative entry in the payments ledger amount_paid sums.
+     * For a foreign-currency invoice, amount_paid is a running INR-received
+     * figure (see recalculatePaid()) with no stored FX rate to convert it
+     * back to the invoice's own currency, so it's left out of this
+     * currency's math entirely — only credits/write-offs (already in the
+     * invoice's own currency) reduce what's due. Cancelled or explicitly
+     * marked paid always means nothing further is owed, regardless of the
+     * numbers above.
      */
     public function balanceDue(): float
     {
-        if ($this->isClosed() || $this->status === 'paid') {
+        if (in_array($this->status, ['cancelled', 'paid'], true)) {
             return 0.0;
         }
 
+        $remaining = (float) $this->total_amount - $this->totalCreditedOrWrittenOff();
+
         if ($this->currency !== 'INR') {
-            return (float) $this->total_amount;
+            return max(0.0, $remaining);
         }
 
-        return max(0.0, (float) $this->total_amount - (float) $this->amount_paid);
+        return max(0.0, $remaining - (float) $this->amount_paid);
     }
 
     public function isClosed(): bool
@@ -165,31 +202,45 @@ class Invoice extends Model
 
     /**
      * A credit note records a reduction in what's owed. It only makes
-     * sense once an invoice has actually gone out (not a draft) and
-     * hasn't already been closed some other way.
+     * sense once an invoice has actually gone out (not a draft, not
+     * cancelled) and there's still something left to credit — a second
+     * credit note is fine as long as it, together with any write-off,
+     * hasn't already covered the full original total. Whether the invoice
+     * has since been fully paid or refunded doesn't block it: crediting an
+     * already-paid invoice is a normal precursor to then refunding that
+     * amount, not a contradiction.
      */
     public function canIssueCreditNote(): bool
     {
-        return ! $this->isClosed() && $this->status !== 'draft';
+        return $this->status !== 'cancelled'
+            && $this->status !== 'draft'
+            && $this->totalCreditedOrWrittenOff() < (float) $this->total_amount - 0.004;
     }
 
     /**
      * A refund gives back money that was actually received, so it only
-     * applies once some payment has landed.
+     * applies while there's still received cash on the books that hasn't
+     * already been refunded — amount_paid already nets out any prior
+     * refund (each one is a negative entry in the payments ledger), so
+     * this naturally allows a second, smaller refund and blocks a further
+     * one once fully refunded. Issuing a credit note first doesn't block
+     * this — crediting what's owed and refunding cash already received are
+     * independent actions that commonly happen together.
      */
     public function canRecordRefund(): bool
     {
-        return ! $this->isClosed() && (float) $this->amount_paid > 0;
+        return $this->status !== 'cancelled' && (float) $this->amount_paid > 0;
     }
 
     /**
      * Writing off is abandoning collection of an outstanding balance, so
-     * it doesn't apply to a draft (never sent) or an invoice that's
-     * already fully paid - there's nothing left to write off.
+     * it doesn't apply to a draft (never sent), a cancelled invoice, or
+     * one with nothing left owing — including a balance already brought to
+     * zero by a prior credit note or payment.
      */
     public function canBeWrittenOff(): bool
     {
-        return ! $this->isClosed() && $this->status !== 'draft' && $this->balanceDue() > 0.004;
+        return $this->status !== 'cancelled' && $this->status !== 'draft' && $this->balanceDue() > 0.004;
     }
 
     public function isOverdue(): bool
@@ -254,56 +305,4 @@ class Invoice extends Model
         return 'INV-'.$fyStartYear.'-'.str_pad((string) ($count + 1), 4, '0', STR_PAD_LEFT);
     }
 
-    /**
-     * The next credit note number, numbered within the Indian financial
-     * year it's issued in (CN-2026-0001, ...), independent of the invoice
-     * number sequence.
-     */
-    public static function nextCreditNoteNumber(): string
-    {
-        return static::nextAdjustmentDocumentNumber('credit_note', 'CN');
-    }
-
-    /**
-     * The next refund voucher number, same scheme as a credit note but its
-     * own sequence (RV-2026-0001, ...).
-     */
-    public static function nextRefundVoucherNumber(): string
-    {
-        return static::nextAdjustmentDocumentNumber('refund', 'RV');
-    }
-
-    protected static function nextAdjustmentDocumentNumber(string $adjustmentType, string $prefix): string
-    {
-        $today = now();
-        $fyStartYear = $today->month >= 4 ? $today->year : $today->year - 1;
-        $fyStart = Carbon::create($fyStartYear, 4, 1)->startOfDay();
-        $fyEnd = Carbon::create($fyStartYear + 1, 3, 31)->endOfDay();
-
-        $count = static::where('adjustment_type', $adjustmentType)
-            ->whereBetween('adjustment_at', [$fyStart, $fyEnd])
-            ->count();
-
-        return $prefix.'-'.$fyStartYear.'-'.str_pad((string) ($count + 1), 4, '0', STR_PAD_LEFT);
-    }
-
-    /**
-     * Splits a credit note's flat adjustment amount into taxable value and
-     * GST, backing out the split using the original invoice's tax rate —
-     * the credited amount is treated as tax-inclusive, same as the invoice
-     * total it reduces. For a zero-rated export invoice (tax_percent = 0)
-     * the whole amount is taxable value with no GST component.
-     */
-    public function creditNoteBreakdown(): array
-    {
-        $total = (float) $this->adjustment_amount;
-        $taxPercent = (float) $this->tax_percent;
-        $taxable = $taxPercent > 0 ? $total / (1 + $taxPercent / 100) : $total;
-
-        return [
-            'taxable' => round($taxable, 2),
-            'tax' => round($total - $taxable, 2),
-            'total' => $total,
-        ];
-    }
 }

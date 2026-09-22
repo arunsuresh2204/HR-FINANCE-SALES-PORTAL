@@ -38,29 +38,33 @@
         </div>
     @endif
 
-    @if ($invoice->isClosed())
+    @if ($adjustments->isNotEmpty())
         <div class="glass-card mb-6 border border-rose-400/20">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-wide text-rose-300">
-                        {{ str($invoice->status)->replace('_', ' ')->title() }}
-                        @if ($invoice->adjustment_document_number)
-                            <span class="text-white/40">&middot; {{ $invoice->adjustment_document_number }}</span>
+            <div class="mb-3 flex items-center justify-between">
+                <p class="text-xs font-semibold uppercase tracking-wide text-rose-300">Adjustment History</p>
+                <p class="text-xs font-semibold text-white/50">Net Amount Due: <span class="text-white">{{ $invoice->money($invoice->balanceDue()) }}</span></p>
+            </div>
+            <div class="space-y-3">
+                @foreach ($adjustments as $adjustment)
+                    <div class="glass-inset flex items-start justify-between gap-3 p-3">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-rose-300">
+                                {{ $adjustment->label() }}
+                                @if ($adjustment->document_number)
+                                    <span class="text-white/40">&middot; {{ $adjustment->document_number }}</span>
+                                @endif
+                            </p>
+                            <p class="mt-1 text-sm text-white">{{ $adjustment->money() }}</p>
+                            <p class="mt-1 text-sm text-white/60">{{ $adjustment->reason }}</p>
+                            <p class="mt-1 text-xs text-white/30">{{ $adjustment->issuedBy?->name }} &middot; {{ $adjustment->created_at->format('M j, Y') }}</p>
+                        </div>
+                        @if ($adjustment->type === 'credit_note')
+                            <a href="{{ route('finance.invoices.credit-note-pdf', [$invoice, $adjustment]) }}" target="_blank" class="btn-glass-secondary shrink-0 text-xs"><x-icon name="document" class="h-4 w-4" /> PDF</a>
+                        @elseif ($adjustment->type === 'refund')
+                            <a href="{{ route('finance.invoices.refund-voucher-pdf', [$invoice, $adjustment]) }}" target="_blank" class="btn-glass-secondary shrink-0 text-xs"><x-icon name="document" class="h-4 w-4" /> PDF</a>
                         @endif
-                    </p>
-                    @if ($invoice->adjustment_amount)
-                        <p class="mt-1 text-sm text-white">{{ \App\Support\Currency::format($invoice->adjustment_amount, $invoice->adjustment_type === 'refund' ? 'INR' : $invoice->currency) }}</p>
-                    @endif
-                    @if ($invoice->adjustment_reason)
-                        <p class="mt-1 text-sm text-white/60">{{ $invoice->adjustment_reason }}</p>
-                    @endif
-                    <p class="mt-1 text-xs text-white/30">{{ $invoice->adjustedBy?->name }} &middot; {{ $invoice->adjustment_at?->format('M j, Y') }}</p>
-                </div>
-                @if ($invoice->adjustment_type === 'credit_note' && $invoice->adjustment_document_number)
-                    <a href="{{ route('finance.invoices.credit-note-pdf', $invoice) }}" target="_blank" class="btn-glass-secondary shrink-0"><x-icon name="document" class="h-4 w-4" /> Credit Note PDF</a>
-                @elseif ($invoice->adjustment_type === 'refund' && $invoice->adjustment_document_number)
-                    <a href="{{ route('finance.invoices.refund-voucher-pdf', $invoice) }}" target="_blank" class="btn-glass-secondary shrink-0"><x-icon name="document" class="h-4 w-4" /> Refund Voucher PDF</a>
-                @endif
+                    </div>
+                @endforeach
             </div>
         </div>
     @endif

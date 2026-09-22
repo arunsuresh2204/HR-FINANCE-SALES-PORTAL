@@ -18,7 +18,7 @@ class InvoiceExportController extends Controller
     {
         [$from, $to] = $this->dateRange($request);
 
-        $invoices = Invoice::with('client')
+        $invoices = Invoice::with('client', 'adjustments')
             ->whereBetween('created_at', [$from, $to])
             ->orderBy('created_at')
             ->get();
@@ -31,11 +31,13 @@ class InvoiceExportController extends Controller
             fputcsv($out, [
                 'Invoice Number', 'Invoice Date', 'Due Date', 'Client', 'Client Tax ID',
                 'Currency', 'Subtotal', 'Tax %', 'Tax Amount', 'Total Amount',
-                'Amount Paid (INR)', 'Balance Due', 'Status', 'Adjustment Type',
-                'Adjustment Amount (invoice currency, or INR for a refund)', 'Adjustment Reason', 'Adjustment Date',
+                'Amount Paid (INR)', 'Balance Due', 'Status', 'Total Credited (invoice currency)',
+                'Total Refunded (INR)', 'Total Written Off (invoice currency)', 'Adjustment Count', 'Latest Adjustment Date',
             ]);
 
             foreach ($invoices as $invoice) {
+                $latestAdjustment = $invoice->adjustments->last();
+
                 fputcsv($out, [
                     $invoice->invoice_number,
                     $invoice->created_at->format('Y-m-d'),
@@ -50,10 +52,11 @@ class InvoiceExportController extends Controller
                     number_format((float) $invoice->amount_paid, 2, '.', ''),
                     number_format($invoice->balanceDue(), 2, '.', ''),
                     $invoice->status,
-                    $invoice->adjustment_type,
-                    $invoice->adjustment_amount !== null ? number_format((float) $invoice->adjustment_amount, 2, '.', '') : null,
-                    $invoice->adjustment_reason,
-                    $invoice->adjustment_at?->format('Y-m-d'),
+                    number_format($invoice->totalCredited(), 2, '.', ''),
+                    number_format($invoice->totalRefunded(), 2, '.', ''),
+                    number_format($invoice->totalWrittenOff(), 2, '.', ''),
+                    $invoice->adjustments->count(),
+                    $latestAdjustment?->created_at->format('Y-m-d'),
                 ]);
             }
 
@@ -67,7 +70,7 @@ class InvoiceExportController extends Controller
     {
         [$from, $to] = $this->dateRange($request);
 
-        $invoices = Invoice::with('client')
+        $invoices = Invoice::with('client', 'adjustments')
             ->whereBetween('created_at', [$from, $to])
             ->orderBy('created_at')
             ->get();

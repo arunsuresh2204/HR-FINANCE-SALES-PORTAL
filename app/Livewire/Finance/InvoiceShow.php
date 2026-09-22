@@ -3,6 +3,7 @@
 namespace App\Livewire\Finance;
 
 use App\Models\Invoice;
+use App\Models\InvoiceAdjustment;
 use App\Models\Payment;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Validate;
@@ -299,28 +300,36 @@ class InvoiceShow extends Component
             return;
         }
 
+        // A credit note or write-off can't credit more than is still left
+        // to credit; a refund can't give back more than was actually
+        // received and not already refunded.
+        $cap = $this->adjustment_type === 'refund'
+            ? (float) $this->invoice->amount_paid
+            : (float) $this->invoice->total_amount - $this->invoice->totalCreditedOrWrittenOff();
+
         $this->validate([
-            'adjustment_amount' => 'required|numeric|min:0.01',
+            'adjustment_amount' => ['required', 'numeric', 'min:0.01', 'max:'.max(0.01, $cap)],
             'adjustment_reason' => 'required|string|max:1000',
         ]);
 
         $status = $this->adjustment_type === 'refund' ? 'refunded' : $this->adjustment_type;
 
         $documentNumber = match ($this->adjustment_type) {
-            'credit_note' => Invoice::nextCreditNoteNumber(),
-            'refund' => Invoice::nextRefundVoucherNumber(),
+            'credit_note' => InvoiceAdjustment::nextCreditNoteNumber(),
+            'refund' => InvoiceAdjustment::nextRefundVoucherNumber(),
             default => null,
         };
 
-        $this->invoice->update([
-            'status' => $status,
-            'adjustment_type' => $this->adjustment_type,
-            'adjustment_amount' => $this->adjustment_amount,
-            'adjustment_reason' => $this->adjustment_reason,
-            'adjustment_at' => now(),
-            'adjusted_by' => Auth::id(),
-            'adjustment_document_number' => $documentNumber,
+        $adjustment = $this->invoice->adjustments()->create([
+            'type' => $this->adjustment_type,
+            'amount' => $this->adjustment_amount,
+            'currency' => $this->adjustment_type === 'refund' ? 'INR' : $this->invoice->currency,
+            'reason' => $this->adjustment_reason,
+            'document_number' => $documentNumber,
+            'created_by' => Auth::id(),
         ]);
+
+        $this->invoice->update(['status' => $status]);
 
         // A refund pays real money back out, so it nets against the
         // salesperson's target for the month it happens; a credit note
@@ -329,7 +338,7 @@ class InvoiceShow extends Component
         if ($this->adjustment_type === 'refund') {
             $this->invoice->payments()->create([
                 'recorded_by' => Auth::id(),
-                'amount' => -abs((float) $this->adjustment_amount),
+                'amount' => -abs((float) $adjustment->amount),
                 'payment_date' => now()->toDateString(),
                 'notes' => 'Refund: '.$this->adjustment_reason,
             ]);
@@ -357,6 +366,7 @@ class InvoiceShow extends Component
             'payments' => $this->invoice->payments()->with('recordedBy')->latest('payment_date')->get(),
             'pendingEditRequest' => $this->invoice->editRequests()->where('status', 'pending')->with('requestedBy')->latest()->first(),
             'amountChanges' => $this->invoice->amountChanges()->with('changedBy')->latest()->get(),
+            'adjustments' => $this->invoice->adjustments()->with('issuedBy')->get(),
         ]);
     }
 }

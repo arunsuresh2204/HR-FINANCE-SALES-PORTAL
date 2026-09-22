@@ -40,6 +40,14 @@
 
         .export-note { margin-top: 10px; font-size: 10px; color: #777; }
 
+        .adjustments-box { margin-top: 18px; border: 1px solid #e3b8c2; border-radius: 4px; padding: 10px 14px; background: #fdf3f5; }
+        .adjustments-title { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; color: #b03052; margin-bottom: 6px; }
+        .adjustments-table td { padding: 3px 4px; font-size: 10px; border: none; }
+        .adjustments-table .adj-label { color: #333; }
+        .adjustments-table .adj-date { color: #777; }
+        .adjustments-table .adj-amount { text-align: right; }
+        .adjustments-table .adj-total-row td { border-top: 1px solid #e3b8c2; font-weight: bold; padding-top: 6px; }
+
         .footer-columns { margin-top: 40px; }
         .footer-columns td { vertical-align: top; width: 50%; padding-right: 20px; }
         .footer-heading { font-weight: bold; margin-bottom: 8px; }
@@ -142,6 +150,30 @@
 
     @if ($invoice->isExport())
         <p class="export-note" style="text-align: right;">{{ $invoice->taxLabel() }}: 0% &mdash; Export of IT services is treated as zero-rated supply (Section 16, IGST Act).</p>
+    @endif
+
+    @if ($invoice->adjustments->isNotEmpty())
+        <div class="adjustments-box">
+            <div class="adjustments-title">This invoice has been adjusted</div>
+            <table class="adjustments-table">
+                @foreach ($invoice->adjustments as $adjustment)
+                    <tr>
+                        <td class="adj-label">
+                            {{ $adjustment->label() }}
+                            @if ($adjustment->document_number)
+                                {{ $adjustment->document_number }}
+                            @endif
+                        </td>
+                        <td class="adj-date">{{ $adjustment->created_at->format('d-M-Y') }}</td>
+                        <td class="adj-amount">{{ $adjustment->money() }}</td>
+                    </tr>
+                @endforeach
+                <tr class="adj-total-row">
+                    <td colspan="2" class="adj-label">Net Amount Due</td>
+                    <td class="adj-amount">{{ $invoice->money($invoice->balanceDue()) }}</td>
+                </tr>
+            </table>
+        </div>
     @endif
 
     <table class="footer-columns no-border">
