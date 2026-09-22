@@ -70,12 +70,38 @@ class BillingRequest extends Model
         return $this->billedTasks->isNotEmpty();
     }
 
+    /**
+     * The distinct projects billed by this request. A task-based request
+     * can span several projects belonging to the same client (bundled by
+     * Sales into one invoice); a legacy/non-task request has at most the
+     * single stored `project`.
+     */
+    public function projects(): \Illuminate\Support\Collection
+    {
+        if ($this->isFromTask()) {
+            return $this->billedTasks->loadMissing('project')->pluck('project')->filter()->unique('id')->values();
+        }
+
+        return $this->project ? collect([$this->project]) : collect();
+    }
+
+    public function projectsLabel(): ?string
+    {
+        $names = $this->projects()->pluck('name');
+
+        return match (true) {
+            $names->isEmpty() => null,
+            $names->count() === 1 => $names->first(),
+            default => $names->implode(' + '),
+        };
+    }
+
     public function summary(): string
     {
         if ($this->isFromTask()) {
             $count = $this->billedTasks->count();
 
-            return $count.' '.str('task')->plural($count).' — '.($this->project->name ?? 'billed');
+            return $count.' '.str('task')->plural($count).' — '.($this->projectsLabel() ?? 'billed');
         }
 
         if ($this->isHourly()) {

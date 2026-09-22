@@ -199,8 +199,8 @@
                                 <x-status-pill :status="$br->status" />
                             </div>
                             <p class="mt-1 text-xs text-white/45">{{ $br->summary() }}</p>
-                            @if ($br->project)
-                                <p class="mt-1 text-[11px] text-white/30">Project: {{ $br->project->name }}</p>
+                            @if (! $br->isFromTask() && $br->projectsLabel())
+                                <p class="mt-1 text-[11px] text-white/30">Project: {{ $br->projectsLabel() }}</p>
                             @endif
                             <div class="mt-1 flex items-center justify-between">
                                 <p class="text-[11px] text-white/30">{{ $br->created_at->format('M j, Y') }}</p>

@@ -96,8 +96,8 @@
             <div class="mb-4 flex items-center justify-between">
                 <div>
                     <h2 class="text-base font-bold text-white">Line Items</h2>
-                    @if ($invoice->project)
-                        <p class="mt-0.5 text-xs text-white/40">Project: {{ $invoice->project->name }}</p>
+                    @if ($invoice->projectsLabel())
+                        <p class="mt-0.5 text-xs text-white/40">Project: {{ $invoice->projectsLabel() }}</p>
                     @endif
                 </div>
                 <x-status-pill :status="$invoice->isOverdue() ? 'overdue' : $invoice->status" />

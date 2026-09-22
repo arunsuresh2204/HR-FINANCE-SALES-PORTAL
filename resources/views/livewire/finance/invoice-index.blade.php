@@ -118,8 +118,8 @@
                                     <input type="checkbox" wire:model="selectedBillingRequestIds" value="{{ $br->id }}" class="rounded border-white/20 bg-white/5 text-gold-400 focus:ring-gold-400/40">
                                     <span>
                                         {{ $br->summary() }}
-                                        @if ($br->project)
-                                            <span class="text-white/30">&middot; {{ $br->project->name }}</span>
+                                        @if (! $br->isFromTask() && $br->projectsLabel())
+                                            <span class="text-white/30">&middot; {{ $br->projectsLabel() }}</span>
                                         @endif
                                     </span>
                                 </span>

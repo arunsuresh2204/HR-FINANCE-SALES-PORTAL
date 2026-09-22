@@ -109,8 +109,8 @@
     @if ($invoice->client->tax_id)
         <div class="muted">{{ $invoice->clientTaxIdLabel() }}: {{ $invoice->client->tax_id }}</div>
     @endif
-    @if ($invoice->project)
-        <div class="muted" style="margin-top: 6px;">Project: {{ $invoice->project->name }}</div>
+    @if ($invoice->projectsLabel())
+        <div class="muted" style="margin-top: 6px;">Project: {{ $invoice->projectsLabel() }}</div>
     @endif
 
     <table class="items-table">

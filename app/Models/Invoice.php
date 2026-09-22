@@ -203,6 +203,21 @@ class Invoice extends Model
     }
 
     /**
+     * The billed project(s), by name. A single-project invoice has
+     * `project_id` set directly; one bundled from tasks across several of a
+     * client's projects has it null and derives the label from the source
+     * billing request instead.
+     */
+    public function projectsLabel(): ?string
+    {
+        if ($this->project) {
+            return $this->project->name;
+        }
+
+        return $this->billingRequest?->projectsLabel();
+    }
+
+    /**
      * The next invoice number, numbered within the Indian financial year
      * (April 1 - March 31) it's issued in — e.g. INV-2026-0001 for the
      * first invoice of FY2026-27, resetting to INV-2027-0001 once

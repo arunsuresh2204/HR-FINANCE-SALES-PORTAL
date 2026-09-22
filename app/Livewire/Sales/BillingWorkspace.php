@@ -5,7 +5,6 @@ namespace App\Livewire\Sales;
 use App\Models\BillingRequest;
 use App\Models\Client;
 use App\Models\Notification;
-use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,8 +14,6 @@ use Livewire\Component;
 class BillingWorkspace extends Component
 {
     public ?int $viewingClientId = null;
-
-    public ?int $viewingProjectId = null;
 
     public array $selectedTaskIds = [];
 
@@ -54,41 +51,66 @@ class BillingWorkspace extends Component
         }
 
         $this->viewingClientId = $clientId;
-        $this->viewingProjectId = null;
         $this->selectedTaskIds = [];
     }
 
     public function backToClients(): void
     {
         $this->viewingClientId = null;
-        $this->viewingProjectId = null;
         $this->selectedTaskIds = [];
     }
 
-    public function viewProject(int $projectId): void
+    /**
+     * Tasks across a client's projects can only be bundled into one billing
+     * request when they share a currency — a bundle can't be split across
+     * two invoices in two currencies. Toggling in a task that would break
+     * that is blocked outright, with a warning, rather than letting the
+     * mismatch happen and only catching it at submit time.
+     */
+    public function toggleTaskSelection(int $taskId): void
     {
-        $project = Project::find($projectId);
+        if (in_array($taskId, $this->selectedTaskIds, true)) {
+            $this->selectedTaskIds = array_values(array_diff($this->selectedTaskIds, [$taskId]));
 
-        if (! $project || $project->client_id !== $this->viewingClientId) {
             return;
         }
 
-        $this->viewingProjectId = $projectId;
-        $this->selectedTaskIds = [];
-    }
+        if (! $this->viewingClientId) {
+            return;
+        }
 
-    public function backToProjects(): void
-    {
-        $this->viewingProjectId = null;
-        $this->selectedTaskIds = [];
+        $task = $this->unclaimedReadyTasks()
+            ->whereKey($taskId)
+            ->whereHas('project', fn ($q) => $q->where('client_id', $this->viewingClientId))
+            ->first();
+
+        if (! $task) {
+            return;
+        }
+
+        if ($this->selectedTaskIds) {
+            $currentCurrency = Task::whereKey($this->selectedTaskIds)->value('currency');
+
+            if ($currentCurrency && $currentCurrency !== $task->currency) {
+                $this->dispatch(
+                    'toast',
+                    message: "Can't bundle a {$task->currency} task with your current {$currentCurrency} selection — different currencies can't share one invoice. Bill it separately.",
+                    type: 'error'
+                );
+
+                return;
+            }
+        }
+
+        $this->selectedTaskIds[] = $taskId;
     }
 
     public function createBillingRequest(): void
     {
         $authUser = Auth::user();
-        $project = $this->viewingProjectId ? Project::with('client')->find($this->viewingProjectId) : null;
+        $client = $this->viewingClientId ? Client::find($this->viewingClientId) : null;
 
-        if (! $project || $project->client_id !== $this->viewingClientId || ! $this->visibleClients()->whereKey($project->client_id)->exists()) {
+        if (! $client || ! $this->visibleClients()->whereKey($client->id)->exists()) {
             return;
         }
 
@@ -99,8 +121,9 @@ class BillingWorkspace extends Component
         }
 
         $tasks = $this->unclaimedReadyTasks()
-            ->where('project_id', $project->id)
+            ->whereHas('project', fn ($q) => $q->where('client_id', $client->id))
             ->whereIn('id', $this->selectedTaskIds)
+            ->with('project')
             ->get();
 
         if ($tasks->isEmpty()) {
@@ -117,14 +140,17 @@ class BillingWorkspace extends Component
             return;
         }
 
+        $projects = $tasks->pluck('project')->unique('id')->values();
+        $projectsLabel = $projects->count() === 1 ? $projects->first()->name : $projects->count().' projects — '.$projects->pluck('name')->implode(', ');
+
         $billingRequest = BillingRequest::create([
-            'client_id' => $project->client_id,
-            'project_id' => $project->id,
+            'client_id' => $client->id,
+            'project_id' => $projects->count() === 1 ? $projects->first()->id : null,
             'created_by' => $authUser->id,
             'currency' => $currencies->first(),
             'billing_type' => 'milestone',
             'amount' => $tasks->sum(fn (Task $t) => $t->effectiveAmount()),
-            'milestone_description' => $tasks->count().' '.str('task')->plural($tasks->count()).' — '.$project->name,
+            'milestone_description' => $tasks->count().' '.str('task')->plural($tasks->count()).' — '.$projectsLabel,
             'status' => 'pending',
         ]);
 
@@ -134,7 +160,7 @@ class BillingWorkspace extends Component
             User::role(['finance_admin', 'super_admin'])->get(),
             'billing_request_ready',
             'New billing request',
-            $project->client->business_name.' — '.$project->name,
+            $client->business_name.' — '.$projectsLabel,
             route('finance.billing-requests')
         );
 
@@ -160,52 +186,32 @@ class BillingWorkspace extends Component
             ->values();
 
         $viewingClient = null;
-        $projects = collect();
-        $viewingProject = null;
-        $readyTasks = collect();
+        $tasksByProject = collect();
 
         if ($this->viewingClientId && $clientIds->contains($this->viewingClientId)) {
             $viewingClient = Client::find($this->viewingClientId);
 
-            $projectIds = $viewingClient->projects()->pluck('id');
+            $readyTasks = $this->unclaimedReadyTasks()
+                ->whereHas('project', fn ($q) => $q->where('client_id', $this->viewingClientId))
+                ->with(['project', 'category'])
+                ->orderBy('end_date')
+                ->get();
 
-            $readyCountsByProject = $this->unclaimedReadyTasks()
-                ->whereIn('project_id', $projectIds)
-                ->selectRaw('project_id, count(*) as cnt')
-                ->groupBy('project_id')
-                ->pluck('cnt', 'project_id');
-
-            $projects = Project::whereIn('id', $readyCountsByProject->keys())
-                ->get()
-                ->map(fn (Project $project) => ['project' => $project, 'readyCount' => $readyCountsByProject[$project->id] ?? 0])
-                ->sortByDesc('readyCount')
-                ->values();
+            $tasksByProject = $readyTasks->groupBy(fn (Task $task) => $task->project->name)
+                ->map(fn ($tasks) => $tasks->sortBy('end_date')->values());
         }
 
-        if ($this->viewingProjectId) {
-            $viewingProject = Project::find($this->viewingProjectId);
-
-            if ($viewingProject && $viewingProject->client_id === $this->viewingClientId) {
-                $readyTasks = $this->unclaimedReadyTasks()
-                    ->where('project_id', $this->viewingProjectId)
-                    ->with('category')
-                    ->orderBy('end_date')
-                    ->get();
-            } else {
-                $viewingProject = null;
-            }
-        }
-
-        $selectedTasks = $readyTasks->whereIn('id', $this->selectedTaskIds);
+        $allReadyTasks = $tasksByProject->flatten(1);
+        $selectedTasks = $allReadyTasks->whereIn('id', $this->selectedTaskIds);
         $selectedTotals = $selectedTasks->groupBy('currency')->map(fn ($group) => $group->sum(fn (Task $t) => $t->effectiveAmount()));
+        $selectedCurrency = $selectedTasks->pluck('currency')->unique()->first();
 
         return view('livewire.sales.billing-workspace', [
             'clients' => $clients,
             'viewingClient' => $viewingClient,
-            'projects' => $projects,
-            'viewingProject' => $viewingProject,
-            'readyTasks' => $readyTasks,
+            'tasksByProject' => $tasksByProject,
             'selectedTotals' => $selectedTotals,
+            'selectedCurrency' => $selectedCurrency,
         ]);
     }
 }
