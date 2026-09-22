@@ -89,8 +89,6 @@ class ProjectShow extends Component
     // Category
     public bool $showCategoryForm = false;
 
-    public ?int $editingCategoryId = null;
-
     public string $category_name = '';
 
     public string $category_currency = 'INR';
@@ -109,6 +107,21 @@ class ProjectShow extends Component
     public string $notify_amount = '';
 
     public string $notify_currency = 'INR';
+
+    // Edit task amount (post-approval price adjustment, e.g. a client discount)
+    public bool $showEditAmountForm = false;
+
+    public ?int $editingAmountTaskId = null;
+
+    public string $edit_amount_mode = 'fixed';
+
+    public string $edit_amount_value = '';
+
+    public string $edit_amount_currency = 'INR';
+
+    public string $edit_amount_hours = '';
+
+    public string $edit_amount_rate = '';
 
     // Cost Estimate date filter
     public string $cost_filter_preset = 'all';
@@ -517,31 +530,19 @@ class ProjectShow extends Component
         $this->dispatch('toast', message: 'Task cancelled.', type: 'success');
     }
 
-    public function openCategoryForm(?int $categoryId = null): void
+    public function openCategoryForm(): void
     {
         if (! $this->canManage()) {
             return;
         }
 
-        $this->editingCategoryId = $categoryId;
         $this->resetValidation();
-
-        if ($categoryId) {
-            $category = $this->project->categories()->findOrFail($categoryId);
-            $this->category_name = $category->name;
-            $this->category_currency = $category->currency;
-            $this->category_pricing_mode = $category->estimated_hours !== null ? 'hourly' : 'fixed';
-            $this->category_estimated_amount = $category->estimated_amount !== null ? (string) $category->estimated_amount : '';
-            $this->category_estimated_hours = $category->estimated_hours !== null ? (string) $category->estimated_hours : '';
-            $this->category_estimated_rate = $category->estimated_rate !== null ? (string) $category->estimated_rate : '';
-        } else {
-            $this->category_name = '';
-            $this->category_currency = 'INR';
-            $this->category_pricing_mode = 'fixed';
-            $this->category_estimated_amount = '';
-            $this->category_estimated_hours = '';
-            $this->category_estimated_rate = '';
-        }
+        $this->category_name = '';
+        $this->category_currency = 'INR';
+        $this->category_pricing_mode = 'fixed';
+        $this->category_estimated_amount = '';
+        $this->category_estimated_hours = '';
+        $this->category_estimated_rate = '';
 
         $this->showCategoryForm = true;
     }
@@ -582,36 +583,25 @@ class ProjectShow extends Component
             }
         }
 
-        $data = [
+        $this->project->categories()->create([
             'name' => $this->category_name,
             'currency' => $this->category_currency,
             'estimated_amount' => $estimatedAmount,
             'estimated_hours' => $estimatedHours,
             'estimated_rate' => $estimatedRate,
-        ];
-
-        if ($this->editingCategoryId) {
-            $this->project->categories()->findOrFail($this->editingCategoryId)->update($data);
-        } else {
-            $this->project->categories()->create($data + ['created_by' => $authUser->id]);
-        }
+            'created_by' => $authUser->id,
+        ]);
 
         $this->showCategoryForm = false;
-        $this->dispatch('toast', message: 'Category saved.', type: 'success');
+        $this->dispatch('toast', message: 'Category added.', type: 'success');
     }
 
-    public function deleteCategory(int $categoryId): void
+    public function openNotifySalesForm(?int $taskId = null): void
     {
-        if (! $this->canManage()) {
-            return;
+        if ($taskId) {
+            $this->viewingTaskId = $taskId;
         }
 
-        $this->project->categories()->findOrFail($categoryId)->delete();
-        $this->dispatch('toast', message: 'Category deleted.', type: 'success');
-    }
-
-    public function openNotifySalesForm(): void
-    {
         $authUser = Auth::user();
         $task = $this->viewingTask();
 
@@ -685,6 +675,91 @@ class ProjectShow extends Component
 
         $this->showNotifySalesForm = false;
         $this->dispatch('toast', message: 'Sent to Sales.', type: 'success');
+    }
+
+    /**
+     * Manager-only price correction for an already-priced task — e.g. a
+     * client discount applied before billing. Locked once a billing request
+     * for the task has actually been invoiced.
+     */
+    public function openEditAmountForm(int $taskId): void
+    {
+        $authUser = Auth::user();
+
+        if (! $authUser->isManager() && ! $authUser->isSuperAdmin()) {
+            return;
+        }
+
+        $task = $this->project->tasks()->find($taskId);
+
+        if (! $task || ! $task->isPriced() || $task->billingRequests()->where('status', 'invoiced')->exists()) {
+            return;
+        }
+
+        $this->editingAmountTaskId = $taskId;
+        $this->edit_amount_mode = ($task->hours !== null && $task->rate !== null) ? 'hourly' : 'fixed';
+        $this->edit_amount_value = $task->amount !== null ? (string) $task->amount : '';
+        $this->edit_amount_currency = $task->currency ?? 'INR';
+        $this->edit_amount_hours = $task->hours !== null ? (string) $task->hours : '';
+        $this->edit_amount_rate = $task->rate !== null ? (string) $task->rate : '';
+        $this->resetValidation();
+        $this->showEditAmountForm = true;
+    }
+
+    public function saveTaskAmount(): void
+    {
+        $authUser = Auth::user();
+
+        if (! $authUser->isManager() && ! $authUser->isSuperAdmin()) {
+            return;
+        }
+
+        $task = $this->editingAmountTaskId ? $this->project->tasks()->find($this->editingAmountTaskId) : null;
+
+        if (! $task || $task->billingRequests()->where('status', 'invoiced')->exists()) {
+            return;
+        }
+
+        $amount = null;
+        $hours = null;
+        $rate = null;
+
+        if ($this->edit_amount_mode === 'hourly') {
+            $hours = $this->edit_amount_hours !== '' ? (float) $this->edit_amount_hours : null;
+            $rate = $this->edit_amount_rate !== '' ? (float) $this->edit_amount_rate : null;
+
+            if (! $hours || $hours <= 0 || ! $rate || $rate <= 0) {
+                $this->addError('edit_amount_value', 'Enter hours and a rate greater than zero.');
+
+                return;
+            }
+
+            $amount = $hours * $rate;
+        } else {
+            $amount = $this->edit_amount_value !== '' ? (float) $this->edit_amount_value : null;
+
+            if (! $amount || $amount <= 0) {
+                $this->addError('edit_amount_value', 'Enter an amount greater than zero.');
+
+                return;
+            }
+        }
+
+        $task->update([
+            'amount' => $amount,
+            'currency' => $this->edit_amount_currency,
+            'hours' => $hours,
+            'rate' => $rate,
+        ]);
+
+        // Keep a pending billing request's amount in sync so Sales sees the corrected price.
+        $task->billingRequests()->where('status', 'pending')->update([
+            'amount' => $amount,
+            'currency' => $this->edit_amount_currency,
+        ]);
+
+        $this->showEditAmountForm = false;
+        $this->dispatch('toast', message: 'Task amount updated.', type: 'success');
     }
 
     public function applyCostPreset(string $preset): void
