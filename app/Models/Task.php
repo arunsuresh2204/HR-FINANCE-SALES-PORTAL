@@ -112,10 +112,16 @@ class Task extends Model
      */
     public function weeksLate(): int
     {
-        if ($this->status !== 'backlog' || ! $this->end_date || ! $this->end_date->isPast()) {
+        if ($this->status !== 'backlog' || ! $this->end_date) {
             return 0;
         }
 
-        return (int) floor($this->end_date->diffInDays(now()) / 7) + 1;
+        $today = now()->startOfDay();
+
+        if (! $this->end_date->lt($today)) {
+            return 0;
+        }
+
+        return (int) floor($this->end_date->diffInDays($today) / 7) + 1;
     }
 }
