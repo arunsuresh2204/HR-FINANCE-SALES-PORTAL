@@ -66,6 +66,8 @@ class ClientShow extends Component
 
     public string $project_currency = 'INR';
 
+    public bool $projectCurrencyLocked = false;
+
     #[Validate('nullable|file|max:10240')]
     public $project_requirement_file = null;
 
@@ -180,6 +182,7 @@ class ClientShow extends Component
         $this->editingProjectId = null;
         $this->reset(['project_name', 'project_description', 'project_requirement_file']);
         $this->project_currency = 'INR';
+        $this->projectCurrencyLocked = false;
         $this->assigned_to = Auth::user()->isManager() || Auth::user()->isSuperAdmin() ? Auth::id() : null;
         $this->resetValidation();
         $this->showProjectForm = true;
@@ -197,6 +200,8 @@ class ClientShow extends Component
         $this->project_name = $project->name;
         $this->project_description = $project->description ?? '';
         $this->project_requirement_file = null;
+        $this->project_currency = $project->currency;
+        $this->projectCurrencyLocked = $project->tasks()->whereNotNull('amount')->exists();
         $this->assigned_to = $project->assigned_to;
         $this->resetValidation();
         $this->showProjectForm = true;
@@ -225,12 +230,14 @@ class ClientShow extends Component
             return;
         }
 
+        $currencyEditable = ! $editing || ! $editing->tasks()->whereNotNull('amount')->exists();
+
         $this->validate([
             'project_name' => 'required|string|max:255',
             'project_description' => 'nullable|string|max:1000',
             'project_requirement_file' => 'nullable|file|max:10240',
             'assigned_to' => $canManage ? 'nullable|exists:users,id' : 'required|exists:users,id',
-            'project_currency' => $editing ? 'nullable' : ['required', 'in:'.implode(',', \App\Support\Currency::codes())],
+            'project_currency' => $currencyEditable ? ['required', 'in:'.implode(',', \App\Support\Currency::codes())] : 'nullable',
         ]);
 
         if ($this->assigned_to) {
@@ -259,6 +266,10 @@ class ClientShow extends Component
             $data['requirement_file'] = $this->project_requirement_file->store('project-requirements', 'public');
         }
 
+        if ($currencyEditable) {
+            $data['currency'] = $this->project_currency;
+        }
+
         if ($editing) {
             $editing->update($data);
         } else {
@@ -266,7 +277,6 @@ class ClientShow extends Component
                 'client_id' => $this->client->id,
                 'created_by' => Auth::id(),
                 'status' => 'active',
-                'currency' => $this->project_currency,
             ]);
         }
 

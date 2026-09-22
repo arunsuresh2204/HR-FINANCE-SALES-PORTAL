@@ -233,18 +233,21 @@
                 <x-input-label for="project_description" value="Description (optional)" />
                 <textarea wire:model="project_description" id="project_description" rows="2" class="input-glass"></textarea>
             </div>
-            @if (! $editingProjectId)
-                <div>
-                    <x-input-label for="project_currency" value="Currency" />
+            <div>
+                <x-input-label for="project_currency" value="Currency" />
+                @if ($projectCurrencyLocked)
+                    <p class="input-glass !cursor-default text-white/50">{{ $project_currency }}</p>
+                    <p class="mt-1 text-xs text-white/35">Locked — this project already has priced tasks, so its currency can't be changed.</p>
+                @else
                     <select wire:model="project_currency" id="project_currency" class="input-glass">
                         @foreach (\App\Support\Currency::options() as $code => $symbol)
                             <option value="{{ $code }}">{{ $code }} ({{ $symbol }})</option>
                         @endforeach
                     </select>
-                    <p class="mt-1 text-xs text-white/35">Every task and category under this project is priced in this currency — it can't be changed once the project has tasks.</p>
+                    <p class="mt-1 text-xs text-white/35">Every task and category under this project is priced in this currency — it locks once the project has a priced task.</p>
                     <x-input-error :messages="$errors->get('project_currency')" class="mt-1" />
-                </div>
-            @endif
+                @endif
+            </div>
             <div>
                 <x-input-label for="project_requirement_file" value="Requirement File (optional)" />
                 <input wire:model="project_requirement_file" id="project_requirement_file" type="file" class="input-glass file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white/80">
