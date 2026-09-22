@@ -77,6 +77,7 @@
                             @endif
                             @if (auth()->user()->can('access_sales_clients'))
                                 <a href="{{ route('sales.clients') }}" wire:navigate data-nav-link data-match="prefix" class="nav-link-glass {{ request()->routeIs('sales.clients*') ? 'active' : '' }}"><x-icon name="briefcase" class="h-4 w-4 shrink-0" />Clients</a>
+                                <a href="{{ route('sales.billing') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('sales.billing') ? 'active' : '' }}"><x-icon name="cash" class="h-4 w-4 shrink-0" />Ready to Bill</a>
                             @endif
                             @if (auth()->user()->can('access_sales_targets'))
                                 <a href="{{ route('sales.targets') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('sales.targets') ? 'active' : '' }}"><x-icon name="chart" class="h-4 w-4 shrink-0" />Sales Targets</a>

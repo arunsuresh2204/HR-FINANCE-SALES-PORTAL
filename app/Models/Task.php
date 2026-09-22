@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Task extends Model
 {
@@ -12,7 +12,7 @@ class Task extends Model
         'project_id', 'category_id', 'title', 'description', 'assignee_id', 'status',
         'start_date', 'end_date', 'tags', 'amount', 'currency', 'hours', 'rate',
         'visibility', 'created_by', 'pending_approval',
-        'cancelled', 'cancel_reason', 'cancelled_by', 'cancelled_at',
+        'cancelled', 'cancel_reason', 'cancelled_by', 'cancelled_at', 'ready_to_bill',
     ];
 
     protected function casts(): array
@@ -27,6 +27,7 @@ class Task extends Model
             'pending_approval' => 'boolean',
             'cancelled' => 'boolean',
             'cancelled_at' => 'datetime',
+            'ready_to_bill' => 'boolean',
         ];
     }
 
@@ -55,9 +56,28 @@ class Task extends Model
         return $this->belongsTo(User::class, 'cancelled_by');
     }
 
-    public function billingRequests(): HasMany
+    public function billingRequests(): BelongsToMany
     {
-        return $this->hasMany(BillingRequest::class);
+        return $this->belongsToMany(BillingRequest::class, 'billed_tasks');
+    }
+
+    /**
+     * The billing request currently claiming this task, if any — pending
+     * (awaiting invoicing) or already invoiced. A rejected billing request
+     * doesn't count: the task is free to be picked up again.
+     */
+    public function activeBillingRequest(): ?BillingRequest
+    {
+        return $this->billingRequests->firstWhere(fn (BillingRequest $br) => in_array($br->status, ['pending', 'invoiced'], true));
+    }
+
+    /**
+     * Manager has flagged this Done, priced task as ready for Sales to bill,
+     * and nobody has picked it up into a billing request yet.
+     */
+    public function isAwaitingBillingPickup(): bool
+    {
+        return $this->ready_to_bill && ! $this->cancelled && $this->activeBillingRequest() === null;
     }
 
     /**

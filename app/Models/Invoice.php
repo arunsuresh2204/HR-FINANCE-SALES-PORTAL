@@ -18,7 +18,7 @@ class Invoice extends Model
     public const CLOSED_STATUSES = ['cancelled', 'credit_note', 'refunded', 'written_off'];
 
     protected $fillable = [
-        'billing_request_id', 'client_id', 'created_by', 'invoice_number', 'line_items',
+        'billing_request_id', 'client_id', 'project_id', 'created_by', 'invoice_number', 'line_items',
         'currency', 'amount', 'tax_percent', 'total_amount', 'amount_paid', 'due_date', 'status', 'pdf_path',
         'adjustment_type', 'adjustment_amount', 'adjustment_reason', 'adjustment_at', 'adjusted_by',
     ];
@@ -40,6 +40,11 @@ class Invoice extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function billingRequest(): BelongsTo

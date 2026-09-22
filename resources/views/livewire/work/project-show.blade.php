@@ -221,20 +221,22 @@
                             <div class="glass-inset flex items-center justify-between gap-3 p-2 text-sm">
                                 <span class="min-w-0 flex-1 truncate text-white/80">{{ $task->title }}</span>
                                 @if ($isManager)
-                                    @php($latestBr = $task->billingRequests->sortByDesc('id')->first())
+                                    @php($activeBr = $task->activeBillingRequest())
                                     <div class="flex shrink-0 items-center gap-2">
                                         <span class="text-white/50">{{ \App\Support\Currency::format($task->effectiveAmount(), $task->currency) }}</span>
-                                        @unless ($latestBr && $latestBr->status === 'invoiced')
+                                        @unless ($activeBr && $activeBr->status === 'invoiced')
                                             <button wire:click="openEditAmountForm({{ $task->id }})" class="text-[11px] font-semibold text-gold-300 hover:text-gold-200">Edit</button>
                                         @endunless
                                         @if ($task->cancelled)
                                             <x-status-pill status="cancelled" />
-                                        @elseif ($latestBr && $latestBr->status === 'invoiced')
+                                        @elseif ($activeBr && $activeBr->status === 'invoiced')
                                             <x-status-pill status="invoiced" />
-                                        @elseif ($latestBr && $latestBr->status === 'pending' && $latestBr->client_response !== 'declined')
-                                            <x-status-pill status="sent" />
+                                        @elseif ($activeBr && $activeBr->status === 'pending')
+                                            <x-status-pill status="billed" />
+                                        @elseif ($task->ready_to_bill)
+                                            <button wire:click="toggleReadyToBill({{ $task->id }})" class="pill border-violet-400/20 bg-violet-400/15 text-violet-300 hover:bg-violet-400/25" title="Click to un-flag">Ready to Bill</button>
                                         @elseif ($task->status === 'done' && $task->isPriced())
-                                            <button wire:click="openNotifySalesForm({{ $task->id }})" class="btn-glass-primary !px-2.5 !py-1 text-[11px]">Notify Sales</button>
+                                            <button wire:click="toggleReadyToBill({{ $task->id }})" class="btn-glass-primary !px-2.5 !py-1 text-[11px]">Mark Ready to Bill</button>
                                         @else
                                             <x-status-pill :status="$task->status" />
                                         @endif
@@ -465,7 +467,15 @@
 
             @if ($isManager && $task->status === 'done' && $task->isPriced() && ! $task->cancelled)
                 <div class="mt-4 border-t border-white/10 pt-4 text-right">
-                    <button wire:click="openNotifySalesForm" class="btn-glass-secondary text-xs"><x-icon name="cash" class="h-4 w-4" /> Notify Sales</button>
+                    @if ($task->ready_to_bill)
+                        @if ($task->activeBillingRequest())
+                            <span class="text-xs text-white/40">Picked up by Sales — {{ $task->activeBillingRequest()->status === 'invoiced' ? 'invoiced' : 'awaiting invoicing' }}.</span>
+                        @else
+                            <button wire:click="toggleReadyToBill({{ $task->id }})" class="btn-glass-secondary text-xs"><x-icon name="cash" class="h-4 w-4" /> Un-flag Ready to Bill</button>
+                        @endif
+                    @else
+                        <button wire:click="toggleReadyToBill({{ $task->id }})" class="btn-glass-secondary text-xs"><x-icon name="cash" class="h-4 w-4" /> Mark Ready to Bill</button>
+                    @endif
                 </div>
             @endif
 
@@ -493,31 +503,6 @@
         @endif
     </x-modal-glass>
 
-    {{-- ================= NOTIFY SALES MODAL ================= --}}
-    <x-modal-glass wire-model="showNotifySalesForm" title="Notify Sales" max-width="sm">
-        <form wire:submit="sendToSales" class="space-y-4">
-            <p class="text-sm text-white/50">Sales will see this in their Billing Requests inbox and take it to the client.</p>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <x-input-label value="Currency" />
-                    <select wire:model="notify_currency" class="input-glass">
-                        @foreach (\App\Support\Currency::options() as $code => $symbol)
-                            <option value="{{ $code }}">{{ $code }} ({{ $symbol }})</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <x-input-label value="Amount" />
-                    <x-text-input wire:model="notify_amount" type="number" min="0" step="0.01" class="mt-0" />
-                    <x-input-error :messages="$errors->get('notify_amount')" class="mt-1" />
-                </div>
-            </div>
-            <div class="flex justify-end gap-3 pt-2">
-                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
-                <x-primary-button>Send to Sales</x-primary-button>
-            </div>
-        </form>
-    </x-modal-glass>
 
     {{-- ================= EDIT TASK AMOUNT MODAL ================= --}}
     <x-modal-glass wire-model="showEditAmountForm" title="Edit Task Amount" max-width="sm">

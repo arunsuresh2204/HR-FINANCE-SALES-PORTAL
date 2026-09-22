@@ -101,13 +101,6 @@ class ProjectShow extends Component
 
     public string $category_estimated_rate = '';
 
-    // Notify Sales
-    public bool $showNotifySalesForm = false;
-
-    public string $notify_amount = '';
-
-    public string $notify_currency = 'INR';
-
     // Edit task amount (post-approval price adjustment, e.g. a client discount)
     public bool $showEditAmountForm = false;
 
@@ -596,85 +589,57 @@ class ProjectShow extends Component
         $this->dispatch('toast', message: 'Category added.', type: 'success');
     }
 
-    public function openNotifySalesForm(?int $taskId = null): void
-    {
-        if ($taskId) {
-            $this->viewingTaskId = $taskId;
-        }
-
-        $authUser = Auth::user();
-        $task = $this->viewingTask();
-
-        if (! $task || (! $authUser->isManager() && ! $authUser->isSuperAdmin())) {
-            return;
-        }
-
-        if (! $task->isPriced() || $task->status !== 'done' || $task->cancelled) {
-            $this->dispatch('toast', message: 'Only a priced, Done task can be sent to Sales.', type: 'error');
-
-            return;
-        }
-
-        $existing = $task->billingRequests()->latest()->first();
-
-        if ($existing && $existing->status === 'pending' && $existing->client_response !== 'declined') {
-            $this->dispatch('toast', message: 'Already sent to Sales — awaiting the client\'s response.', type: 'error');
-
-            return;
-        }
-
-        $this->notify_amount = (string) $task->effectiveAmount();
-        $this->notify_currency = $task->currency ?? 'INR';
-        $this->showNotifySalesForm = true;
-    }
-
-    public function sendToSales(): void
+    /**
+     * Manager flags a Done, priced task as ready for Sales to pick up and
+     * bill — purely a signal to Sales, no billing request is created here.
+     * Sales chooses which ready tasks to bundle into an actual billing
+     * request from their own Ready to Bill workspace. Can be un-flagged
+     * only if Sales hasn't picked it up yet.
+     */
+    public function toggleReadyToBill(int $taskId): void
     {
         $authUser = Auth::user();
-        $task = $this->viewingTask();
 
-        if (! $task || (! $authUser->isManager() && ! $authUser->isSuperAdmin())) {
+        if (! $authUser->isManager() && ! $authUser->isSuperAdmin()) {
             return;
         }
 
-        $this->validate([
-            'notify_amount' => 'required|numeric|min:0.01',
-            'notify_currency' => ['required', 'in:'.implode(',', Currency::codes())],
-        ]);
+        $task = $this->project->tasks()->find($taskId);
 
-        $existing = $task->billingRequests()->latest()->first();
-
-        if ($existing && $existing->status === 'pending' && $existing->client_response === 'declined') {
-            $existing->update([
-                'currency' => $this->notify_currency,
-                'amount' => $this->notify_amount,
-                'client_response' => null,
-            ]);
-        } else {
-            BillingRequest::create([
-                'client_id' => $this->project->client_id,
-                'project_id' => $this->project->id,
-                'task_id' => $task->id,
-                'created_by' => $authUser->id,
-                'currency' => $this->notify_currency,
-                'billing_type' => ($task->hours !== null && $task->rate !== null) ? 'hourly' : 'milestone',
-                'amount' => $this->notify_amount,
-                'milestone_description' => $task->title,
-                'status' => 'pending',
-                'client_response' => null,
-            ]);
+        if (! $task || $task->cancelled) {
+            return;
         }
+
+        if ($task->ready_to_bill) {
+            if ($task->activeBillingRequest() !== null) {
+                $this->dispatch('toast', message: 'Sales has already picked this up — can\'t un-flag it now.', type: 'error');
+
+                return;
+            }
+
+            $task->update(['ready_to_bill' => false]);
+            $this->dispatch('toast', message: 'No longer marked ready to bill.', type: 'success');
+
+            return;
+        }
+
+        if (! $task->isPriced() || $task->status !== 'done') {
+            $this->dispatch('toast', message: 'Only a priced, Done task can be marked ready to bill.', type: 'error');
+
+            return;
+        }
+
+        $task->update(['ready_to_bill' => true]);
 
         Notification::sendToMany(
             User::role(['sales_exec', 'super_admin'])->get(),
-            'billing_request_ready',
-            'New billing request',
+            'task_ready_to_bill',
+            'Task ready to bill',
             "{$task->title} — {$this->project->name}",
-            route('work.project-show', $this->project)
+            route('sales.billing')
         );
 
-        $this->showNotifySalesForm = false;
-        $this->dispatch('toast', message: 'Sent to Sales.', type: 'success');
+        $this->dispatch('toast', message: 'Marked ready to bill — Sales has been notified.', type: 'success');
     }
 
     /**
@@ -720,6 +685,14 @@ class ProjectShow extends Component
             return;
         }
 
+        $pendingRequests = $task->billingRequests()->where('status', 'pending')->get();
+
+        if ($pendingRequests->contains(fn (BillingRequest $br) => $br->currency !== $this->edit_amount_currency)) {
+            $this->addError('edit_amount_value', 'Can\'t change currency — this task is already part of a billing request.');
+
+            return;
+        }
+
         $amount = null;
         $hours = null;
         $rate = null;
@@ -752,11 +725,12 @@ class ProjectShow extends Component
             'rate' => $rate,
         ]);
 
-        // Keep a pending billing request's amount in sync so Sales sees the corrected price.
-        $task->billingRequests()->where('status', 'pending')->update([
-            'amount' => $amount,
-            'currency' => $this->edit_amount_currency,
-        ]);
+        // Recompute each pending billing request's total from its (possibly several) billed tasks.
+        foreach ($pendingRequests as $pendingRequest) {
+            $pendingRequest->update([
+                'amount' => $pendingRequest->billedTasks->sum(fn (Task $t) => $t->fresh()->effectiveAmount()),
+            ]);
+        }
 
         $this->showEditAmountForm = false;
         $this->dispatch('toast', message: 'Task amount updated.', type: 'success');

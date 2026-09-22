@@ -10,6 +10,7 @@
         'won' => 'bg-emerald-400/15 text-emerald-300 border-emerald-400/20',
         'processed' => 'bg-emerald-400/15 text-emerald-300 border-emerald-400/20',
         'invoiced' => 'bg-sky-400/15 text-sky-300 border-sky-400/20',
+        'billed' => 'bg-amber-400/15 text-amber-300 border-amber-400/20',
         'sent' => 'bg-sky-400/15 text-sky-300 border-sky-400/20',
         'partially_paid' => 'bg-sky-400/15 text-sky-300 border-sky-400/20',
         'new' => 'bg-sky-400/15 text-sky-300 border-sky-400/20',

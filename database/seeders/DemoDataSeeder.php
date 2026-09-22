@@ -554,6 +554,7 @@ class DemoDataSeeder extends Seeder
             'start_date' => now()->subDays(10), 'end_date' => now()->subDays(3),
             'tags' => ['frontend', 'catalog'], 'amount' => 650, 'currency' => 'USD',
             'visibility' => 'public', 'created_by' => $owner4->id, 'pending_approval' => false,
+            'ready_to_bill' => true,
         ]);
 
         Task::create([
@@ -588,14 +589,15 @@ class DemoDataSeeder extends Seeder
             'tags' => ['mobile'], 'visibility' => 'public', 'created_by' => $dev2->id, 'pending_approval' => true,
         ]);
 
-        // Karthik notified Sales on the priced, Done task above — Priya (Sales) has
-        // sent it to the client and is awaiting their response.
-        BillingRequest::create([
-            'client_id' => $client1->id, 'project_id' => $project1->id, 'task_id' => $taskDone->id,
+        // Karthik marked the task above ready to bill — Priya (Sales) picked it up and
+        // sent this billing request on to Finance, awaiting invoicing.
+        $seedBillingRequest = BillingRequest::create([
+            'client_id' => $client1->id, 'project_id' => $project1->id,
             'created_by' => $owner4->id, 'currency' => 'USD', 'billing_type' => 'milestone',
             'amount' => 650, 'milestone_description' => $taskDone->title,
-            'status' => 'pending', 'client_response' => 'sent',
+            'status' => 'pending',
         ]);
+        $seedBillingRequest->billedTasks()->attach($taskDone->id);
 
         // Vishnu's pipeline: 20 leads, 10 of which are won and converted to clients
         $vishnuLeads = [

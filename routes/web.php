@@ -70,6 +70,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('clients/{client}', function (Client $client) {
                 return view('pages.sales.client-show', compact('client'));
             })->name('clients.show');
+            Route::view('billing', 'pages.sales.billing-workspace')->name('billing');
         });
 
         Route::middleware(['permission:access_sales_targets'])->group(function () {

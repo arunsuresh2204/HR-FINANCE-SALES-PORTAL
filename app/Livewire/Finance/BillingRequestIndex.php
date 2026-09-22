@@ -51,22 +51,24 @@ class BillingRequestIndex extends Component
 
         $billingRequest = $this->converting;
 
-        if ($billingRequest->isFromTask() && $billingRequest->client_response !== 'approved') {
-            $this->addError('currency', 'This billing request needs client approval before it can be invoiced.');
-
-            return;
-        }
-
         $amount = (float) $billingRequest->amount;
         $taxPercent = $this->currency === 'INR' ? (float) $this->tax_percent : 0;
         $tax = $amount * ($taxPercent / 100);
 
-        DB::transaction(function () use ($billingRequest, $amount, $tax, $taxPercent) {
+        $lineItems = $billingRequest->isFromTask()
+            ? $billingRequest->billedTasks->map(fn ($task) => [
+                'description' => $task->title,
+                'amount' => $task->effectiveAmount(),
+            ])->all()
+            : [['description' => $billingRequest->summary(), 'amount' => $amount]];
+
+        DB::transaction(function () use ($billingRequest, $amount, $tax, $taxPercent, $lineItems) {
             $invoiceNumber = Invoice::nextInvoiceNumber();
 
             Invoice::create([
                 'billing_request_id' => $billingRequest->id,
                 'client_id' => $billingRequest->client_id,
+                'project_id' => $billingRequest->project_id,
                 'created_by' => Auth::id(),
                 'invoice_number' => $invoiceNumber,
                 'currency' => $this->currency,
@@ -75,7 +77,7 @@ class BillingRequestIndex extends Component
                 'total_amount' => $amount + $tax,
                 'due_date' => $this->due_date,
                 'status' => 'draft',
-                'line_items' => [['description' => $billingRequest->summary(), 'amount' => $amount]],
+                'line_items' => $lineItems,
             ]);
 
             if ($this->client_tax_id !== ($billingRequest->client->tax_id ?? '')) {
@@ -108,7 +110,7 @@ class BillingRequestIndex extends Component
 
     public function render()
     {
-        $query = BillingRequest::with('client')->latest();
+        $query = BillingRequest::with(['client', 'billedTasks', 'project'])->latest();
 
         if ($this->filter !== 'all') {
             $query->where('status', $this->filter);

@@ -94,7 +94,12 @@
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="glass-card lg:col-span-2">
             <div class="mb-4 flex items-center justify-between">
-                <h2 class="text-base font-bold text-white">Line Items</h2>
+                <div>
+                    <h2 class="text-base font-bold text-white">Line Items</h2>
+                    @if ($invoice->project)
+                        <p class="mt-0.5 text-xs text-white/40">Project: {{ $invoice->project->name }}</p>
+                    @endif
+                </div>
                 <x-status-pill :status="$invoice->isOverdue() ? 'overdue' : $invoice->status" />
             </div>
             <table class="table-glass">
