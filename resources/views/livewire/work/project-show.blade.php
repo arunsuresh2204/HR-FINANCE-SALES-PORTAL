@@ -54,6 +54,14 @@
             </button>
             <button wire:click="setTab('list')" class="tab-btn {{ $tab === 'list' ? 'active' : '' }}">List</button>
             <button wire:click="setTab('categories')" class="tab-btn {{ $tab === 'categories' ? 'active' : '' }}">Cost Estimate</button>
+            @if ($canManageRequests)
+                <button wire:click="setTab('requests')" class="tab-btn {{ $tab === 'requests' ? 'active' : '' }}">
+                    Requests
+                    @if ($openRequestCount > 0)
+                        <span class="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-violet-400 px-1 text-[10px] font-bold text-ink-950">{{ $openRequestCount }}</span>
+                    @endif
+                </button>
+            @endif
         </div>
         <div class="mb-2 flex flex-wrap gap-2">
             @if ($canManage)
@@ -278,9 +286,33 @@
         </div>
     @endif
 
+    {{-- ================= REQUESTS FROM SALES ================= --}}
+    @if ($tab === 'requests' && $canManageRequests)
+        <div class="mt-4 space-y-2">
+            @forelse ($requests as $request)
+                <button wire:click="openRequestDetail({{ $request->id }})" class="glass-card block w-full text-left hover:bg-white/5">
+                    <div class="flex items-center justify-between gap-3">
+                        <p class="text-sm font-semibold text-white">{{ $request->title }}</p>
+                        <x-status-pill :status="$request->status" />
+                    </div>
+                    <p class="mt-1 text-xs text-white/40">From {{ $request->creator->name }} &middot; {{ $request->created_at->format('M j, Y') }}
+                        @if ($request->comments->isNotEmpty())
+                            &middot; {{ $request->comments->count() }} {{ Str::plural('reply', $request->comments->count()) }}
+                        @endif
+                    </p>
+                </button>
+            @empty
+                <p class="glass-card py-8 text-center text-sm text-white/30">No requests from Sales yet.</p>
+            @endforelse
+        </div>
+    @endif
+
     {{-- ================= NEW / EDIT TASK MODAL ================= --}}
     <x-modal-glass wire-model="showTaskModal" :title="$editingTaskId ? 'Edit Task' : 'New Task — '.$project->name" max-width="xl">
         <form wire:submit="saveTask" class="space-y-4">
+            @if ($convertingRequestId)
+                <p class="rounded-lg border border-violet-400/25 bg-violet-400/10 px-3 py-2 text-xs font-semibold text-violet-200">Converting a Sales request into this task — review and price it below.</p>
+            @endif
             <div>
                 <x-input-label for="task_title" value="Title" />
                 <x-text-input wire:model="task_title" id="task_title" type="text" class="mt-0" />
@@ -620,5 +652,58 @@
                 <x-primary-button>Save</x-primary-button>
             </div>
         </form>
+    </x-modal-glass>
+
+    {{-- ================= REQUEST DETAIL MODAL ================= --}}
+    <x-modal-glass wire-model="showRequestDetail" :title="$viewingRequest->title ?? 'Request'" max-width="lg">
+        @if ($viewingRequest)
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <p class="text-xs text-white/40">From {{ $viewingRequest->creator->name }} &middot; {{ $viewingRequest->created_at->format('M j, Y') }}</p>
+                    <x-status-pill :status="$viewingRequest->status" />
+                </div>
+                @if ($viewingRequest->description)
+                    <p class="glass-inset p-3 text-sm text-white/70">{{ $viewingRequest->description }}</p>
+                @endif
+                @if ($viewingRequest->attachments->isNotEmpty())
+                    <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                        @foreach ($viewingRequest->attachments as $attachment)
+                            <a href="{{ $attachment->url() }}" target="_blank" class="font-semibold text-gold-300 hover:text-gold-200">{{ $attachment->original_name }}</a>
+                        @endforeach
+                    </div>
+                @endif
+
+                @if ($viewingRequest->status === 'open')
+                    <button wire:click="convertRequest({{ $viewingRequest->id }})" class="btn-glass-primary text-xs"><x-icon name="check" class="h-4 w-4" /> Convert to Task</button>
+                @else
+                    <div class="rounded-lg border border-emerald-400/20 bg-emerald-400/5 p-3 text-xs text-emerald-200">
+                        Converted to a task on {{ $viewingRequest->converted_at?->format('M j, Y') }}.
+                    </div>
+                @endif
+
+                <div class="space-y-2 border-t border-white/10 pt-3">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-white/35">Conversation</p>
+                    @forelse ($viewingRequest->comments as $comment)
+                        <div class="glass-inset p-2.5">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs font-semibold text-white">{{ $comment->author->name }}</p>
+                                <p class="text-[10px] text-white/35">{{ $comment->created_at->format('M j, g:i A') }}</p>
+                            </div>
+                            <p class="mt-1 text-xs text-white/65">{{ $comment->body }}</p>
+                        </div>
+                    @empty
+                        <p class="text-xs text-white/35">No replies yet.</p>
+                    @endforelse
+                </div>
+
+                <form wire:submit="submitReply" class="space-y-2 border-t border-white/10 pt-3">
+                    <textarea wire:model="reply_body" rows="2" class="input-glass" placeholder="Write a reply&hellip;"></textarea>
+                    <x-input-error :messages="$errors->get('reply_body')" class="mt-1" />
+                    <div class="flex justify-end">
+                        <x-primary-button>Reply</x-primary-button>
+                    </div>
+                </form>
+            </div>
+        @endif
     </x-modal-glass>
 </div>

@@ -106,6 +106,15 @@ class ProjectShow extends Component
 
     public string $cost_filter_to = '';
 
+    // Requests from Sales
+    public bool $showRequestDetail = false;
+
+    public ?int $viewingRequestId = null;
+
+    public string $reply_body = '';
+
+    public ?int $convertingRequestId = null;
+
     public function mount(Project $project): void
     {
         $authUser = Auth::user();
@@ -125,6 +134,17 @@ class ProjectShow extends Component
         $authUser = Auth::user();
 
         return $authUser->isSuperAdmin() || $authUser->isManager() || $this->project->assigned_to === $authUser->id;
+    }
+
+    /**
+     * Only the Manager (or super_admin) responds to and converts Sales
+     * requests — not a Team Lead, even one this project is assigned to.
+     */
+    protected function canManageRequests(): bool
+    {
+        $authUser = Auth::user();
+
+        return $authUser->isSuperAdmin() || $authUser->isManager();
     }
 
     public function openReassignForm(): void
@@ -197,6 +217,7 @@ class ProjectShow extends Component
     {
         $authUser = Auth::user();
         $this->editingTaskId = $taskId;
+        $this->convertingRequestId = null;
         $this->resetValidation();
 
         if ($taskId) {
@@ -332,6 +353,32 @@ class ProjectShow extends Component
         $task->assignees()->sync($this->task_assignee_ids);
 
         $this->showTaskModal = false;
+
+        if ($this->convertingRequestId) {
+            $request = $this->project->requests()->where('status', 'open')->find($this->convertingRequestId);
+
+            if ($request) {
+                $request->update([
+                    'status' => 'converted',
+                    'converted_task_id' => $task->id,
+                    'converted_by' => $authUser->id,
+                    'converted_at' => now(),
+                ]);
+
+                Notification::send(
+                    $request->creator,
+                    'project_request_converted',
+                    'Request converted to a task',
+                    "\"{$request->title}\" is now being worked on.",
+                    route('sales.clients.show', $this->project->client_id)
+                );
+            }
+
+            $this->convertingRequestId = null;
+            $this->dispatch('toast', message: 'Request converted to a task.', type: 'success');
+
+            return;
+        }
 
         if ($pendingApproval) {
             Notification::sendToMany(
@@ -695,6 +742,74 @@ class ProjectShow extends Component
         $this->dispatch('toast', message: 'Task amount updated.', type: 'success');
     }
 
+    public function openRequestDetail(int $requestId): void
+    {
+        if (! $this->canManageRequests()) {
+            return;
+        }
+
+        $request = $this->project->requests()->find($requestId);
+
+        if (! $request) {
+            return;
+        }
+
+        $this->viewingRequestId = $requestId;
+        $this->reply_body = '';
+        $this->resetValidation();
+        $this->showRequestDetail = true;
+    }
+
+    public function submitReply(): void
+    {
+        if (! $this->canManageRequests()) {
+            return;
+        }
+
+        $request = $this->project->requests()->find($this->viewingRequestId);
+
+        if (! $request) {
+            return;
+        }
+
+        $this->validate(['reply_body' => 'required|string|max:2000']);
+
+        $request->comments()->create([
+            'user_id' => Auth::id(),
+            'body' => $this->reply_body,
+        ]);
+
+        Notification::send(
+            $request->creator,
+            'project_request_reply',
+            'New reply on your request',
+            "{$request->title} — {$this->project->name}",
+            route('sales.clients.show', $this->project->client_id)
+        );
+
+        $this->reply_body = '';
+        $this->dispatch('toast', message: 'Reply sent.', type: 'success');
+    }
+
+    public function convertRequest(int $requestId): void
+    {
+        if (! $this->canManageRequests()) {
+            return;
+        }
+
+        $request = $this->project->requests()->where('status', 'open')->find($requestId);
+
+        if (! $request) {
+            return;
+        }
+
+        $this->openTaskModal();
+        $this->task_title = $request->title;
+        $this->task_description = $request->description ?? '';
+        $this->convertingRequestId = $requestId;
+        $this->showRequestDetail = false;
+    }
+
     public function applyCostPreset(string $preset): void
     {
         $this->cost_filter_preset = $preset;
@@ -752,6 +867,11 @@ class ProjectShow extends Component
         $shownPricedTasks = $pricedTasks->filter(fn (Task $t) => $this->taskInCostRange($t));
         $costFilterActive = (bool) ($this->cost_filter_from || $this->cost_filter_to);
 
+        $canManageRequests = $this->canManageRequests();
+        $requests = $canManageRequests
+            ? $this->project->requests()->with(['creator', 'comments.author', 'attachments', 'convertedTask'])->latest()->get()
+            : collect();
+
         $categories = $this->project->categories()->get();
         $categorySubtotals = [];
 
@@ -780,6 +900,10 @@ class ProjectShow extends Component
             'costFilterActive' => $costFilterActive,
             'pendingCount' => $isManager ? $tasks->where('pending_approval', true)->count() : 0,
             'viewingTask' => $this->viewingTask(),
+            'canManageRequests' => $canManageRequests,
+            'requests' => $requests,
+            'openRequestCount' => $requests->where('status', 'open')->count(),
+            'viewingRequest' => $this->viewingRequestId ? $requests->firstWhere('id', $this->viewingRequestId) : null,
             'developersList' => User::role('programmer')->orderBy('name')->get(),
             'reassignableUsers' => User::role(['manager_engineering', 'team_lead_it', 'super_admin'])
                 ->where('id', '!=', $authUser->id)

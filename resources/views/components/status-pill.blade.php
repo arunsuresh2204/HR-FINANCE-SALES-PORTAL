@@ -44,6 +44,8 @@
         'review' => 'bg-amber-400/15 text-amber-300 border-amber-400/20',
         'done' => 'bg-emerald-400/15 text-emerald-300 border-emerald-400/20',
         'declined' => 'bg-rose-400/15 text-rose-300 border-rose-400/20',
+        'open' => 'bg-sky-400/15 text-sky-300 border-sky-400/20',
+        'converted' => 'bg-emerald-400/15 text-emerald-300 border-emerald-400/20',
     ];
     $classes = $map[$status] ?? 'bg-white/10 text-white/60 border-white/15';
     $label = ucwords(str_replace('_', ' ', $status));

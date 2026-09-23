@@ -2,13 +2,17 @@
 
 namespace App\Livewire\Sales;
 
+use App\Models\Attachment;
 use App\Models\BillingRequest;
 use App\Models\Client;
 use App\Models\InvoiceEditRequest;
+use App\Models\Notification;
 use App\Models\Project;
+use App\Models\ProjectRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -68,14 +72,32 @@ class ClientShow extends Component
 
     public bool $projectCurrencyLocked = false;
 
-    #[Validate('nullable|file|max:10240')]
-    public $project_requirement_file = null;
+    public array $project_requirement_files = [];
 
     public ?int $assigned_to = null;
 
     public ?int $editingProjectId = null;
 
     public bool $showDeveloperForm = false;
+
+    public bool $showRequestForm = false;
+
+    public ?int $requestingProjectId = null;
+
+    #[Validate('required|string|max:255')]
+    public string $request_title = '';
+
+    #[Validate('nullable|string|max:2000')]
+    public string $request_description = '';
+
+    public array $request_attachments = [];
+
+    public bool $showRequestDetail = false;
+
+    public ?int $viewingRequestId = null;
+
+    #[Validate('required|string|max:2000')]
+    public string $reply_body = '';
 
     public ?int $managingProjectId = null;
 
@@ -180,7 +202,7 @@ class ClientShow extends Component
     public function openProjectForm(): void
     {
         $this->editingProjectId = null;
-        $this->reset(['project_name', 'project_description', 'project_requirement_file']);
+        $this->reset(['project_name', 'project_description', 'project_requirement_files']);
         $this->project_currency = 'INR';
         $this->projectCurrencyLocked = false;
         $this->assigned_to = Auth::user()->isManager() || Auth::user()->isSuperAdmin() ? Auth::id() : null;
@@ -199,7 +221,7 @@ class ClientShow extends Component
         $this->editingProjectId = $project->id;
         $this->project_name = $project->name;
         $this->project_description = $project->description ?? '';
-        $this->project_requirement_file = null;
+        $this->project_requirement_files = [];
         $this->project_currency = $project->currency;
         $this->projectCurrencyLocked = $project->tasks()->whereNotNull('amount')->exists();
         $this->assigned_to = $project->assigned_to;
@@ -235,7 +257,8 @@ class ClientShow extends Component
         $this->validate([
             'project_name' => 'required|string|max:255',
             'project_description' => 'nullable|string|max:1000',
-            'project_requirement_file' => 'nullable|file|max:10240',
+            'project_requirement_files' => 'array|max:5',
+            'project_requirement_files.*' => 'file|max:10240',
             'assigned_to' => $canManage ? 'nullable|exists:users,id' : 'required|exists:users,id',
             'project_currency' => $currencyEditable ? ['required', 'in:'.implode(',', \App\Support\Currency::codes())] : 'nullable',
         ]);
@@ -262,27 +285,46 @@ class ClientShow extends Component
             'description' => $this->project_description,
         ];
 
-        if ($this->project_requirement_file) {
-            $data['requirement_file'] = $this->project_requirement_file->store('project-requirements', 'public');
-        }
-
         if ($currencyEditable) {
             $data['currency'] = $this->project_currency;
         }
 
         if ($editing) {
             $editing->update($data);
+            $project = $editing;
         } else {
-            Project::create($data + [
+            $project = Project::create($data + [
                 'client_id' => $this->client->id,
                 'created_by' => Auth::id(),
                 'status' => 'active',
             ]);
         }
 
+        foreach ($this->project_requirement_files as $file) {
+            $project->attachments()->create([
+                'path' => $file->store('project-requirements', 'public'),
+                'original_name' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'uploaded_by' => Auth::id(),
+            ]);
+        }
+
         $this->editingProjectId = null;
         $this->showProjectForm = false;
         $this->dispatch('toast', message: $editing ? 'Project updated.' : 'Project created.', type: 'success');
+    }
+
+    public function deleteProjectAttachment(int $attachmentId): void
+    {
+        $attachment = Attachment::where('attachable_type', Project::class)->findOrFail($attachmentId);
+
+        if (! $this->canManageClientFinancials()) {
+            return;
+        }
+
+        Storage::disk('public')->delete($attachment->path);
+        $attachment->delete();
+        $this->dispatch('toast', message: 'Attachment removed.', type: 'success');
     }
 
     protected function canManageProject(Project $project): bool
@@ -318,6 +360,108 @@ class ClientShow extends Component
 
         $this->showDeveloperForm = false;
         $this->dispatch('toast', message: 'Developers assigned.', type: 'success');
+    }
+
+    public function openRequestForm(int $projectId): void
+    {
+        if (! $this->canManageClientFinancials()) {
+            return;
+        }
+
+        $this->requestingProjectId = $projectId;
+        $this->request_title = '';
+        $this->request_description = '';
+        $this->request_attachments = [];
+        $this->resetValidation();
+        $this->showRequestForm = true;
+    }
+
+    public function submitRequest(): void
+    {
+        if (! $this->canManageClientFinancials()) {
+            return;
+        }
+
+        $project = Project::findOrFail($this->requestingProjectId);
+
+        $this->validate([
+            'request_title' => 'required|string|max:255',
+            'request_description' => 'nullable|string|max:2000',
+            'request_attachments' => 'array|max:5',
+            'request_attachments.*' => 'file|max:10240',
+        ]);
+
+        $request = $project->requests()->create([
+            'created_by' => Auth::id(),
+            'title' => $this->request_title,
+            'description' => $this->request_description ?: null,
+            'status' => 'open',
+        ]);
+
+        foreach ($this->request_attachments as $file) {
+            $request->attachments()->create([
+                'path' => $file->store('project-requests', 'public'),
+                'original_name' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'uploaded_by' => Auth::id(),
+            ]);
+        }
+
+        if ($project->assigned_to) {
+            Notification::send(
+                $project->assignedTo,
+                'project_request_created',
+                'New request from Sales',
+                "{$this->request_title} — {$project->name}",
+                route('work.project-show', $project)
+            );
+        }
+
+        $this->showRequestForm = false;
+        $this->dispatch('toast', message: 'Request sent.', type: 'success');
+    }
+
+    public function openRequestDetail(int $requestId): void
+    {
+        $request = ProjectRequest::findOrFail($requestId);
+
+        if (! $this->canManageClientFinancials()) {
+            return;
+        }
+
+        $this->viewingRequestId = $request->id;
+        $this->reply_body = '';
+        $this->resetValidation();
+        $this->showRequestDetail = true;
+    }
+
+    public function submitReply(): void
+    {
+        if (! $this->canManageClientFinancials()) {
+            return;
+        }
+
+        $request = ProjectRequest::with('project')->findOrFail($this->viewingRequestId);
+
+        $this->validate(['reply_body' => 'required|string|max:2000']);
+
+        $request->comments()->create([
+            'user_id' => Auth::id(),
+            'body' => $this->reply_body,
+        ]);
+
+        if ($request->project->assigned_to) {
+            Notification::send(
+                $request->project->assignedTo,
+                'project_request_reply',
+                'New reply on request',
+                "{$request->title} — {$request->project->name}",
+                route('work.project-show', $request->project)
+            );
+        }
+
+        $this->reply_body = '';
+        $this->dispatch('toast', message: 'Reply sent.', type: 'success');
     }
 
     public function openBillingForm(): void
@@ -581,8 +725,18 @@ class ClientShow extends Component
     {
         $authUser = Auth::user();
 
+        $projects = $this->client->projects()->with(['assignedTo', 'developers', 'attachments'])->latest()->get();
+
+        $projectRequests = ProjectRequest::whereIn('project_id', $projects->pluck('id'))
+            ->with(['creator', 'comments.author', 'attachments', 'convertedTask'])
+            ->latest()
+            ->get()
+            ->groupBy('project_id');
+
         return view('livewire.sales.client-show', [
-            'projects' => $this->client->projects()->with(['assignedTo', 'developers'])->latest()->get(),
+            'projects' => $projects,
+            'projectRequests' => $projectRequests,
+            'viewingRequest' => $this->viewingRequestId ? ProjectRequest::with(['creator', 'comments.author', 'attachments', 'convertedTask'])->find($this->viewingRequestId) : null,
             'billingRequests' => $this->client->billingRequests()->with('tasks', 'billedTasks', 'project')->where('status', '!=', 'invoiced')->latest()->get(),
             'invoices' => $this->client->invoices()->latest()->get(),
             'canManageClientFinancials' => $this->canManageClientFinancials(),

@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Collection;
 
 class Project extends Model
 {
-    protected $fillable = ['client_id', 'created_by', 'assigned_to', 'name', 'description', 'requirement_file', 'status', 'currency'];
+    protected $fillable = ['client_id', 'created_by', 'assigned_to', 'name', 'description', 'status', 'currency'];
 
     public function client(): BelongsTo
     {
@@ -45,6 +46,16 @@ class Project extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function requests(): HasMany
+    {
+        return $this->hasMany(ProjectRequest::class);
+    }
+
+    public function attachments(): MorphMany
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
     }
 
     public function needsEstimate(): bool

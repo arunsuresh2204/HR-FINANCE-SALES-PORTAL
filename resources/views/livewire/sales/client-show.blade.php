@@ -95,9 +95,6 @@
                                 <span>Assigned to: {{ $project->assignedTo->name ?? '—' }}</span>
                                 <span>Developers: {{ $project->developers->pluck('name')->join(', ') ?: 'None assigned' }}</span>
                                 <span>Currency: {{ $project->currency }}</span>
-                                @if ($project->requirement_file)
-                                    <a href="{{ Storage::url($project->requirement_file) }}" target="_blank" class="font-semibold text-gold-300 hover:text-gold-200">View Requirement</a>
-                                @endif
                                 @if ($canManageProjects || $project->assigned_to === auth()->id())
                                     <button wire:click="openDeveloperForm({{ $project->id }})" class="font-semibold text-gold-300 hover:text-gold-200">Assign Developers</button>
                                 @endif
@@ -105,6 +102,37 @@
                                     <button wire:click="editProject({{ $project->id }})" class="font-semibold text-gold-300 hover:text-gold-200">Edit</button>
                                     <button wire:click="deleteProject({{ $project->id }})" wire:confirm="Delete this project? This can't be undone." class="font-semibold text-white/40 hover:text-rose-300">Delete</button>
                                 @endif
+                            </div>
+                            @if ($project->attachments->isNotEmpty())
+                                <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                                    @foreach ($project->attachments as $attachment)
+                                        <a href="{{ $attachment->url() }}" target="_blank" class="font-semibold text-gold-300 hover:text-gold-200">{{ $attachment->original_name }}</a>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            <div class="mt-3 border-t border-white/10 pt-2">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-[11px] font-semibold uppercase tracking-wide text-white/35">Requests</p>
+                                    @if ($canManageClientFinancials)
+                                        <button wire:click="openRequestForm({{ $project->id }})" class="text-[11px] font-semibold text-gold-300 hover:text-gold-200">+ New Request</button>
+                                    @endif
+                                </div>
+                                <div class="mt-1.5 space-y-1.5">
+                                    @forelse (($projectRequests[$project->id] ?? []) as $request)
+                                        <button wire:click="openRequestDetail({{ $request->id }})" class="glass-inset flex w-full items-center justify-between gap-2 p-2 text-left hover:bg-white/10">
+                                            <span class="truncate text-xs text-white/70">{{ $request->title }}</span>
+                                            <span class="flex shrink-0 items-center gap-2">
+                                                @if ($request->comments->isNotEmpty())
+                                                    <span class="text-[10px] text-white/35">{{ $request->comments->count() }} {{ Str::plural('reply', $request->comments->count()) }}</span>
+                                                @endif
+                                                <x-status-pill :status="$request->status" />
+                                            </span>
+                                        </button>
+                                    @empty
+                                        <p class="text-xs text-white/35">No requests raised for this project yet.</p>
+                                    @endforelse
+                                </div>
                             </div>
                         </div>
                     @empty
@@ -249,10 +277,21 @@
                 @endif
             </div>
             <div>
-                <x-input-label for="project_requirement_file" value="Requirement File (optional)" />
-                <input wire:model="project_requirement_file" id="project_requirement_file" type="file" class="input-glass file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white/80">
-                <div wire:loading wire:target="project_requirement_file" class="mt-1 text-xs text-white/40">Uploading&hellip;</div>
-                <x-input-error :messages="$errors->get('project_requirement_file')" class="mt-1" />
+                <x-input-label for="project_requirement_files" value="Requirement Files (optional)" />
+                @if ($editingProjectId && ($editingProject = $projects->firstWhere('id', $editingProjectId)) && $editingProject->attachments->isNotEmpty())
+                    <div class="mb-2 space-y-1">
+                        @foreach ($editingProject->attachments as $attachment)
+                            <div class="flex items-center justify-between gap-2 text-xs">
+                                <a href="{{ $attachment->url() }}" target="_blank" class="truncate text-gold-300 hover:text-gold-200">{{ $attachment->original_name }}</a>
+                                <button type="button" wire:click="deleteProjectAttachment({{ $attachment->id }})" wire:confirm="Remove this attachment?" class="shrink-0 text-white/30 hover:text-rose-300"><x-icon name="trash" class="h-3.5 w-3.5" /></button>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+                <input wire:model="project_requirement_files" id="project_requirement_files" type="file" multiple class="input-glass file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white/80">
+                <div wire:loading wire:target="project_requirement_files" class="mt-1 text-xs text-white/40">Uploading&hellip;</div>
+                <x-input-error :messages="$errors->get('project_requirement_files')" class="mt-1" />
+                <x-input-error :messages="$errors->get('project_requirement_files.*')" class="mt-1" />
             </div>
             <div>
                 <x-input-label for="assigned_to" :value="$canManageProjects ? 'Assign To (optional)' : 'Assign To (Engineering Manager)'" />
@@ -432,5 +471,82 @@
                 <x-primary-button>Submit Request</x-primary-button>
             </div>
         </form>
+    </x-modal-glass>
+
+    <x-modal-glass wire-model="showRequestForm" title="New Request" max-width="lg">
+        <form wire:submit="submitRequest" class="space-y-4">
+            <p class="text-xs text-white/45">Raise something for the Engineering Manager to review — a client ask, a bug report, a change request. They'll respond here, and convert it into a task once it's ready to work on.</p>
+            <div>
+                <x-input-label for="request_title" value="Title" />
+                <x-text-input wire:model="request_title" id="request_title" type="text" class="mt-0" placeholder="e.g. Client wants a dark mode toggle" />
+                <x-input-error :messages="$errors->get('request_title')" class="mt-1" />
+            </div>
+            <div>
+                <x-input-label for="request_description" value="Details (optional)" />
+                <textarea wire:model="request_description" id="request_description" rows="4" class="input-glass"></textarea>
+                <x-input-error :messages="$errors->get('request_description')" class="mt-1" />
+            </div>
+            <div>
+                <x-input-label for="request_attachments" value="Attachments (optional)" />
+                <input wire:model="request_attachments" id="request_attachments" type="file" multiple class="input-glass file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white/80">
+                <div wire:loading wire:target="request_attachments" class="mt-1 text-xs text-white/40">Uploading&hellip;</div>
+                <x-input-error :messages="$errors->get('request_attachments')" class="mt-1" />
+                <x-input-error :messages="$errors->get('request_attachments.*')" class="mt-1" />
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
+                <x-primary-button>Send Request</x-primary-button>
+            </div>
+        </form>
+    </x-modal-glass>
+
+    <x-modal-glass wire-model="showRequestDetail" :title="$viewingRequest->title ?? 'Request'" max-width="lg">
+        @if ($viewingRequest)
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <p class="text-xs text-white/40">Raised by {{ $viewingRequest->creator->name }} on {{ $viewingRequest->created_at->format('M j, Y') }}</p>
+                    <x-status-pill :status="$viewingRequest->status" />
+                </div>
+                @if ($viewingRequest->description)
+                    <p class="glass-inset p-3 text-sm text-white/70">{{ $viewingRequest->description }}</p>
+                @endif
+                @if ($viewingRequest->attachments->isNotEmpty())
+                    <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                        @foreach ($viewingRequest->attachments as $attachment)
+                            <a href="{{ $attachment->url() }}" target="_blank" class="font-semibold text-gold-300 hover:text-gold-200">{{ $attachment->original_name }}</a>
+                        @endforeach
+                    </div>
+                @endif
+
+                @if ($viewingRequest->status === 'converted')
+                    <div class="rounded-lg border border-emerald-400/20 bg-emerald-400/5 p-3 text-xs text-emerald-200">
+                        Converted to a task by {{ $viewingRequest->convertedBy->name ?? '—' }} on {{ $viewingRequest->converted_at?->format('M j, Y') }}.
+                    </div>
+                @endif
+
+                <div class="space-y-2 border-t border-white/10 pt-3">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-white/35">Conversation</p>
+                    @forelse ($viewingRequest->comments as $comment)
+                        <div class="glass-inset p-2.5">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs font-semibold text-white">{{ $comment->author->name }}</p>
+                                <p class="text-[10px] text-white/35">{{ $comment->created_at->format('M j, g:i A') }}</p>
+                            </div>
+                            <p class="mt-1 text-xs text-white/65">{{ $comment->body }}</p>
+                        </div>
+                    @empty
+                        <p class="text-xs text-white/35">No replies yet.</p>
+                    @endforelse
+                </div>
+
+                <form wire:submit="submitReply" class="space-y-2 border-t border-white/10 pt-3">
+                    <textarea wire:model="reply_body" rows="2" class="input-glass" placeholder="Write a reply&hellip;"></textarea>
+                    <x-input-error :messages="$errors->get('reply_body')" class="mt-1" />
+                    <div class="flex justify-end">
+                        <x-primary-button>Reply</x-primary-button>
+                    </div>
+                </form>
+            </div>
+        @endif
     </x-modal-glass>
 </div>
