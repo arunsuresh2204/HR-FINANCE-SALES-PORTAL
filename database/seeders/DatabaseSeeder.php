@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
             HolidaySeeder::class,
             LeadSourceSeeder::class,
             OperationalExpenseCategorySeeder::class,
-            DemoDataSeeder::class,
+            DummyEngineeringTeamSeeder::class,
         ]);
     }
 }

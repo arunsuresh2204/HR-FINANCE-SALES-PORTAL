@@ -35,18 +35,14 @@ npm run build   # or `npm run dev` while developing
 php artisan serve
 ```
 
-The seeder creates the example 9-person team from the project spec. All seeded accounts use the password `password`:
+The seeder creates a small test team. All seeded accounts use the password `test1234`:
 
 | Email | Roles |
 |---|---|
-| arun@nexstarc.com | Super Admin, Programmer |
-| rahul@nexstarc.com | Super Admin, Programmer |
-| priya@nexstarc.com | Super Admin, Sales Exec, Finance Admin |
-| karthik@nexstarc.com | Super Admin, Sales Exec, HR Admin |
-| sneha@nexstarc.com | Programmer |
-| vikram@nexstarc.com | Programmer |
-| anjali@nexstarc.com | Marketer |
-| rohan@nexstarc.com | Sales Exec |
-| divya@nexstarc.com | Sales Exec |
+| arun@nexstarc.com | Super Admin |
+| pradeep@nexstarc.com | Manager - Engineering |
+| sajin@nexstarc.com | Team Lead, Programmer |
+| rajalakshmi@nexstarc.com | Programmer |
+| bibin@nexstarc.com | Sales Exec |
 
 New employees are onboarded from **HR Admin → Employees** or **Users & Roles** (Super Admin), which generates the account and a temporary password.

@@ -9,10 +9,10 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * One-off dummy data for manual testing: a Manager -> Team Lead ->
- * Programmer engineering chain plus a Sales Exec with three clients/
- * projects exercising the three project-assignment paths. Not part of
- * the default `db:seed` run — invoke it explicitly:
+ * The application's default seed data: a Super Admin plus a Manager ->
+ * Team Lead -> Programmer engineering chain and a Sales Exec with three
+ * clients/projects exercising the three project-assignment paths. Run as
+ * part of the default `db:seed` flow (see DatabaseSeeder), or standalone:
  *   php artisan db:seed --class=DummyEngineeringTeamSeeder
  *
  * Safe to re-run: every record is keyed on something unique (email,
@@ -24,7 +24,18 @@ class DummyEngineeringTeamSeeder extends Seeder
 {
     public function run(): void
     {
-        $password = Hash::make('password');
+        $password = Hash::make('test1234');
+
+        $arun = User::firstOrCreate(
+            ['email' => 'arun@nexstarc.com'],
+            [
+                'employee_code' => 'EMP-0001', 'name' => 'Arun Suresh', 'password' => $password,
+                'email_verified_at' => now(), 'designation' => 'Co-Founder / Super Admin',
+                'department' => 'Engineering', 'date_of_joining' => now()->subYears(2), 'employment_status' => 'active',
+                'monthly_salary' => 4000, 'scheduled_login_time' => '09:00', 'scheduled_logoff_time' => '18:00',
+            ]
+        );
+        $arun->syncRoles(['super_admin']);
 
         $pradeep = User::firstOrCreate(
             ['email' => 'pradeep@nexstarc.com'],
