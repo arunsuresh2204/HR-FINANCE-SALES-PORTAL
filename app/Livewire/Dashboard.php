@@ -11,6 +11,7 @@ use App\Models\Invoice;
 use App\Models\Lead;
 use App\Models\LeaveRequest;
 use App\Models\MarketingLog;
+use App\Models\Notification;
 use App\Models\Resignation;
 use App\Models\SalesTarget;
 use App\Models\Timesheet;
@@ -30,6 +31,11 @@ class Dashboard extends Component
         $this->salesYear = now()->year;
     }
 
+    public function markNotificationRead(int $notificationId): void
+    {
+        Notification::where('id', $notificationId)->where('user_id', Auth::id())->update(['read_at' => now()]);
+    }
+
     public function render()
     {
         $user = Auth::user();
@@ -41,6 +47,7 @@ class Dashboard extends Component
             'approvedLeaveDaysThisYear' => LeaveRequest::where('user_id', $user->id)->where('status', 'approved')->whereYear('start_date', now()->year)->sum('days'),
             'pendingExpenses' => Expense::where('user_id', $user->id)->where('status', 'pending')->count(),
             'announcements' => Announcement::latest()->limit(3)->get(),
+            'unreadNotifications' => Notification::where('user_id', $user->id)->whereNull('read_at')->latest()->limit(5)->get(),
         ];
 
         if ($user->can('access_timesheets')) {

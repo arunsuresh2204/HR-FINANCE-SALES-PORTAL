@@ -10,7 +10,7 @@
         x-show="open"
         x-transition
         x-cloak
-        class="glass-panel absolute right-0 z-50 mt-2 w-80 max-h-[26rem] overflow-y-auto p-2"
+        class="absolute right-0 z-50 mt-2 w-80 max-h-[26rem] overflow-y-auto rounded-3xl border border-white/10 bg-ink-950/95 p-2 shadow-glass backdrop-blur-xl"
         style="display: none;"
     >
         <div class="glass-sheen"></div>

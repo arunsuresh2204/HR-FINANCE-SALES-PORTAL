@@ -106,4 +106,32 @@
             @endforelse
         </div>
     </div>
+
+    <div class="mt-8 glass-panel relative overflow-hidden p-6">
+        <div class="glass-sheen"></div>
+        <div class="mb-4 flex items-center justify-between">
+            <h2 class="text-base font-bold text-white">Notifications</h2>
+        </div>
+        <div class="space-y-3">
+            @forelse ($unreadNotifications as $notification)
+                <a
+                    href="{{ $notification->url ?? '#' }}"
+                    @if ($notification->url) wire:navigate @endif
+                    wire:click="markNotificationRead({{ $notification->id }})"
+                    class="glass-inset block p-4 transition hover:bg-white/10"
+                >
+                    <div class="flex items-center justify-between">
+                        <p class="font-semibold text-white">{{ $notification->title }}</p>
+                        <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold-400"></span>
+                    </div>
+                    @if ($notification->body)
+                        <p class="mt-1 text-sm text-white/60">{{ $notification->body }}</p>
+                    @endif
+                    <p class="mt-2 text-xs text-white/30">{{ $notification->created_at->diffForHumans() }}</p>
+                </a>
+            @empty
+                <p class="text-sm text-white/40">You're all caught up.</p>
+            @endforelse
+        </div>
+    </div>
 </div>

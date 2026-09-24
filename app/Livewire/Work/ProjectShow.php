@@ -4,9 +4,11 @@ namespace App\Livewire\Work;
 
 use App\Models\Notification;
 use App\Models\Project;
+use App\Models\ProjectCredential;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -120,6 +122,27 @@ class ProjectShow extends Component
 
     public ?int $convertingRequestId = null;
 
+    // Notes
+    public string $note_body = '';
+
+    // Credentials
+    public bool $showCredentialForm = false;
+
+    public ?int $editingCredentialId = null;
+
+    public string $credential_label = '';
+
+    public string $credential_username = '';
+
+    public string $credential_secret = '';
+
+    public string $credential_notes = '';
+
+    public array $revealedCredentialIds = [];
+
+    // Files
+    public array $project_files = [];
+
     public function mount(Project $project): void
     {
         $authUser = Auth::user();
@@ -152,6 +175,17 @@ class ProjectShow extends Component
         return $authUser->isSuperAdmin() || $authUser->isManager();
     }
 
+    /**
+     * Everyone with project access can view Credentials; only Manager/Team
+     * Lead can add, edit, or remove entries.
+     */
+    protected function canManageCredentials(): bool
+    {
+        $authUser = Auth::user();
+
+        return $authUser->isSuperAdmin() || $authUser->isManager() || $authUser->isTeamLead();
+    }
+
     public function openReassignForm(): void
     {
         if (! $this->canManage()) {
@@ -181,6 +215,16 @@ class ProjectShow extends Component
 
         $this->project->update(['assigned_to' => $this->reassign_to]);
 
+        if ($assignee->id !== Auth::id()) {
+            Notification::send(
+                $assignee,
+                'project_reassigned',
+                'A project was handed off to you',
+                $this->project->name,
+                route('work.project-show', $this->project)
+            );
+        }
+
         $this->showReassignForm = false;
         $this->dispatch('toast', message: 'Project reassigned.', type: 'success');
     }
@@ -202,7 +246,19 @@ class ProjectShow extends Component
             return;
         }
 
+        $existingIds = $this->project->developers()->pluck('users.id')->all();
         $this->project->developers()->sync($this->developer_ids);
+        $newIds = collect($this->developer_ids)->diff($existingIds)->reject(fn ($id) => $id == Auth::id());
+
+        if ($newIds->isNotEmpty()) {
+            Notification::sendToMany(
+                User::whereIn('id', $newIds)->get(),
+                'project_developer_added',
+                'Added to a project',
+                $this->project->name,
+                route('work.project-show', $this->project)
+            );
+        }
 
         $this->showDeveloperForm = false;
         $this->dispatch('toast', message: 'Developers assigned.', type: 'success');
@@ -260,6 +316,27 @@ class ProjectShow extends Component
         $this->showTaskModal = true;
     }
 
+    /**
+     * Notify whoever is newly assigned to a task (skips whoever was already
+     * assigned, and never notifies the actor about their own action).
+     */
+    protected function notifyNewAssignees(Task $task, array $newIds, array $oldIds, User $actor): void
+    {
+        $newlyAdded = collect($newIds)->diff($oldIds)->reject(fn ($id) => $id == $actor->id);
+
+        if ($newlyAdded->isEmpty()) {
+            return;
+        }
+
+        Notification::sendToMany(
+            User::whereIn('id', $newlyAdded)->get(),
+            'task_assigned',
+            'You were assigned a task',
+            "{$task->title} — {$this->project->name}",
+            route('work.project-show', $this->project)
+        );
+    }
+
     public function saveTask(): void
     {
         $authUser = Auth::user();
@@ -304,8 +381,10 @@ class ProjectShow extends Component
         ];
 
         if ($editing) {
+            $previousAssigneeIds = $editing->assignees()->pluck('users.id')->all();
             $editing->update($data);
             $editing->assignees()->sync($this->task_assignee_ids);
+            $this->notifyNewAssignees($editing, $this->task_assignee_ids, $previousAssigneeIds, $authUser);
             $this->showTaskModal = false;
             $this->dispatch('toast', message: 'Task updated.', type: 'success');
 
@@ -356,6 +435,7 @@ class ProjectShow extends Component
         ]);
 
         $task->assignees()->sync($this->task_assignee_ids);
+        $this->notifyNewAssignees($task, $this->task_assignee_ids, [], $authUser);
 
         $this->showTaskModal = false;
 
@@ -446,6 +526,7 @@ class ProjectShow extends Component
             $task->assignees()->detach($userId);
         } else {
             $task->assignees()->attach($userId);
+            $this->notifyNewAssignees($task, [$userId], [], $authUser);
         }
     }
 
@@ -830,6 +911,147 @@ class ProjectShow extends Component
         $this->showRequestDetail = false;
     }
 
+    public function saveNote(): void
+    {
+        $this->validate(['note_body' => 'required|string|max:2000']);
+
+        $this->project->notes()->create([
+            'user_id' => Auth::id(),
+            'body' => $this->note_body,
+        ]);
+
+        $this->note_body = '';
+        $this->dispatch('toast', message: 'Note added.', type: 'success');
+    }
+
+    public function deleteNote(int $noteId): void
+    {
+        $authUser = Auth::user();
+        $note = $this->project->notes()->find($noteId);
+
+        if (! $note || ! ($authUser->isManager() || $authUser->isSuperAdmin() || $authUser->isTeamLead() || $note->user_id === $authUser->id)) {
+            return;
+        }
+
+        $note->delete();
+        $this->dispatch('toast', message: 'Note removed.', type: 'success');
+    }
+
+    public function openCredentialForm(): void
+    {
+        if (! $this->canManageCredentials()) {
+            return;
+        }
+
+        $this->editingCredentialId = null;
+        $this->credential_label = '';
+        $this->credential_username = '';
+        $this->credential_secret = '';
+        $this->credential_notes = '';
+        $this->resetValidation();
+        $this->showCredentialForm = true;
+    }
+
+    public function editCredential(int $credentialId): void
+    {
+        if (! $this->canManageCredentials()) {
+            return;
+        }
+
+        $credential = $this->project->credentials()->findOrFail($credentialId);
+
+        $this->editingCredentialId = $credential->id;
+        $this->credential_label = $credential->label;
+        $this->credential_username = $credential->username ?? '';
+        $this->credential_secret = $credential->secret;
+        $this->credential_notes = $credential->notes ?? '';
+        $this->resetValidation();
+        $this->showCredentialForm = true;
+    }
+
+    public function saveCredential(): void
+    {
+        if (! $this->canManageCredentials()) {
+            return;
+        }
+
+        $this->validate([
+            'credential_label' => 'required|string|max:255',
+            'credential_username' => 'nullable|string|max:255',
+            'credential_secret' => 'required|string|max:2000',
+            'credential_notes' => 'nullable|string|max:1000',
+        ]);
+
+        $data = [
+            'label' => $this->credential_label,
+            'username' => $this->credential_username ?: null,
+            'secret' => $this->credential_secret,
+            'notes' => $this->credential_notes ?: null,
+        ];
+
+        if ($this->editingCredentialId) {
+            $this->project->credentials()->findOrFail($this->editingCredentialId)->update($data);
+        } else {
+            $this->project->credentials()->create($data + ['created_by' => Auth::id()]);
+        }
+
+        $this->showCredentialForm = false;
+        $this->dispatch('toast', message: 'Credential saved.', type: 'success');
+    }
+
+    public function deleteCredential(int $credentialId): void
+    {
+        if (! $this->canManageCredentials()) {
+            return;
+        }
+
+        $this->project->credentials()->where('id', $credentialId)->delete();
+        $this->dispatch('toast', message: 'Credential removed.', type: 'success');
+    }
+
+    public function toggleRevealCredential(int $credentialId): void
+    {
+        if (in_array($credentialId, $this->revealedCredentialIds, true)) {
+            $this->revealedCredentialIds = array_values(array_diff($this->revealedCredentialIds, [$credentialId]));
+        } else {
+            $this->revealedCredentialIds[] = $credentialId;
+        }
+    }
+
+    public function uploadFiles(): void
+    {
+        $this->validate([
+            'project_files' => 'array|max:5',
+            'project_files.*' => 'file|max:10240',
+        ]);
+
+        foreach ($this->project_files as $file) {
+            $this->project->attachments()->create([
+                'path' => $file->store('project-files', 'public'),
+                'original_name' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'uploaded_by' => Auth::id(),
+            ]);
+        }
+
+        $this->project_files = [];
+        $this->dispatch('toast', message: 'File(s) uploaded.', type: 'success');
+    }
+
+    public function deleteFile(int $attachmentId): void
+    {
+        $authUser = Auth::user();
+        $attachment = $this->project->attachments()->find($attachmentId);
+
+        if (! $attachment || ! ($authUser->isManager() || $authUser->isSuperAdmin() || $authUser->isTeamLead() || $attachment->uploaded_by === $authUser->id)) {
+            return;
+        }
+
+        Storage::disk('public')->delete($attachment->path);
+        $attachment->delete();
+        $this->dispatch('toast', message: 'File removed.', type: 'success');
+    }
+
     public function applyCostPreset(string $preset): void
     {
         $this->cost_filter_preset = $preset;
@@ -924,6 +1146,10 @@ class ProjectShow extends Component
             'requests' => $requests,
             'openRequestCount' => $requests->where('status', 'open')->count(),
             'viewingRequest' => $this->viewingRequestId ? $requests->firstWhere('id', $this->viewingRequestId) : null,
+            'notes' => $this->project->notes()->with('author')->get(),
+            'canManageCredentials' => $this->canManageCredentials(),
+            'credentials' => $this->project->credentials()->with('creator')->get(),
+            'files' => $this->project->attachments()->with('uploader')->latest()->get(),
             'developersList' => User::role('programmer')->orderBy('name')->get(),
             'reassignableUsers' => User::role(['manager_engineering', 'team_lead_it', 'super_admin'])
                 ->where('id', '!=', $authUser->id)

@@ -53,7 +53,12 @@
                 @endif
             </button>
             <button wire:click="setTab('list')" class="tab-btn {{ $tab === 'list' ? 'active' : '' }}">List</button>
-            <button wire:click="setTab('categories')" class="tab-btn {{ $tab === 'categories' ? 'active' : '' }}">Cost Estimate</button>
+            <button wire:click="setTab('notes')" class="tab-btn {{ $tab === 'notes' ? 'active' : '' }}">Notes</button>
+            <button wire:click="setTab('credentials')" class="tab-btn {{ $tab === 'credentials' ? 'active' : '' }}">Credentials</button>
+            <button wire:click="setTab('files')" class="tab-btn {{ $tab === 'files' ? 'active' : '' }}">Files</button>
+            @if ($isManager)
+                <button wire:click="setTab('categories')" class="tab-btn {{ $tab === 'categories' ? 'active' : '' }}">Cost Estimate</button>
+            @endif
             @if ($canManageRequests)
                 <button wire:click="setTab('requests')" class="tab-btn {{ $tab === 'requests' ? 'active' : '' }}">
                     Requests
@@ -201,8 +206,105 @@
         </div>
     @endif
 
+    {{-- ================= NOTES ================= --}}
+    @if ($tab === 'notes')
+        <div class="mt-4 space-y-4">
+            <form wire:submit="saveNote" class="glass-card space-y-2">
+                <textarea wire:model="note_body" rows="2" class="input-glass" placeholder="Add a note for the team&hellip;"></textarea>
+                <x-input-error :messages="$errors->get('note_body')" class="mt-1" />
+                <div class="flex justify-end">
+                    <x-primary-button>Add Note</x-primary-button>
+                </div>
+            </form>
+            <div class="space-y-2">
+                @forelse ($notes as $note)
+                    <div class="glass-inset flex items-start justify-between gap-3 p-3">
+                        <div class="min-w-0">
+                            <p class="text-sm text-white/80">{{ $note->body }}</p>
+                            <p class="mt-1 text-[11px] text-white/35">{{ $note->author->name }} &middot; {{ $note->created_at->diffForHumans() }}</p>
+                        </div>
+                        @if ($isManager || auth()->user()->isTeamLead() || $note->user_id === auth()->id())
+                            <button wire:click="deleteNote({{ $note->id }})" wire:confirm="Remove this note?" class="shrink-0 text-white/30 hover:text-rose-300"><x-icon name="trash" class="h-4 w-4" /></button>
+                        @endif
+                    </div>
+                @empty
+                    <p class="glass-card py-8 text-center text-sm text-white/30">No notes yet.</p>
+                @endforelse
+            </div>
+        </div>
+    @endif
+
+    {{-- ================= CREDENTIALS ================= --}}
+    @if ($tab === 'credentials')
+        <div class="mt-4 space-y-3">
+            @if ($canManageCredentials)
+                <div class="flex justify-end">
+                    <button wire:click="openCredentialForm" class="btn-glass-secondary text-xs"><x-icon name="plus" class="h-4 w-4" /> Add Credential</button>
+                </div>
+            @endif
+            @forelse ($credentials as $credential)
+                <div class="glass-card">
+                    <div class="flex items-center justify-between gap-3">
+                        <p class="font-bold text-white">{{ $credential->label }}</p>
+                        @if ($canManageCredentials)
+                            <div class="flex shrink-0 items-center gap-3 text-xs">
+                                <button wire:click="editCredential({{ $credential->id }})" class="font-semibold text-gold-300 hover:text-gold-200">Edit</button>
+                                <button wire:click="deleteCredential({{ $credential->id }})" wire:confirm="Remove this credential?" class="font-semibold text-white/40 hover:text-rose-300">Delete</button>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                        @if ($credential->username)
+                            <div><span class="text-white/35">Username:</span> <span class="text-white/70">{{ $credential->username }}</span></div>
+                        @endif
+                        <div class="flex items-center gap-2">
+                            <span class="text-white/35">Secret:</span>
+                            <span class="font-mono text-white/70">{{ in_array($credential->id, $revealedCredentialIds) ? $credential->secret : str_repeat('•', 10) }}</span>
+                            <button wire:click="toggleRevealCredential({{ $credential->id }})" class="text-[11px] font-semibold text-gold-300 hover:text-gold-200">{{ in_array($credential->id, $revealedCredentialIds) ? 'Hide' : 'Reveal' }}</button>
+                        </div>
+                    </div>
+                    @if ($credential->notes)
+                        <p class="mt-2 text-xs text-white/45">{{ $credential->notes }}</p>
+                    @endif
+                </div>
+            @empty
+                <p class="glass-card py-8 text-center text-sm text-white/30">No credentials saved yet.</p>
+            @endforelse
+        </div>
+    @endif
+
+    {{-- ================= FILES ================= --}}
+    @if ($tab === 'files')
+        <div class="mt-4 space-y-4">
+            <form wire:submit="uploadFiles" class="glass-card space-y-2">
+                <input wire:model="project_files" id="project_files" type="file" multiple class="input-glass file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white/80">
+                <div wire:loading wire:target="project_files" class="text-xs text-white/40">Uploading&hellip;</div>
+                <x-input-error :messages="$errors->get('project_files')" class="mt-1" />
+                <x-input-error :messages="$errors->get('project_files.*')" class="mt-1" />
+                <div class="flex justify-end">
+                    <x-primary-button>Upload</x-primary-button>
+                </div>
+            </form>
+            <div class="space-y-2">
+                @forelse ($files as $file)
+                    <div class="glass-inset flex items-center justify-between gap-3 p-3">
+                        <a href="{{ $file->url() }}" target="_blank" class="min-w-0 truncate text-sm font-semibold text-gold-300 hover:text-gold-200">{{ $file->original_name }}</a>
+                        <div class="flex shrink-0 items-center gap-3">
+                            <p class="text-[11px] text-white/35">{{ $file->uploader->name }} &middot; {{ $file->created_at->diffForHumans() }}</p>
+                            @if ($isManager || auth()->user()->isTeamLead() || $file->uploaded_by === auth()->id())
+                                <button wire:click="deleteFile({{ $file->id }})" wire:confirm="Remove this file?" class="text-white/30 hover:text-rose-300"><x-icon name="trash" class="h-4 w-4" /></button>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <p class="glass-card py-8 text-center text-sm text-white/30">No files uploaded yet.</p>
+                @endforelse
+            </div>
+        </div>
+    @endif
+
     {{-- ================= COST ESTIMATE / CATEGORIES ================= --}}
-    @if ($tab === 'categories')
+    @if ($tab === 'categories' && $isManager)
         <div class="mt-4 space-y-5">
             @if ($canManage)
                 <div class="flex justify-end">
@@ -401,7 +503,7 @@
                     <x-input-error :messages="$errors->get('task_hours')" class="mt-1" />
                 </div>
             @elseif (! $editingTaskId)
-                <p class="text-xs text-violet-300/80">This task will need your manager's review — they'll set the price before it can be sent to Sales.</p>
+                <p class="text-xs text-violet-300/80">This task will need your manager's review, please contact manager for approval.</p>
             @endif
 
             <div>
@@ -716,5 +818,33 @@
                 </form>
             </div>
         @endif
+    </x-modal-glass>
+
+    {{-- ================= CREDENTIAL FORM MODAL ================= --}}
+    <x-modal-glass wire-model="showCredentialForm" :title="$editingCredentialId ? 'Edit Credential' : 'Add Credential'" max-width="md">
+        <form wire:submit="saveCredential" class="space-y-4">
+            <div>
+                <x-input-label for="credential_label" value="Label" />
+                <x-text-input wire:model="credential_label" id="credential_label" type="text" class="mt-0" placeholder="e.g. Staging server, Google Analytics" />
+                <x-input-error :messages="$errors->get('credential_label')" class="mt-1" />
+            </div>
+            <div>
+                <x-input-label for="credential_username" value="Username (optional)" />
+                <x-text-input wire:model="credential_username" id="credential_username" type="text" class="mt-0" />
+            </div>
+            <div>
+                <x-input-label for="credential_secret" value="Password / Key" />
+                <textarea wire:model="credential_secret" id="credential_secret" rows="2" class="input-glass font-mono"></textarea>
+                <x-input-error :messages="$errors->get('credential_secret')" class="mt-1" />
+            </div>
+            <div>
+                <x-input-label for="credential_notes" value="Notes (optional)" />
+                <textarea wire:model="credential_notes" id="credential_notes" rows="2" class="input-glass"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
+                <x-primary-button>Save</x-primary-button>
+            </div>
+        </form>
     </x-modal-glass>
 </div>

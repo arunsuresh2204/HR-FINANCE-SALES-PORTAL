@@ -58,6 +58,16 @@ class Project extends Model
         return $this->morphMany(Attachment::class, 'attachable');
     }
 
+    public function notes(): HasMany
+    {
+        return $this->hasMany(ProjectNote::class)->latest();
+    }
+
+    public function credentials(): HasMany
+    {
+        return $this->hasMany(ProjectCredential::class)->latest();
+    }
+
     public function needsEstimate(): bool
     {
         return $this->categories()->doesntExist();

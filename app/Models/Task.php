@@ -89,8 +89,9 @@ class Task extends Model
 
     /**
      * Peer visibility among developers: a private task is only visible to the
-     * developer who created it. Manager and Team Lead always see everything —
-     * this is peer-to-peer privacy, not a way to hide work from leadership.
+     * developer who created it and whoever it's assigned to. Manager and Team
+     * Lead always see everything — this is peer-to-peer privacy, not a way to
+     * hide work from leadership.
      */
     public function canBeSeenBy(User $user): bool
     {
@@ -98,7 +99,9 @@ class Task extends Model
             return true;
         }
 
-        return $this->visibility !== 'private' || $this->created_by === $user->id;
+        return $this->visibility !== 'private'
+            || $this->created_by === $user->id
+            || $this->assignees->contains('id', $user->id);
     }
 
     /**
