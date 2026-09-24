@@ -1157,8 +1157,10 @@ class ProjectShow extends Component
             ->values();
 
         $board = collect(self::STATUSES)->keys()->mapWithKeys(
-            fn ($status) => [$status => $tasks->where('status', $status)->values()]
+            fn ($status) => [$status => $tasks->where('status', $status)->where('cancelled', false)->values()]
         );
+
+        $cancelledTasks = $tasks->where('cancelled', true)->sortByDesc('cancelled_at')->values();
 
         $pricedTasks = $tasks->filter(fn (Task $t) => $t->isPriced() && ! $t->cancelled);
         $shownPricedTasks = $pricedTasks->filter(fn (Task $t) => $this->taskInCostRange($t));
@@ -1196,6 +1198,7 @@ class ProjectShow extends Component
             'shownPricedCount' => $shownPricedTasks->count(),
             'costFilterActive' => $costFilterActive,
             'pendingCount' => $isManager ? $tasks->where('pending_approval', true)->count() : 0,
+            'cancelledTasks' => $cancelledTasks,
             'viewingTask' => $this->viewingTask(),
             'canManageRequests' => $canManageRequests,
             'requests' => $requests,

@@ -67,6 +67,12 @@
                     @endif
                 </button>
             @endif
+            <button wire:click="setTab('cancelled')" class="tab-btn {{ $tab === 'cancelled' ? 'active' : '' }}">
+                Cancelled
+                @if ($cancelledTasks->count() > 0)
+                    <span class="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-violet-400 px-1 text-[10px] font-bold text-ink-950">{{ $cancelledTasks->count() }}</span>
+                @endif
+            </button>
         </div>
         <div class="mb-2 flex flex-wrap gap-2">
             @if ($canManage)
@@ -405,6 +411,49 @@
                 </button>
             @empty
                 <p class="glass-card py-8 text-center text-sm text-white/30">No requests from Sales yet.</p>
+            @endforelse
+        </div>
+    @endif
+
+    {{-- ================= CANCELLED TASKS ================= --}}
+    @if ($tab === 'cancelled')
+        <div class="mt-4 space-y-3">
+            @forelse ($cancelledTasks as $task)
+                <button wire:click="openTaskDetail({{ $task->id }})" wire:key="cancelled-task-{{ $task->id }}" class="glass-card block w-full text-left hover:bg-white/5">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <p class="text-sm font-semibold text-white">{{ $task->title }}</p>
+                            <span class="pill border-rose-400/20 bg-rose-400/15 text-rose-300">Cancelled</span>
+                        </div>
+                        <span class="shrink-0 text-[11px] text-white/35">was: {{ $statuses[$task->status] ?? $task->status }}</span>
+                    </div>
+                    <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                        @php($urgencyClasses = match ($task->urgency) {
+                            'urgent' => 'border-rose-400/30 bg-rose-400/15 text-rose-300',
+                            'high' => 'border-amber-400/30 bg-amber-400/15 text-amber-300',
+                            'low' => 'border-white/15 bg-white/5 text-white/40',
+                            default => 'border-sky-400/20 bg-sky-400/15 text-sky-300',
+                        })
+                        <span class="pill {{ $urgencyClasses }}">{{ \App\Models\Task::URGENCIES[$task->urgency] ?? 'Medium' }}</span>
+                        @if ($task->category)
+                            <span class="pill border-gold-400/20 bg-gold-400/10 text-gold-300">{{ $task->category->name }}</span>
+                        @elseif (! $task->isPriced())
+                            <span class="pill border-white/15 bg-white/5 text-white/40">non-billable</span>
+                        @endif
+                        @if ($isManager && $task->amount > 0)
+                            <span class="pill border-white/15 bg-white/10 text-white/70">{{ \App\Support\Currency::format($task->amount, $task->currency) }}</span>
+                        @endif
+                        <span class="pill border-white/15 bg-white/5 text-white/40">{{ $task->assignees->pluck('name')->join(', ') ?: 'Unassigned' }}</span>
+                    </div>
+                    <div class="mt-3 space-y-0.5 border-t border-white/10 pt-2">
+                        @if ($task->cancel_reason)
+                            <p class="text-xs text-white/50"><span class="font-semibold text-white/75">Reason:</span> {{ $task->cancel_reason }}</p>
+                        @endif
+                        <p class="text-[11px] text-white/30">Cancelled by {{ $task->canceller->name ?? 'Unknown' }} &middot; {{ $task->cancelled_at?->format('M j, Y') ?? '—' }}</p>
+                    </div>
+                </button>
+            @empty
+                <p class="glass-card py-8 text-center text-sm text-white/30">No cancelled tasks on this project.</p>
             @endforelse
         </div>
     @endif
