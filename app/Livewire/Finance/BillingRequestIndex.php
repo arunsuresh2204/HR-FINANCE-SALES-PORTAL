@@ -56,9 +56,11 @@ class BillingRequestIndex extends Component
         $tax = $amount * ($taxPercent / 100);
 
         $lineItems = $billingRequest->isFromTask()
-            ? $billingRequest->billedTasks->map(fn ($task) => [
+            ? $billingRequest->billedTasks->loadMissing('project')->map(fn ($task) => [
                 'description' => $task->title,
                 'amount' => $task->effectiveAmount(),
+                'project_id' => $task->project_id,
+                'project_name' => $task->project?->name,
             ])->all()
             : [['description' => $billingRequest->summary(), 'amount' => $amount]];
 

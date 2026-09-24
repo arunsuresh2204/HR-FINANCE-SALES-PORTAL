@@ -543,6 +543,12 @@ class ProjectShow extends Component
             return;
         }
 
+        if ($task->pending_approval && ! in_array($status, ['backlog', 'todo'], true)) {
+            $this->dispatch('toast', message: 'This task is awaiting manager approval — it can only be moved between Backlog and To Do until then.', type: 'error');
+
+            return;
+        }
+
         $task->update(['status' => $status]);
 
         $this->notifyTaskWatchers(

@@ -51,7 +51,7 @@ class TeamTargetStats extends Component
         foreach ($people as $person) {
             $t = SalesTarget::where('user_id', $person->id)->where('month', $period->month)->where('year', $period->year)->first();
             $target += $t?->effectiveTargetAmount() ?? 0;
-            $achieved += $t?->achievedAmount() ?? 0;
+            $achieved += SalesTarget::achievedAmountFor($person->id, $period->month, $period->year);
         }
 
         return ['target' => $target, 'achieved' => $achieved];
@@ -66,7 +66,7 @@ class TeamTargetStats extends Component
         $members = $team->map(function (User $person) use ($period) {
             $target = SalesTarget::where('user_id', $person->id)->where('month', $period->month)->where('year', $period->year)->first();
             $targetAmount = $target?->effectiveTargetAmount() ?? 0;
-            $achieved = $target?->achievedAmount() ?? 0;
+            $achieved = SalesTarget::achievedAmountFor($person->id, $period->month, $period->year);
 
             return [
                 'user' => $person,

@@ -31,6 +31,8 @@
         .items-table th.amount, .items-table td.amount { text-align: right; }
         .items-table td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }
         .item-desc-sub { color: #777; font-size: 10px; margin-top: 2px; }
+        .project-group-row td { padding: 10px 8px 4px; border-bottom: 1px solid #999; font-weight: bold; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; color: #333; }
+        .items-table td.item-indent { padding-left: 16px; }
 
         .totals-table { width: 260px; margin-left: auto; margin-top: 4px; }
         .totals-table td { padding: 4px 8px; border: none; }
@@ -123,22 +125,44 @@
         <div class="muted" style="margin-top: 6px;">Project: {{ $invoice->projectsLabel() }}</div>
     @endif
 
+    @php
+        $items = $invoice->line_items ?: [['description' => 'Services rendered', 'amount' => $invoice->amount]];
+        $hasProjectGroups = collect($items)->contains(fn ($item) => ! empty($item['project_name']));
+        $groupedItems = $hasProjectGroups ? collect($items)->groupBy(fn ($item) => $item['project_name'] ?: 'Other') : null;
+    @endphp
     <table class="items-table">
         <thead>
             <tr><th>Description</th><th class="amount">Amount</th></tr>
         </thead>
         <tbody>
-            @foreach (($invoice->line_items ?: [['description' => 'Services rendered', 'amount' => $invoice->amount]]) as $item)
-                <tr>
-                    <td>
-                        {{ $item['description'] ?? 'Item' }}
-                        @if (! empty($item['note']))
-                            <div class="item-desc-sub">{{ $item['note'] }}</div>
-                        @endif
-                    </td>
-                    <td class="amount">{{ $invoice->money($item['amount'] ?? 0) }}</td>
-                </tr>
-            @endforeach
+            @if ($groupedItems)
+                @foreach ($groupedItems as $projectName => $groupItems)
+                    <tr class="project-group-row"><td colspan="2">{{ $projectName }}</td></tr>
+                    @foreach ($groupItems as $item)
+                        <tr>
+                            <td class="item-indent">
+                                {{ $item['description'] ?? 'Item' }}
+                                @if (! empty($item['note']))
+                                    <div class="item-desc-sub">{{ $item['note'] }}</div>
+                                @endif
+                            </td>
+                            <td class="amount">{{ $invoice->money($item['amount'] ?? 0) }}</td>
+                        </tr>
+                    @endforeach
+                @endforeach
+            @else
+                @foreach ($items as $item)
+                    <tr>
+                        <td>
+                            {{ $item['description'] ?? 'Item' }}
+                            @if (! empty($item['note']))
+                                <div class="item-desc-sub">{{ $item['note'] }}</div>
+                            @endif
+                        </td>
+                        <td class="amount">{{ $invoice->money($item['amount'] ?? 0) }}</td>
+                    </tr>
+                @endforeach
+            @endif
         </tbody>
     </table>
 

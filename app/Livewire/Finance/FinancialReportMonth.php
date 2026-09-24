@@ -62,7 +62,7 @@ class FinancialReportMonth extends Component
 
         $salesAchievements = User::permission('access_sales_targets')->orderBy('name')->get()->map(function (User $sp) {
             $target = SalesTarget::where('user_id', $sp->id)->where('month', $this->month)->where('year', $this->year)->first();
-            $achieved = (float) ($target?->achievedAmount() ?? 0);
+            $achieved = SalesTarget::achievedAmountFor($sp->id, $this->month, $this->year);
             $effectiveTarget = (float) ($target?->effectiveTargetAmount() ?? 0);
 
             return [

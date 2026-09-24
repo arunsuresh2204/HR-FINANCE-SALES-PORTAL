@@ -29,10 +29,23 @@ class SalesTarget extends Model
      */
     public function achievedAmount(): float
     {
+        return self::achievedAmountFor($this->user_id, $this->month, $this->year);
+    }
+
+    /**
+     * Same figure as achievedAmount(), but computed directly from the
+     * payments ledger without needing a persisted SalesTarget row for the
+     * month — a salesperson's collected revenue exists independently of
+     * whether anyone has set a target for them yet, so callers must not
+     * skip this just because SalesTarget::where(...)->first() came back
+     * null.
+     */
+    public static function achievedAmountFor(int $userId, int $month, int $year): float
+    {
         return (float) Payment::query()
-            ->whereHas('invoice.client', fn ($q) => $q->where('sales_person_id', $this->user_id))
-            ->whereYear('payment_date', $this->year)
-            ->whereMonth('payment_date', $this->month)
+            ->whereHas('invoice.client', fn ($q) => $q->where('sales_person_id', $userId))
+            ->whereYear('payment_date', $year)
+            ->whereMonth('payment_date', $month)
             ->sum('amount');
     }
 

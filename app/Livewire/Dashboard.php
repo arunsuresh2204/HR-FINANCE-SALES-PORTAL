@@ -69,9 +69,7 @@ class Dashboard extends Component
 
             $data['salesTarget'] = $target;
             $data['salesTargetAmount'] = $target?->effectiveTargetAmount() ?? 0;
-            $data['salesAchieved'] = $target
-                ? $target->achievedAmount()
-                : (new SalesTarget(['user_id' => $user->id, 'month' => $this->salesMonth, 'year' => $this->salesYear]))->achievedAmount();
+            $data['salesAchieved'] = SalesTarget::achievedAmountFor($user->id, $this->salesMonth, $this->salesYear);
         }
 
         if ($user->can('access_hr_admin')) {

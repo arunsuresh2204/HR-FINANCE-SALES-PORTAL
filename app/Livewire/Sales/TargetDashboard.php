@@ -116,7 +116,7 @@ class TargetDashboard extends Component
             'year' => $period->year,
             'label' => $period->format('F Y'),
             'target' => $target,
-            'achieved' => $target?->achievedAmount() ?? 0,
+            'achieved' => SalesTarget::achievedAmountFor($user->id, $period->month, $period->year),
             'effectiveTarget' => $target?->effectiveTargetAmount() ?? 0,
             'deficitCarried' => $target?->deficitCarriedIn() ?? 0,
             'clientsAcquired' => Lead::where('sales_person_id', $user->id)
@@ -140,7 +140,7 @@ class TargetDashboard extends Component
         foreach ($people as $person) {
             $t = SalesTarget::where('user_id', $person->id)->where('month', $period->month)->where('year', $period->year)->first();
             $target += $t?->effectiveTargetAmount() ?? 0;
-            $achieved += $t?->achievedAmount() ?? 0;
+            $achieved += SalesTarget::achievedAmountFor($person->id, $period->month, $period->year);
         }
 
         return ['target' => $target, 'achieved' => $achieved];

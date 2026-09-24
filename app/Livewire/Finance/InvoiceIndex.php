@@ -110,10 +110,23 @@ class InvoiceIndex extends Component
             ->where('status', 'pending')
             ->get();
 
-        $lineItems = $billingRequests->map(fn (BillingRequest $br) => [
-            'description' => $br->summary(),
-            'amount' => (float) $br->amount,
-        ])->values()->all();
+        $lineItems = $billingRequests->flatMap(function (BillingRequest $br) {
+            if ($br->isFromTask()) {
+                return $br->billedTasks->loadMissing('project')->map(fn ($task) => [
+                    'description' => $task->title,
+                    'amount' => $task->effectiveAmount(),
+                    'project_id' => $task->project_id,
+                    'project_name' => $task->project?->name,
+                ]);
+            }
+
+            return collect([[
+                'description' => $br->summary(),
+                'amount' => (float) $br->amount,
+                'project_id' => $br->project_id,
+                'project_name' => $br->project?->name,
+            ]]);
+        })->values()->all();
 
         foreach ($this->lineItems as $item) {
             $description = trim($item['description'] ?? '');

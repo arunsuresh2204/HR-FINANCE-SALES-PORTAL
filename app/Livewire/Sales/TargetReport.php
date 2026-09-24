@@ -84,7 +84,7 @@ class TargetReport extends Component
 
             return [
                 'label' => $p->format('M Y'),
-                'achieved' => (float) ($target?->achievedAmount() ?? 0),
+                'achieved' => SalesTarget::achievedAmountFor($this->user->id, $p->month, $p->year),
                 'target' => (float) ($target?->effectiveTargetAmount() ?? 0),
             ];
         });
@@ -105,7 +105,7 @@ class TargetReport extends Component
 
         $currentTarget = SalesTarget::where('user_id', $this->user->id)->where('month', $this->month)->where('year', $this->year)->first();
         $targetAmount = $currentTarget?->effectiveTargetAmount() ?? 0;
-        $achievedAmount = $currentTarget?->achievedAmount() ?? 0;
+        $achievedAmount = SalesTarget::achievedAmountFor($this->user->id, $this->month, $this->year);
 
         $monthOptions = collect(range(0, 11))->map(function ($i) use ($period) {
             $p = $period->copy()->subMonthsNoOverflow($i);

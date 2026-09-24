@@ -117,7 +117,7 @@
                                     <p class="text-sm font-semibold text-white {{ $task->cancelled ? 'line-through' : '' }}">{{ $task->title }}</p>
                                     <select x-on:click="event.stopPropagation()" x-on:change="$wire.setTaskStatus({{ $task->id }}, $event.target.value)" class="input-glass !w-auto !py-1 !text-xs shrink-0">
                                         @foreach ($statuses as $sKey => $sLabel)
-                                            <option value="{{ $sKey }}" @selected($task->status === $sKey)>{{ $sLabel }}</option>
+                                            <option value="{{ $sKey }}" @selected($task->status === $sKey) @disabled($task->pending_approval && ! in_array($sKey, ['backlog', 'todo'], true))>{{ $sLabel }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -655,9 +655,12 @@
                 <label class="label-glass">Status</label>
                 <select x-on:change="$wire.setTaskStatus({{ $task->id }}, $event.target.value)" class="input-glass !w-auto !py-1 !text-xs">
                     @foreach ($statuses as $sKey => $sLabel)
-                        <option value="{{ $sKey }}" @selected($task->status === $sKey)>{{ $sLabel }}</option>
+                        <option value="{{ $sKey }}" @selected($task->status === $sKey) @disabled($task->pending_approval && ! in_array($sKey, ['backlog', 'todo'], true))>{{ $sLabel }}</option>
                     @endforeach
                 </select>
+                @if ($task->pending_approval)
+                    <p class="mt-1 text-[11px] text-white/40">Awaiting manager approval — can only move between Backlog and To Do until priced.</p>
+                @endif
             </div>
 
             @if ($isManager && $task->pending_approval && ! $task->cancelled)
