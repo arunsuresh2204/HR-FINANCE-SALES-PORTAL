@@ -337,6 +337,28 @@ class ProjectShow extends Component
         );
     }
 
+    /**
+     * Notify everyone with a stake in a task (its assignees and its
+     * creator) about a change to it — never the person who made the
+     * change themselves.
+     */
+    protected function notifyTaskWatchers(Task $task, string $type, string $title, string $body, User $actor): void
+    {
+        $watcherIds = $task->assignees->pluck('id')->push($task->created_by)->unique()->reject(fn ($id) => $id == $actor->id);
+
+        if ($watcherIds->isEmpty()) {
+            return;
+        }
+
+        Notification::sendToMany(
+            User::whereIn('id', $watcherIds)->get(),
+            $type,
+            $title,
+            $body,
+            route('work.project-show', $this->project)
+        );
+    }
+
     public function saveTask(): void
     {
         $authUser = Auth::user();
@@ -385,6 +407,17 @@ class ProjectShow extends Component
             $editing->update($data);
             $editing->assignees()->sync($this->task_assignee_ids);
             $this->notifyNewAssignees($editing, $this->task_assignee_ids, $previousAssigneeIds, $authUser);
+
+            if ($editing->wasChanged(['title', 'description', 'category_id', 'start_date', 'end_date', 'tags', 'urgency'])) {
+                $this->notifyTaskWatchers(
+                    $editing,
+                    'task_updated',
+                    'Task details updated',
+                    "\"{$editing->title}\" was updated — {$this->project->name}",
+                    $authUser
+                );
+            }
+
             $this->showTaskModal = false;
             $this->dispatch('toast', message: 'Task updated.', type: 'success');
 
@@ -500,13 +533,22 @@ class ProjectShow extends Component
 
     public function setTaskStatus(int $taskId, string $status): void
     {
+        $authUser = Auth::user();
         $task = $this->project->tasks()->find($taskId);
 
-        if (! $task || ! $task->canBeSeenBy(Auth::user()) || ! array_key_exists($status, self::STATUSES)) {
+        if (! $task || ! $task->canBeSeenBy($authUser) || ! array_key_exists($status, self::STATUSES) || $task->status === $status) {
             return;
         }
 
         $task->update(['status' => $status]);
+
+        $this->notifyTaskWatchers(
+            $task,
+            'task_status_changed',
+            'Task status updated',
+            "\"{$task->title}\" moved to ".self::STATUSES[$status]." — {$this->project->name}",
+            $authUser
+        );
     }
 
     public function toggleTaskAssignee(int $taskId, int $userId): void
@@ -532,13 +574,22 @@ class ProjectShow extends Component
 
     public function setTaskUrgency(int $taskId, string $urgency): void
     {
+        $authUser = Auth::user();
         $task = $this->project->tasks()->find($taskId);
 
-        if (! $task || ! $task->canBeSeenBy(Auth::user()) || ! array_key_exists($urgency, Task::URGENCIES)) {
+        if (! $task || ! $task->canBeSeenBy($authUser) || ! array_key_exists($urgency, Task::URGENCIES) || $task->urgency === $urgency) {
             return;
         }
 
         $task->update(['urgency' => $urgency]);
+
+        $this->notifyTaskWatchers(
+            $task,
+            'task_urgency_changed',
+            'Task urgency updated',
+            "\"{$task->title}\" is now ".Task::URGENCIES[$urgency]." priority — {$this->project->name}",
+            $authUser
+        );
     }
 
     public function setTaskVisibility(int $taskId, string $visibility): void
