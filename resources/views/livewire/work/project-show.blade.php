@@ -128,7 +128,7 @@
                                     <span class="pill {{ $urgencyClasses }}">{{ \App\Models\Task::URGENCIES[$task->urgency] ?? 'Medium' }}</span>
                                     @if ($task->category)
                                         <span class="pill border-gold-400/20 bg-gold-400/10 text-gold-300">{{ $task->category->name }}</span>
-                                    @else
+                                    @elseif (! $task->isPriced())
                                         <span class="pill border-white/15 bg-white/5 text-white/40">non-billable</span>
                                     @endif
                                     @if ($task->visibility === 'private')
@@ -525,7 +525,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 @if ($task->category)
                     <span class="pill border-gold-400/20 bg-gold-400/10 text-gold-300">{{ $task->category->name }}</span>
-                @else
+                @elseif (! $task->isPriced())
                     <span class="pill border-white/15 bg-white/5 text-white/40">non-billable</span>
                 @endif
             </div>
