@@ -38,5 +38,8 @@
         @empty
             <p class="text-sm text-white/40">No resignation notices on file.</p>
         @endforelse
+        @if ($resignations->hasPages())
+            <div class="glass-card">{{ $resignations->links() }}</div>
+        @endif
     </div>
 </div>

@@ -6,11 +6,15 @@ use App\Models\Notification;
 use App\Models\Project;
 use App\Models\Timesheet;
 use App\Models\User;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class MyProjects extends Component
 {
+    use WithPagination;
+
     public string $search = '';
 
     public string $statusFilter = 'all';
@@ -18,6 +22,12 @@ class MyProjects extends Component
     public function setStatusFilter(string $status): void
     {
         $this->statusFilter = $status;
+        $this->resetPage();
+    }
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
     }
 
     protected function visibleProjects(User $authUser)
@@ -81,8 +91,18 @@ class MyProjects extends Component
             return true;
         })->values();
 
+        $perPage = 5;
+        $page = $this->getPage();
+        $pagedRows = new LengthAwarePaginator(
+            $rows->forPage($page, $perPage)->values(),
+            $rows->count(),
+            $perPage,
+            $page,
+            ['path' => request()->url(), 'pageName' => 'page']
+        );
+
         return view('livewire.work.my-projects', [
-            'rows' => $rows,
+            'rows' => $pagedRows,
             'assignedProjectsCount' => $allRows->count(),
             'totalHoursAll' => $allRows->sum('totalHours'),
             'blockedEntriesAll' => $allRows->sum('blockedEntries'),

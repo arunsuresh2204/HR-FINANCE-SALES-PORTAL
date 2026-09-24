@@ -41,6 +41,7 @@
                 </tbody>
             </table>
         </div>
+        <div class="p-4">{{ $requests->links() }}</div>
     </div>
 
     <x-modal-glass wire-model="showConvertForm" title="Create Invoice">

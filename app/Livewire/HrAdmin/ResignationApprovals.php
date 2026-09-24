@@ -6,9 +6,12 @@ use App\Models\OffboardingTask;
 use App\Models\Resignation;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class ResignationApprovals extends Component
 {
+    use WithPagination;
+
     public const DEFAULT_TASKS = [
         'Return company laptop / hardware',
         'Revoke email & system access',
@@ -60,7 +63,7 @@ class ResignationApprovals extends Component
     public function render()
     {
         return view('livewire.hr-admin.resignation-approvals', [
-            'resignations' => Resignation::with(['user', 'offboardingTasks'])->latest()->get(),
+            'resignations' => Resignation::with(['user', 'offboardingTasks'])->latest()->paginate(5),
         ]);
     }
 }

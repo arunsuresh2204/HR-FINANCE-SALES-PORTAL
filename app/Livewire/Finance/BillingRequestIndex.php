@@ -8,10 +8,18 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class BillingRequestIndex extends Component
 {
+    use WithPagination;
+
     public string $filter = 'pending';
+
+    public function updatingFilter(): void
+    {
+        $this->resetPage();
+    }
 
     public bool $showConvertForm = false;
 
@@ -119,7 +127,7 @@ class BillingRequestIndex extends Component
         }
 
         return view('livewire.finance.billing-request-index', [
-            'requests' => $query->get(),
+            'requests' => $query->paginate(10),
         ]);
     }
 }

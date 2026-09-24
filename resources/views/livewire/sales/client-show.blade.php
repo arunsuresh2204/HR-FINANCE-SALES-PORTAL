@@ -77,9 +77,12 @@
             </div>
 
             <div class="glass-card">
-                <div class="mb-4 flex items-center justify-between">
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <h2 class="text-base font-bold text-white">Projects</h2>
                     <button wire:click="openProjectForm" class="text-xs font-semibold text-gold-300 hover:text-gold-200">+ New Project</button>
+                </div>
+                <div class="mb-3">
+                    <input wire:model.live.debounce.400ms="projectSearch" type="search" placeholder="Search projects by name…" class="input-glass w-full">
                 </div>
                 <div class="space-y-2">
                     @forelse ($projects as $project)
@@ -146,9 +149,12 @@
                             </div>
                         </div>
                     @empty
-                        <p class="text-sm text-white/40">No projects created yet.</p>
+                        <p class="text-sm text-white/40">{{ $projectSearch !== '' ? 'No projects match your search.' : 'No projects created yet.' }}</p>
                     @endforelse
                 </div>
+                @if ($projects->hasPages())
+                    <div class="mt-3 border-t border-white/10 pt-3">{{ $projects->links() }}</div>
+                @endif
             </div>
 
             <div class="glass-card">
@@ -223,6 +229,9 @@
                         <p class="text-sm text-white/40">No invoices yet.</p>
                     @endforelse
                 </div>
+                @if ($invoices->hasPages())
+                    <div class="mt-3 border-t border-white/10 pt-3">{{ $invoices->links() }}</div>
+                @endif
             </div>
         </div>
 
@@ -256,6 +265,9 @@
                         <p class="text-sm text-white/40">No billing requests yet.</p>
                     @endforelse
                 </div>
+                @if ($billingRequests->hasPages())
+                    <div class="mt-3 border-t border-white/10 pt-3">{{ $billingRequests->links() }}</div>
+                @endif
             </div>
         </div>
     </div>
@@ -288,7 +300,7 @@
             </div>
             <div>
                 <x-input-label for="project_requirement_files" value="Requirement Files (optional)" />
-                @if ($editingProjectId && ($editingProject = $projects->firstWhere('id', $editingProjectId)) && $editingProject->attachments->isNotEmpty())
+                @if ($editingProjectId && ($editingProject = $allProjects->firstWhere('id', $editingProjectId)) && $editingProject->attachments->isNotEmpty())
                     <div class="mb-2 space-y-1">
                         @foreach ($editingProject->attachments as $attachment)
                             <div class="flex items-center justify-between gap-2 text-xs">
@@ -356,7 +368,7 @@
                     <x-input-label for="project_id" value="Project (optional)" />
                     <select wire:model="project_id" id="project_id" class="input-glass">
                         <option value="">— No specific project —</option>
-                        @foreach ($projects as $project)
+                        @foreach ($allProjects as $project)
                             <option value="{{ $project->id }}">{{ $project->name }}</option>
                         @endforeach
                     </select>

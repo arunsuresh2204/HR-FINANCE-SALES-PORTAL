@@ -65,5 +65,8 @@
                 {{ $assignedProjectsCount === 0 ? 'No projects have been assigned to you yet.' : 'No projects match this filter.' }}
             </div>
         @endforelse
+        @if ($rows->hasPages())
+            <div class="glass-card">{{ $rows->links() }}</div>
+        @endif
     </div>
 </div>

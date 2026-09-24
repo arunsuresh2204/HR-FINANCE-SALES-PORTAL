@@ -16,12 +16,15 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 
 class ClientShow extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, WithPagination;
 
     public Client $client;
+
+    public string $projectSearch = '';
 
     public bool $showBusinessForm = false;
 
@@ -139,6 +142,11 @@ class ClientShow extends Component
         $this->client = $client;
         $this->agreement_effective_date = $client->agreement_effective_date?->toDateString() ?? '';
         $this->agreement_scope_summary = $client->agreement_scope_summary ?? '';
+    }
+
+    public function updatingProjectSearch(): void
+    {
+        $this->resetPage('projectsPage');
     }
 
     public function openBusinessForm(): void
@@ -748,8 +756,9 @@ class ClientShow extends Component
                 'tasks as total_tasks_count' => fn ($q) => $q->where('cancelled', false),
                 'tasks as done_tasks_count' => fn ($q) => $q->where('cancelled', false)->where('status', 'done'),
             ])
+            ->when($this->projectSearch !== '', fn ($q) => $q->where('name', 'like', '%'.$this->projectSearch.'%'))
             ->latest()
-            ->get();
+            ->paginate(5, ['*'], 'projectsPage');
 
         $projectRequests = ProjectRequest::whereIn('project_id', $projects->pluck('id'))
             ->with(['creator', 'comments.author', 'comments.attachments', 'attachments', 'convertedTask'])
@@ -759,10 +768,11 @@ class ClientShow extends Component
 
         return view('livewire.sales.client-show', [
             'projects' => $projects,
+            'allProjects' => $this->client->projects()->with('attachments')->orderBy('name')->get(),
             'projectRequests' => $projectRequests,
             'viewingRequest' => $this->viewingRequestId ? ProjectRequest::with(['creator', 'comments.author', 'comments.attachments', 'attachments', 'convertedTask'])->find($this->viewingRequestId) : null,
-            'billingRequests' => $this->client->billingRequests()->with('tasks', 'billedTasks', 'project')->where('status', '!=', 'invoiced')->latest()->get(),
-            'invoices' => $this->client->invoices()->latest()->get(),
+            'billingRequests' => $this->client->billingRequests()->with('tasks', 'billedTasks', 'project')->where('status', '!=', 'invoiced')->latest()->paginate(5, ['*'], 'billingRequestsPage'),
+            'invoices' => $this->client->invoices()->latest()->paginate(5, ['*'], 'invoicesPage'),
             'canManageClientFinancials' => $this->canManageClientFinancials(),
             'totalHours' => $this->client->timesheets()->sum('hours'),
             'billableHours' => $this->client->billableHours(),
