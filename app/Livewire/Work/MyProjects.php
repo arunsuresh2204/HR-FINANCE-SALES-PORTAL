@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Work;
 
+use App\Models\Notification;
 use App\Models\Project;
 use App\Models\Timesheet;
 use App\Models\User;
@@ -38,11 +39,17 @@ class MyProjects extends Component
         $authUser = Auth::user();
         $isManager = $authUser->isManager() || $authUser->isSuperAdmin();
 
+        $unreadCounts = Notification::where('user_id', $authUser->id)
+            ->whereNull('read_at')
+            ->get()
+            ->groupBy('url')
+            ->map->count();
+
         $allRows = $this->visibleProjects($authUser)
-            ->with('client')
+            ->with(['client', 'attachments'])
             ->latest()
             ->get()
-            ->map(function (Project $project) use ($isManager) {
+            ->map(function (Project $project) use ($isManager, $unreadCounts) {
                 $entries = Timesheet::where('project_id', $project->id);
 
                 return [
@@ -50,6 +57,7 @@ class MyProjects extends Component
                     'totalHours' => (clone $entries)->sum('hours'),
                     'blockedEntries' => (clone $entries)->where('status', 'blocked')->count(),
                     'pendingTaskCount' => $isManager ? $project->tasks()->where('pending_approval', true)->count() : 0,
+                    'unreadCount' => $unreadCounts->get(route('work.project-show', $project), 0),
                 ];
             });
 

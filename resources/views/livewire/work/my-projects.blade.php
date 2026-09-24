@@ -32,7 +32,15 @@
                         <p class="text-base font-bold text-white">{{ $project->name }}</p>
                         <p class="text-xs text-white/40">{{ $project->client->business_name }}</p>
                     </div>
-                    <x-status-pill :status="$project->status" />
+                    <div class="flex items-center gap-2">
+                        @if ($row['unreadCount'] > 0)
+                            <span class="inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-400/15 px-2.5 py-0.5 text-[11px] font-semibold text-violet-200">
+                                <span class="h-1.5 w-1.5 rounded-full bg-violet-400"></span>
+                                {{ $row['unreadCount'] }} update{{ $row['unreadCount'] > 1 ? 's' : '' }}
+                            </span>
+                        @endif
+                        <x-status-pill :status="$project->status" />
+                    </div>
                 </div>
                 @if ($project->description)
                     <p class="mt-3 text-sm text-white/45">{{ $project->description }}</p>
@@ -47,8 +55,8 @@
 
                 <div class="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
                     <p class="text-xs font-semibold text-gold-300">Open project &rarr;</p>
-                    @if ($project->requirement_file)
-                        <a href="{{ Storage::url($project->requirement_file) }}" target="_blank" onclick="event.stopPropagation()" class="text-xs font-semibold text-white/40 hover:text-white">View Requirement</a>
+                    @if ($project->attachments->isNotEmpty())
+                        <a href="{{ $project->attachments->first()->url() }}" target="_blank" onclick="event.stopPropagation()" class="text-xs font-semibold text-white/40 hover:text-white">View Requirement</a>
                     @endif
                 </div>
             </div>
