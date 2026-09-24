@@ -406,6 +406,7 @@ class ProjectShow extends Component
             $previousAssigneeIds = $editing->assignees()->pluck('users.id')->all();
             $editing->update($data);
             $editing->assignees()->sync($this->task_assignee_ids);
+            $this->project->ensureDevelopers($this->task_assignee_ids);
             $this->notifyNewAssignees($editing, $this->task_assignee_ids, $previousAssigneeIds, $authUser);
 
             if ($editing->wasChanged(['title', 'description', 'category_id', 'start_date', 'end_date', 'tags', 'urgency'])) {
@@ -468,6 +469,7 @@ class ProjectShow extends Component
         ]);
 
         $task->assignees()->sync($this->task_assignee_ids);
+        $this->project->ensureDevelopers($this->task_assignee_ids);
         $this->notifyNewAssignees($task, $this->task_assignee_ids, [], $authUser);
 
         $this->showTaskModal = false;
@@ -568,6 +570,7 @@ class ProjectShow extends Component
             $task->assignees()->detach($userId);
         } else {
             $task->assignees()->attach($userId);
+            $this->project->ensureDevelopers([$userId]);
             $this->notifyNewAssignees($task, [$userId], [], $authUser);
         }
     }

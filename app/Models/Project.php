@@ -74,31 +74,46 @@ class Project extends Model
     }
 
     /**
-     * Who a viewer may assign a task to on this project: Manager can assign
-     * themselves, the person the project is currently handed off to, or any
-     * developer on it. Team Lead and Developer can only assign themselves or
-     * another developer — never upward to the Manager.
+     * Who a viewer may assign a task to on this project. Whoever can manage
+     * the project (Manager, super_admin, or the Team Lead it's currently
+     * handed off to) can pick any Programmer company-wide — not just ones
+     * already staffed on it — since they can already add anyone as a
+     * developer via Manage Developers; letting them do it in one step from
+     * the task form avoids a task being "assigned" to someone who then has
+     * no access to see it. A plain Developer can only assign themselves or
+     * another developer already on the project — never upward, and never
+     * pulling in someone new.
      */
     public function assignableUsersFor(User $viewer): Collection
     {
-        $people = collect();
+        $canManageProject = $viewer->isManager() || $viewer->isSuperAdmin() || $this->assigned_to === $viewer->id;
 
-        if ($viewer->isManager() || $viewer->isSuperAdmin()) {
-            $people->push($viewer);
+        $people = collect([$viewer]);
 
-            if ($this->assigned_to && $this->assigned_to !== $viewer->id) {
-                $people->push($this->assignedTo);
-            }
-        } else {
-            $people->push($viewer);
+        if ($this->assigned_to && $this->assigned_to !== $viewer->id) {
+            $people->push($this->assignedTo);
         }
 
-        foreach ($this->developers as $developer) {
-            if (! $people->contains('id', $developer->id)) {
-                $people->push($developer);
-            }
-        }
+        $people = $people->concat($canManageProject ? User::role('programmer')->get() : $this->developers);
 
         return $people->unique('id')->values();
+    }
+
+    /**
+     * Whoever is newly picked as a task assignee, but isn't yet a developer
+     * on this project (or its assignee), is added as one automatically —
+     * assigning someone a task should always mean they can see it.
+     */
+    public function ensureDevelopers(array $userIds): void
+    {
+        $existingIds = $this->developers()->pluck('users.id')->all();
+
+        $newIds = collect($userIds)
+            ->reject(fn ($id) => $id == $this->assigned_to)
+            ->diff($existingIds);
+
+        if ($newIds->isNotEmpty()) {
+            $this->developers()->attach($newIds);
+        }
     }
 }
