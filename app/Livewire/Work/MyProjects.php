@@ -26,12 +26,9 @@ class MyProjects extends Component
             return Project::query();
         }
 
-        if ($authUser->isTeamLead()) {
-            return Project::where('assigned_to', $authUser->id);
-        }
-
         return Project::where('assigned_to', $authUser->id)
-            ->orWhereHas('developers', fn ($q) => $q->where('users.id', $authUser->id));
+            ->orWhereHas('developers', fn ($q) => $q->where('users.id', $authUser->id))
+            ->orWhereHas('tasks.assignees', fn ($q) => $q->where('users.id', $authUser->id));
     }
 
     public function render()
