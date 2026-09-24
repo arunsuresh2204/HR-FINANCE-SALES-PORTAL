@@ -34,7 +34,7 @@
         </div>
     </div>
 
-    @if ($project->needsEstimate())
+    @if ($project->needsEstimate() && $isManager)
         <div class="glass-card mt-4 border-gold-400/25">
             <p class="text-sm font-semibold text-white">This project is awaiting a cost estimate.</p>
             <p class="mt-1 text-xs text-white/45">Add at least one category to move it to Active and start creating tasks against it.</p>
