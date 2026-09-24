@@ -690,6 +690,13 @@
                                 <p class="text-[10px] text-white/35">{{ $comment->created_at->format('M j, g:i A') }}</p>
                             </div>
                             <p class="mt-1 text-xs text-white/65">{{ $comment->body }}</p>
+                            @if ($comment->attachments->isNotEmpty())
+                                <div class="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+                                    @foreach ($comment->attachments as $attachment)
+                                        <a href="{{ $attachment->url() }}" target="_blank" class="text-[11px] font-semibold text-gold-300 hover:text-gold-200">{{ $attachment->original_name }}</a>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
                     @empty
                         <p class="text-xs text-white/35">No replies yet.</p>
@@ -699,6 +706,10 @@
                 <form wire:submit="submitReply" class="space-y-2 border-t border-white/10 pt-3">
                     <textarea wire:model="reply_body" rows="2" class="input-glass" placeholder="Write a reply&hellip;"></textarea>
                     <x-input-error :messages="$errors->get('reply_body')" class="mt-1" />
+                    <input wire:model="reply_attachments" id="reply_attachments" type="file" multiple class="input-glass file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white/80">
+                    <div wire:loading wire:target="reply_attachments" class="text-xs text-white/40">Uploading&hellip;</div>
+                    <x-input-error :messages="$errors->get('reply_attachments')" class="mt-1" />
+                    <x-input-error :messages="$errors->get('reply_attachments.*')" class="mt-1" />
                     <div class="flex justify-end">
                         <x-primary-button>Reply</x-primary-button>
                     </div>

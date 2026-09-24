@@ -99,6 +99,8 @@ class ClientShow extends Component
     #[Validate('required|string|max:2000')]
     public string $reply_body = '';
 
+    public array $reply_attachments = [];
+
     public ?int $managingProjectId = null;
 
     public array $developer_ids = [];
@@ -431,6 +433,7 @@ class ClientShow extends Component
 
         $this->viewingRequestId = $request->id;
         $this->reply_body = '';
+        $this->reply_attachments = [];
         $this->resetValidation();
         $this->showRequestDetail = true;
     }
@@ -443,12 +446,25 @@ class ClientShow extends Component
 
         $request = ProjectRequest::with('project')->findOrFail($this->viewingRequestId);
 
-        $this->validate(['reply_body' => 'required|string|max:2000']);
+        $this->validate([
+            'reply_body' => 'required|string|max:2000',
+            'reply_attachments' => 'array|max:5',
+            'reply_attachments.*' => 'file|max:10240',
+        ]);
 
-        $request->comments()->create([
+        $comment = $request->comments()->create([
             'user_id' => Auth::id(),
             'body' => $this->reply_body,
         ]);
+
+        foreach ($this->reply_attachments as $file) {
+            $comment->attachments()->create([
+                'path' => $file->store('project-requests', 'public'),
+                'original_name' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'uploaded_by' => Auth::id(),
+            ]);
+        }
 
         if ($request->project->assigned_to) {
             Notification::send(
@@ -461,6 +477,7 @@ class ClientShow extends Component
         }
 
         $this->reply_body = '';
+        $this->reply_attachments = [];
         $this->dispatch('toast', message: 'Reply sent.', type: 'success');
     }
 
@@ -725,10 +742,17 @@ class ClientShow extends Component
     {
         $authUser = Auth::user();
 
-        $projects = $this->client->projects()->with(['assignedTo', 'developers', 'attachments'])->latest()->get();
+        $projects = $this->client->projects()
+            ->with(['assignedTo', 'developers', 'attachments'])
+            ->withCount([
+                'tasks as total_tasks_count' => fn ($q) => $q->where('cancelled', false),
+                'tasks as done_tasks_count' => fn ($q) => $q->where('cancelled', false)->where('status', 'done'),
+            ])
+            ->latest()
+            ->get();
 
         $projectRequests = ProjectRequest::whereIn('project_id', $projects->pluck('id'))
-            ->with(['creator', 'comments.author', 'attachments', 'convertedTask'])
+            ->with(['creator', 'comments.author', 'comments.attachments', 'attachments', 'convertedTask'])
             ->latest()
             ->get()
             ->groupBy('project_id');
@@ -736,7 +760,7 @@ class ClientShow extends Component
         return view('livewire.sales.client-show', [
             'projects' => $projects,
             'projectRequests' => $projectRequests,
-            'viewingRequest' => $this->viewingRequestId ? ProjectRequest::with(['creator', 'comments.author', 'attachments', 'convertedTask'])->find($this->viewingRequestId) : null,
+            'viewingRequest' => $this->viewingRequestId ? ProjectRequest::with(['creator', 'comments.author', 'comments.attachments', 'attachments', 'convertedTask'])->find($this->viewingRequestId) : null,
             'billingRequests' => $this->client->billingRequests()->with('tasks', 'billedTasks', 'project')->where('status', '!=', 'invoiced')->latest()->get(),
             'invoices' => $this->client->invoices()->latest()->get(),
             'canManageClientFinancials' => $this->canManageClientFinancials(),

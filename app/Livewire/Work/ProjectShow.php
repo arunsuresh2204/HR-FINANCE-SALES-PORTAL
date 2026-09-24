@@ -8,9 +8,12 @@ use App\Models\Task;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class ProjectShow extends Component
 {
+    use WithFileUploads;
+
     public const STATUSES = [
         'backlog' => 'Backlog',
         'todo' => 'To Do',
@@ -112,6 +115,8 @@ class ProjectShow extends Component
     public ?int $viewingRequestId = null;
 
     public string $reply_body = '';
+
+    public array $reply_attachments = [];
 
     public ?int $convertingRequestId = null;
 
@@ -756,6 +761,7 @@ class ProjectShow extends Component
 
         $this->viewingRequestId = $requestId;
         $this->reply_body = '';
+        $this->reply_attachments = [];
         $this->resetValidation();
         $this->showRequestDetail = true;
     }
@@ -772,12 +778,25 @@ class ProjectShow extends Component
             return;
         }
 
-        $this->validate(['reply_body' => 'required|string|max:2000']);
+        $this->validate([
+            'reply_body' => 'required|string|max:2000',
+            'reply_attachments' => 'array|max:5',
+            'reply_attachments.*' => 'file|max:10240',
+        ]);
 
-        $request->comments()->create([
+        $comment = $request->comments()->create([
             'user_id' => Auth::id(),
             'body' => $this->reply_body,
         ]);
+
+        foreach ($this->reply_attachments as $file) {
+            $comment->attachments()->create([
+                'path' => $file->store('project-requests', 'public'),
+                'original_name' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'uploaded_by' => Auth::id(),
+            ]);
+        }
 
         Notification::send(
             $request->creator,
@@ -788,6 +807,7 @@ class ProjectShow extends Component
         );
 
         $this->reply_body = '';
+        $this->reply_attachments = [];
         $this->dispatch('toast', message: 'Reply sent.', type: 'success');
     }
 
@@ -869,7 +889,7 @@ class ProjectShow extends Component
 
         $canManageRequests = $this->canManageRequests();
         $requests = $canManageRequests
-            ? $this->project->requests()->with(['creator', 'comments.author', 'attachments', 'convertedTask'])->latest()->get()
+            ? $this->project->requests()->with(['creator', 'comments.author', 'comments.attachments', 'attachments', 'convertedTask'])->latest()->get()
             : collect();
 
         $categories = $this->project->categories()->get();
