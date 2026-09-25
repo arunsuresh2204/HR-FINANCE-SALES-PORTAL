@@ -38,7 +38,11 @@ class MyProjects extends Component
 
         return Project::where('assigned_to', $authUser->id)
             ->orWhereHas('developers', fn ($q) => $q->where('users.id', $authUser->id))
-            ->orWhereHas('tasks.assignees', fn ($q) => $q->where('users.id', $authUser->id));
+            ->orWhereHas('tasks', function ($q) use ($authUser) {
+                $q->where('cancelled', false)
+                    ->where('status', '!=', 'done')
+                    ->whereHas('assignees', fn ($q2) => $q2->where('users.id', $authUser->id));
+            });
     }
 
     public function render()

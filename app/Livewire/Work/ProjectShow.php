@@ -151,7 +151,11 @@ class ProjectShow extends Component
             || $authUser->isManager()
             || $project->assigned_to === $authUser->id
             || $project->developers()->where('users.id', $authUser->id)->exists()
-            || $project->tasks()->whereHas('assignees', fn ($q) => $q->where('users.id', $authUser->id))->exists();
+            || $project->tasks()
+                ->where('cancelled', false)
+                ->where('status', '!=', 'done')
+                ->whereHas('assignees', fn ($q) => $q->where('users.id', $authUser->id))
+                ->exists();
 
         abort_unless($canView, 403);
 
