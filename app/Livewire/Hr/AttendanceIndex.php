@@ -11,7 +11,6 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
-use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -25,16 +24,12 @@ class AttendanceIndex extends Component
 
     public bool $showRequestForm = false;
 
-    #[Validate('required|in:Forgot to clockin,Forgot to clockout,Onsite duty,Business travel')]
     public string $reason_category = '';
 
-    #[Validate('required|string|max:1000')]
     public string $request_reason = '';
 
-    #[Validate('nullable|date_format:H:i')]
     public string $requested_clock_in = '';
 
-    #[Validate('nullable|date_format:H:i')]
     public string $requested_clock_out = '';
 
     // Prompted right after clocking out, for anyone with timesheet access.
@@ -46,16 +41,12 @@ class AttendanceIndex extends Component
 
     public string $ts_work_date = '';
 
-    #[Validate('required|string|max:1000')]
     public string $ts_task_description = '';
 
-    #[Validate('required|numeric|min:0.25|max:24')]
     public string $ts_hours = '';
 
-    #[Validate('required|in:in_progress,completed,blocked')]
     public string $ts_status = 'completed';
 
-    #[Validate('required_if:ts_status,blocked|nullable|string|max:500')]
     public string $ts_blocked_reason = '';
 
     public function clockIn(): void
@@ -185,7 +176,12 @@ class AttendanceIndex extends Component
 
     public function submitStatusRequest(): void
     {
-        $this->validate();
+        $this->validate([
+            'reason_category' => 'required|in:Forgot to clockin,Forgot to clockout,Onsite duty,Business travel',
+            'request_reason' => 'required|string|max:1000',
+            'requested_clock_in' => 'nullable|date_format:H:i',
+            'requested_clock_out' => 'nullable|date_format:H:i',
+        ]);
 
         $attendance = Attendance::where('user_id', Auth::id())->findOrFail($this->requestingAttendanceId);
 
