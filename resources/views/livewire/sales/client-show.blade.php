@@ -147,6 +147,42 @@
                                     @endforelse
                                 </div>
                             </div>
+
+                            @if ($canManageClientFinancials)
+                                <div class="mt-3 border-t border-white/10 pt-2">
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-[11px] font-semibold uppercase tracking-wide text-white/35">Credentials</p>
+                                        <button wire:click="openCredentialForm({{ $project->id }})" class="text-[11px] font-semibold text-gold-300 hover:text-gold-200">+ Add Credential</button>
+                                    </div>
+                                    <div class="mt-1.5 space-y-1.5">
+                                        @forelse ($project->credentials as $credential)
+                                            <div class="glass-inset p-2">
+                                                <div class="flex items-center justify-between gap-2">
+                                                    <span class="truncate text-xs font-semibold text-white/80">{{ $credential->label }}</span>
+                                                    <div class="flex shrink-0 items-center gap-2 text-[11px]">
+                                                        <button wire:click="editCredential({{ $project->id }}, {{ $credential->id }})" class="font-semibold text-gold-300 hover:text-gold-200">Edit</button>
+                                                        <button wire:click="deleteCredential({{ $project->id }}, {{ $credential->id }})" wire:confirm="Remove this credential?" class="font-semibold text-white/40 hover:text-rose-300">Delete</button>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/50">
+                                                    @if ($credential->username)
+                                                        <span>{{ $credential->username }}</span>
+                                                    @endif
+                                                    <span class="flex items-center gap-1.5">
+                                                        <span class="font-mono">{{ in_array($credential->id, $revealedCredentialIds) ? $credential->secret : str_repeat('•', 10) }}</span>
+                                                        <button wire:click="toggleRevealCredential({{ $credential->id }})" class="font-semibold text-gold-300 hover:text-gold-200">{{ in_array($credential->id, $revealedCredentialIds) ? 'Hide' : 'Reveal' }}</button>
+                                                    </span>
+                                                </div>
+                                                @if ($credential->notes)
+                                                    <p class="mt-1 text-[11px] text-white/35">{{ $credential->notes }}</p>
+                                                @endif
+                                            </div>
+                                        @empty
+                                            <p class="text-xs text-white/35">No credentials saved for this project yet.</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     @empty
                         <p class="text-sm text-white/40">{{ $projectSearch !== '' ? 'No projects match your search.' : 'No projects created yet.' }}</p>
@@ -315,6 +351,32 @@
                 <x-input-error :messages="$errors->get('project_requirement_files')" class="mt-1" />
                 <x-input-error :messages="$errors->get('project_requirement_files.*')" class="mt-1" />
             </div>
+            @unless ($editingProjectId)
+                <div class="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <x-input-label value="Credential (optional)" />
+                    <p class="mt-0.5 text-xs text-white/35">Save a login/access credential for this project now — you can add more later from the project card.</p>
+                    <div class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div>
+                            <x-input-label for="new_credential_label" value="Label" class="!text-xs" />
+                            <x-text-input wire:model="new_credential_label" id="new_credential_label" type="text" class="mt-0" placeholder="e.g. Staging server" />
+                            <x-input-error :messages="$errors->get('new_credential_label')" class="mt-1" />
+                        </div>
+                        <div>
+                            <x-input-label for="new_credential_username" value="Username (optional)" class="!text-xs" />
+                            <x-text-input wire:model="new_credential_username" id="new_credential_username" type="text" class="mt-0" />
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <x-input-label for="new_credential_secret" value="Password / Key" class="!text-xs" />
+                        <textarea wire:model="new_credential_secret" id="new_credential_secret" rows="2" class="input-glass font-mono"></textarea>
+                        <x-input-error :messages="$errors->get('new_credential_secret')" class="mt-1" />
+                    </div>
+                    <div class="mt-3">
+                        <x-input-label for="new_credential_notes" value="Notes (optional)" class="!text-xs" />
+                        <textarea wire:model="new_credential_notes" id="new_credential_notes" rows="2" class="input-glass"></textarea>
+                    </div>
+                </div>
+            @endunless
             <div>
                 <x-input-label for="assigned_to" :value="$canManageProjects ? 'Assign To (optional)' : 'Assign To (Engineering Manager)'" />
                 <select wire:model="assigned_to" id="assigned_to" class="input-glass">
@@ -581,5 +643,32 @@
                 </form>
             </div>
         @endif
+    </x-modal-glass>
+
+    <x-modal-glass wire-model="showCredentialForm" :title="$editingCredentialId ? 'Edit Credential' : 'Add Credential'" max-width="md">
+        <form wire:submit="saveCredential" class="space-y-4">
+            <div>
+                <x-input-label for="credential_label" value="Label" />
+                <x-text-input wire:model="credential_label" id="credential_label" type="text" class="mt-0" placeholder="e.g. Staging server, Google Analytics" />
+                <x-input-error :messages="$errors->get('credential_label')" class="mt-1" />
+            </div>
+            <div>
+                <x-input-label for="credential_username" value="Username (optional)" />
+                <x-text-input wire:model="credential_username" id="credential_username" type="text" class="mt-0" />
+            </div>
+            <div>
+                <x-input-label for="credential_secret" value="Password / Key" />
+                <textarea wire:model="credential_secret" id="credential_secret" rows="2" class="input-glass font-mono"></textarea>
+                <x-input-error :messages="$errors->get('credential_secret')" class="mt-1" />
+            </div>
+            <div>
+                <x-input-label for="credential_notes" value="Notes (optional)" />
+                <textarea wire:model="credential_notes" id="credential_notes" rows="2" class="input-glass"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
+                <x-primary-button>Save</x-primary-button>
+            </div>
+        </form>
     </x-modal-glass>
 </div>

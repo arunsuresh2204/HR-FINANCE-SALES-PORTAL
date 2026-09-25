@@ -81,6 +81,30 @@ class ClientShow extends Component
 
     public ?int $editingProjectId = null;
 
+    public string $new_credential_label = '';
+
+    public string $new_credential_username = '';
+
+    public string $new_credential_secret = '';
+
+    public string $new_credential_notes = '';
+
+    public bool $showCredentialForm = false;
+
+    public ?int $credentialProjectId = null;
+
+    public ?int $editingCredentialId = null;
+
+    public string $credential_label = '';
+
+    public string $credential_username = '';
+
+    public string $credential_secret = '';
+
+    public string $credential_notes = '';
+
+    public array $revealedCredentialIds = [];
+
     public bool $showDeveloperForm = false;
 
     public bool $showRequestForm = false;
@@ -213,6 +237,7 @@ class ClientShow extends Component
     {
         $this->editingProjectId = null;
         $this->reset(['project_name', 'project_description', 'project_requirement_files']);
+        $this->reset(['new_credential_label', 'new_credential_username', 'new_credential_secret', 'new_credential_notes']);
         $this->project_currency = 'INR';
         $this->projectCurrencyLocked = false;
         $this->assigned_to = Auth::user()->isManager() || Auth::user()->isSuperAdmin() ? Auth::id() : null;
@@ -271,6 +296,10 @@ class ClientShow extends Component
             'project_requirement_files.*' => 'file|max:10240',
             'assigned_to' => $canManage ? 'nullable|exists:users,id' : 'required|exists:users,id',
             'project_currency' => $currencyEditable ? ['required', 'in:'.implode(',', \App\Support\Currency::codes())] : 'nullable',
+            'new_credential_label' => 'nullable|string|max:255|required_with:new_credential_secret',
+            'new_credential_username' => 'nullable|string|max:255',
+            'new_credential_secret' => 'nullable|string|max:2000|required_with:new_credential_label',
+            'new_credential_notes' => 'nullable|string|max:1000',
         ]);
 
         if ($this->assigned_to) {
@@ -319,6 +348,16 @@ class ClientShow extends Component
             ]);
         }
 
+        if (! $editing && $this->new_credential_label !== '' && $this->new_credential_secret !== '') {
+            $project->credentials()->create([
+                'label' => $this->new_credential_label,
+                'username' => $this->new_credential_username ?: null,
+                'secret' => $this->new_credential_secret,
+                'notes' => $this->new_credential_notes ?: null,
+                'created_by' => Auth::id(),
+            ]);
+        }
+
         $this->editingProjectId = null;
         $this->showProjectForm = false;
         $this->dispatch('toast', message: $editing ? 'Project updated.' : 'Project created.', type: 'success');
@@ -335,6 +374,95 @@ class ClientShow extends Component
         Storage::disk('public')->delete($attachment->path);
         $attachment->delete();
         $this->dispatch('toast', message: 'Attachment removed.', type: 'success');
+    }
+
+    public function openCredentialForm(int $projectId): void
+    {
+        if (! $this->canManageClientFinancials()) {
+            return;
+        }
+
+        $this->credentialProjectId = $projectId;
+        $this->editingCredentialId = null;
+        $this->credential_label = '';
+        $this->credential_username = '';
+        $this->credential_secret = '';
+        $this->credential_notes = '';
+        $this->resetValidation();
+        $this->showCredentialForm = true;
+    }
+
+    public function editCredential(int $projectId, int $credentialId): void
+    {
+        if (! $this->canManageClientFinancials()) {
+            return;
+        }
+
+        $credential = $this->client->projects()->findOrFail($projectId)->credentials()->findOrFail($credentialId);
+
+        $this->credentialProjectId = $projectId;
+        $this->editingCredentialId = $credential->id;
+        $this->credential_label = $credential->label;
+        $this->credential_username = $credential->username ?? '';
+        $this->credential_secret = $credential->secret;
+        $this->credential_notes = $credential->notes ?? '';
+        $this->resetValidation();
+        $this->showCredentialForm = true;
+    }
+
+    public function saveCredential(): void
+    {
+        if (! $this->canManageClientFinancials() || ! $this->credentialProjectId) {
+            return;
+        }
+
+        $this->validate([
+            'credential_label' => 'required|string|max:255',
+            'credential_username' => 'nullable|string|max:255',
+            'credential_secret' => 'required|string|max:2000',
+            'credential_notes' => 'nullable|string|max:1000',
+        ]);
+
+        $project = $this->client->projects()->findOrFail($this->credentialProjectId);
+
+        $data = [
+            'label' => $this->credential_label,
+            'username' => $this->credential_username ?: null,
+            'secret' => $this->credential_secret,
+            'notes' => $this->credential_notes ?: null,
+        ];
+
+        if ($this->editingCredentialId) {
+            $project->credentials()->findOrFail($this->editingCredentialId)->update($data);
+        } else {
+            $project->credentials()->create($data + ['created_by' => Auth::id()]);
+        }
+
+        $this->showCredentialForm = false;
+        $this->dispatch('toast', message: 'Credential saved.', type: 'success');
+    }
+
+    public function deleteCredential(int $projectId, int $credentialId): void
+    {
+        if (! $this->canManageClientFinancials()) {
+            return;
+        }
+
+        $this->client->projects()->findOrFail($projectId)->credentials()->where('id', $credentialId)->delete();
+        $this->dispatch('toast', message: 'Credential removed.', type: 'success');
+    }
+
+    public function toggleRevealCredential(int $credentialId): void
+    {
+        if (! $this->canManageClientFinancials()) {
+            return;
+        }
+
+        if (in_array($credentialId, $this->revealedCredentialIds, true)) {
+            $this->revealedCredentialIds = array_values(array_diff($this->revealedCredentialIds, [$credentialId]));
+        } else {
+            $this->revealedCredentialIds[] = $credentialId;
+        }
     }
 
     protected function canManageProject(Project $project): bool
@@ -751,7 +879,7 @@ class ClientShow extends Component
         $authUser = Auth::user();
 
         $projects = $this->client->projects()
-            ->with(['assignedTo', 'developers', 'attachments'])
+            ->with(['assignedTo', 'developers', 'attachments', 'credentials'])
             ->withCount([
                 'tasks as total_tasks_count' => fn ($q) => $q->where('cancelled', false),
                 'tasks as done_tasks_count' => fn ($q) => $q->where('cancelled', false)->where('status', 'done'),
