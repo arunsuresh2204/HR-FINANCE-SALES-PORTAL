@@ -111,4 +111,64 @@
             </div>
         </form>
     </x-modal-glass>
+
+    <x-modal-glass wire-model="showTimesheetPrompt" title="Log today's timesheet?">
+        <form wire:submit="logTimesheet" class="space-y-4">
+            <p class="text-xs text-white/40">You just clocked out &mdash; log what you worked on today while it's fresh.</p>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <x-input-label for="ts_work_date" value="Date" />
+                    <x-text-input wire:model="ts_work_date" id="ts_work_date" type="date" class="mt-0" />
+                    <x-input-error :messages="$errors->get('ts_work_date')" class="mt-1" />
+                </div>
+                <div>
+                    <x-input-label for="ts_hours" value="Hours" />
+                    <x-text-input wire:model="ts_hours" id="ts_hours" type="number" step="0.25" class="mt-0" />
+                    <x-input-error :messages="$errors->get('ts_hours')" class="mt-1" />
+                </div>
+            </div>
+            @if ($assignedProjects->isNotEmpty())
+                <div>
+                    <x-input-label for="ts_project_id" value="Project" />
+                    <select wire:model.live="ts_project_id" id="ts_project_id" class="input-glass">
+                        <option value="">— Not project-specific —</option>
+                        @foreach ($assignedProjects as $proj)
+                            <option value="{{ $proj->id }}">{{ $proj->name }} ({{ $proj->client->business_name }})</option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('ts_project_id')" class="mt-1" />
+                </div>
+            @endif
+            @if ($assignedProjects->isEmpty() || ! $ts_project_id)
+                <div>
+                    <x-input-label for="ts_project_name" value="Project Name/Task (optional)" />
+                    <x-text-input wire:model="ts_project_name" id="ts_project_name" type="text" class="mt-0" placeholder="e.g. In-house Pet Product" />
+                </div>
+            @endif
+            <div>
+                <x-input-label for="ts_task_description" value="Task Description" />
+                <textarea wire:model="ts_task_description" id="ts_task_description" rows="3" class="input-glass"></textarea>
+                <x-input-error :messages="$errors->get('ts_task_description')" class="mt-1" />
+            </div>
+            <div>
+                <x-input-label for="ts_status" value="Status" />
+                <select wire:model.live="ts_status" id="ts_status" class="input-glass">
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="blocked">Blocked</option>
+                </select>
+            </div>
+            @if ($ts_status === 'blocked')
+                <div>
+                    <x-input-label for="ts_blocked_reason" value="Reason for Blocker" />
+                    <textarea wire:model="ts_blocked_reason" id="ts_blocked_reason" rows="2" class="input-glass" placeholder="e.g. Waiting on client requirement, blocked by another dependency"></textarea>
+                    <x-input-error :messages="$errors->get('ts_blocked_reason')" class="mt-1" />
+                </div>
+            @endif
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Skip</x-secondary-button>
+                <x-primary-button>Log Entry</x-primary-button>
+            </div>
+        </form>
+    </x-modal-glass>
 </div>

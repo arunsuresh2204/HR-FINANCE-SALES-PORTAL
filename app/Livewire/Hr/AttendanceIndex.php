@@ -5,9 +5,12 @@ namespace App\Livewire\Hr;
 use App\Models\Attendance;
 use App\Models\AttendanceStatusRequest;
 use App\Models\Notification;
+use App\Models\Project;
+use App\Models\Timesheet;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -33,6 +36,27 @@ class AttendanceIndex extends Component
 
     #[Validate('nullable|date_format:H:i')]
     public string $requested_clock_out = '';
+
+    // Prompted right after clocking out, for anyone with timesheet access.
+    public bool $showTimesheetPrompt = false;
+
+    public ?int $ts_project_id = null;
+
+    public string $ts_project_name = '';
+
+    public string $ts_work_date = '';
+
+    #[Validate('required|string|max:1000')]
+    public string $ts_task_description = '';
+
+    #[Validate('required|numeric|min:0.25|max:24')]
+    public string $ts_hours = '';
+
+    #[Validate('required|in:in_progress,completed,blocked')]
+    public string $ts_status = 'completed';
+
+    #[Validate('required_if:ts_status,blocked|nullable|string|max:500')]
+    public string $ts_blocked_reason = '';
 
     public function clockIn(): void
     {
@@ -88,6 +112,51 @@ class AttendanceIndex extends Component
         $attendance->save();
 
         $this->dispatch('toast', message: 'Clocked out at '.now()->format('g:i A'), type: 'success');
+
+        if ($user->can('access_timesheets') && ! Timesheet::where('user_id', $user->id)->whereDate('work_date', $today)->exists()) {
+            $minutes = $attendance->clock_in->diffInMinutes($attendance->clock_out);
+            $suggestedHours = max(0.25, min(24, round($minutes / 60 * 4) / 4));
+
+            $this->ts_project_id = null;
+            $this->ts_project_name = '';
+            $this->ts_work_date = $today;
+            $this->ts_task_description = '';
+            $this->ts_hours = (string) $suggestedHours;
+            $this->ts_status = 'completed';
+            $this->ts_blocked_reason = '';
+            $this->resetValidation();
+            $this->showTimesheetPrompt = true;
+        }
+    }
+
+    public function logTimesheet(): void
+    {
+        $this->validate([
+            'ts_project_id' => ['nullable', Rule::exists('project_developers', 'project_id')->where('user_id', Auth::id())],
+            'ts_project_name' => 'nullable|string|max:255',
+            'ts_work_date' => 'required|date|before_or_equal:today',
+            'ts_task_description' => 'required|string|max:1000',
+            'ts_hours' => 'required|numeric|min:0.25|max:24',
+            'ts_status' => 'required|in:in_progress,completed,blocked',
+            'ts_blocked_reason' => 'required_if:ts_status,blocked|nullable|string|max:500',
+        ]);
+
+        $project = $this->ts_project_id ? Project::find($this->ts_project_id) : null;
+
+        Timesheet::create([
+            'user_id' => Auth::id(),
+            'project_id' => $this->ts_project_id,
+            'client_id' => $project?->client_id,
+            'project_name' => $project?->name ?? $this->ts_project_name,
+            'work_date' => $this->ts_work_date,
+            'task_description' => $this->ts_task_description,
+            'hours' => $this->ts_hours,
+            'status' => $this->ts_status,
+            'blocked_reason' => $this->ts_status === 'blocked' ? $this->ts_blocked_reason : null,
+        ]);
+
+        $this->showTimesheetPrompt = false;
+        $this->dispatch('toast', message: 'Timesheet entry logged.', type: 'success');
     }
 
     public function openRequestForm(int $attendanceId): void
@@ -169,6 +238,7 @@ class AttendanceIndex extends Component
             'history' => $history,
             'statusFor' => fn (Attendance $att) => Attendance::computeStatus($user, $att->work_date->toDateString(), $att),
             'latestRequests' => $latestRequests,
+            'assignedProjects' => $this->showTimesheetPrompt ? $user->developerProjects()->with('client')->orderBy('name')->get() : collect(),
         ]);
     }
 }
