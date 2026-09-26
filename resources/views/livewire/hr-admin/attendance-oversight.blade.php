@@ -48,11 +48,16 @@
                             <tr wire:key="row-{{ $row['user']->id }}">
                                 <td>
                                     <p class="font-medium text-white">{{ $row['user']->name }}</p>
-                                    <p class="text-xs text-white/40">{{ $row['user']->employee_code }}</p>
+                                    <p class="text-xs text-white/40">
+                                        {{ $row['user']->employee_code }}
+                                        @if ($row['user']->timezone && $row['user']->timezone !== config('app.timezone'))
+                                            &middot; {{ $row['user']->timezone }}
+                                        @endif
+                                    </p>
                                 </td>
                                 <td class="text-white/60">{{ $row['user']->scheduled_login_time ? \Carbon\Carbon::parse($row['user']->scheduled_login_time)->format('g:i A') : '—' }}</td>
-                                <td class="text-white/60">{{ $row['attendance']?->clock_in?->format('g:i A') ?? '—' }}</td>
-                                <td class="text-white/60">{{ $row['attendance']?->clock_out?->format('g:i A') ?? '—' }}</td>
+                                <td class="text-white/60">{{ $row['attendance']?->clock_in?->setTimezone($row['user']->tz())->format('g:i A') ?? '—' }}</td>
+                                <td class="text-white/60">{{ $row['attendance']?->clock_out?->setTimezone($row['user']->tz())->format('g:i A') ?? '—' }}</td>
                                 <td><x-attendance-status-pill :info="$row['status']" /></td>
                             </tr>
                         @empty

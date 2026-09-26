@@ -63,7 +63,25 @@
                             <x-input-error :messages="$errors->get('scheduled_logoff_time')" class="mt-1" />
                         </div>
                     </div>
-                    <p class="text-xs text-white/40">Used to track late logins: a clock-in within 30 minutes of the scheduled time shows as a grace-period warning, later than that shows as a late warning, and no clock-in after 6 hours auto-marks the day absent.</p>
+                    <p class="text-xs text-white/40">Used to track late logins: a clock-in within 30 minutes of the scheduled time shows as a grace-period warning, more than 4 hours late auto-marks a half-day, and no clock-in at all auto-marks the day on leave.</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <x-input-label for="country" value="Country" />
+                            <x-text-input wire:model="country" id="country" type="text" class="mt-0" placeholder="e.g. India" />
+                            <x-input-error :messages="$errors->get('country')" class="mt-1" />
+                        </div>
+                        <div>
+                            <x-input-label for="timezone" value="Timezone" />
+                            <select wire:model="timezone" id="timezone" class="input-glass">
+                                <option value="">— Use default (Asia/Kolkata) —</option>
+                                @foreach ($timezoneOptions as $tzOption)
+                                    <option value="{{ $tzOption }}">{{ $tzOption }}</option>
+                                @endforeach
+                            </select>
+                            <x-input-error :messages="$errors->get('timezone')" class="mt-1" />
+                        </div>
+                    </div>
+                    <p class="text-xs text-white/40">Scheduled login/logoff times above are interpreted in this employee's own timezone &mdash; important for employees working outside India.</p>
                     <div class="flex justify-end">
                         <x-primary-button>Save Details</x-primary-button>
                     </div>

@@ -9,11 +9,12 @@ class SyncAttendanceAbsences extends Command
 {
     protected $signature = 'attendance:sync-absences';
 
-    protected $description = 'Auto-mark employees absent once 6 hours have passed their scheduled login time with no clock-in and no approved leave.';
+    protected $description = 'Auto-mark employees on leave once their working day is over with no clock-in and no approved leave, deducting a full day from their allocation.';
 
     public function handle(): int
     {
         Attendance::syncAbsencesFor(now());
+        Attendance::syncAbsencesFor(now()->subDay());
 
         $this->info('Attendance absences synced for '.now()->toDateString());
 

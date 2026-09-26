@@ -58,6 +58,8 @@ class User extends Authenticatable
         'manager_id',
         'scheduled_login_time',
         'scheduled_logoff_time',
+        'country',
+        'timezone',
     ];
 
     /**
@@ -124,6 +126,22 @@ class User extends Authenticatable
             ->whereDate('start_date', '<=', $date)
             ->whereDate('end_date', '>=', $date)
             ->exists();
+    }
+
+    /**
+     * This employee's own timezone, for interpreting their scheduled login/
+     * logoff time and deciding which calendar day a clock event belongs to.
+     * Falls back to the app's configured timezone (India) for anyone who
+     * hasn't had one set, which reproduces today's single-timezone behavior.
+     */
+    public function tz(): string
+    {
+        return $this->timezone ?: config('app.timezone');
+    }
+
+    public function localNow(): Carbon
+    {
+        return now()->setTimezone($this->tz());
     }
 
     public function timesheets(): HasMany
@@ -230,35 +248,35 @@ class User extends Authenticatable
         return round((float) $this->basic_pay + $this->hraAmount() + $this->daAmount() + (float) $this->other_allowances, 2);
     }
 
-    public function approvedLeaveDaysOfType(string $type, string $from, string $to): int
+    public function approvedLeaveDaysOfType(string $type, string $from, string $to): float
     {
         if ($to < $from) {
             return 0;
         }
 
-        return (int) $this->leaveRequests()
+        return (float) $this->leaveRequests()
             ->where('type', $type)
             ->where('status', 'approved')
             ->whereBetween('start_date', [$from, $to])
             ->sum('days');
     }
 
-    public function casualLeaveUsed(int $year): int
+    public function casualLeaveUsed(int $year): float
     {
         return $this->approvedLeaveDaysOfType('vacation', "{$year}-01-01", "{$year}-12-31");
     }
 
-    public function sickLeaveUsed(int $year): int
+    public function sickLeaveUsed(int $year): float
     {
         return $this->approvedLeaveDaysOfType('sick', "{$year}-01-01", "{$year}-12-31");
     }
 
-    public function casualLeaveRemaining(int $year): int
+    public function casualLeaveRemaining(int $year): float
     {
         return max(0, ($this->annual_casual_leave ?? 0) - $this->casualLeaveUsed($year));
     }
 
-    public function sickLeaveRemaining(int $year): int
+    public function sickLeaveRemaining(int $year): float
     {
         return max(0, ($this->annual_sick_leave ?? 0) - $this->sickLeaveUsed($year));
     }

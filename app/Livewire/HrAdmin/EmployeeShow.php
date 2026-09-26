@@ -8,6 +8,7 @@ use App\Models\EmployeeDocument;
 use App\Models\Promotion;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -40,6 +41,10 @@ class EmployeeShow extends Component
     public string $scheduled_login_time = '';
 
     public string $scheduled_logoff_time = '';
+
+    public string $country = '';
+
+    public string $timezone = '';
 
     #[Validate('required|numeric|min:0')]
     public string $basic_pay = '';
@@ -118,6 +123,8 @@ class EmployeeShow extends Component
         $this->additional_manager_ids = $user->additionalManagers()->pluck('users.id')->all();
         $this->scheduled_login_time = $user->scheduled_login_time ? substr($user->scheduled_login_time, 0, 5) : '';
         $this->scheduled_logoff_time = $user->scheduled_logoff_time ? substr($user->scheduled_logoff_time, 0, 5) : '';
+        $this->country = $user->country ?? '';
+        $this->timezone = $user->timezone ?? '';
         $this->basic_pay = $user->basic_pay !== null ? (string) $user->basic_pay : '';
         $this->hra_percent = $user->hra_percent !== null ? (string) $user->hra_percent : '0';
         $this->da_percent = $user->da_percent !== null ? (string) $user->da_percent : '0';
@@ -163,6 +170,8 @@ class EmployeeShow extends Component
             'date_of_joining' => 'nullable|date',
             'scheduled_login_time' => 'nullable|date_format:H:i',
             'scheduled_logoff_time' => 'nullable|date_format:H:i',
+            'country' => 'nullable|string|max:255',
+            'timezone' => ['nullable', 'string', Rule::in(timezone_identifiers_list())],
         ]);
 
         $this->user->update([
@@ -174,6 +183,8 @@ class EmployeeShow extends Component
             'date_of_joining' => $this->date_of_joining ?: null,
             'scheduled_login_time' => $this->scheduled_login_time ?: null,
             'scheduled_logoff_time' => $this->scheduled_logoff_time ?: null,
+            'country' => $this->country ?: null,
+            'timezone' => $this->timezone ?: null,
         ]);
 
         $this->dispatch('toast', message: 'Employee details updated.', type: 'success');
@@ -469,6 +480,7 @@ class EmployeeShow extends Component
 
         return view('livewire.hr-admin.employee-show', [
             'allRoles' => Role::orderBy('name')->pluck('name'),
+            'timezoneOptions' => timezone_identifiers_list(),
             'potentialManagers' => User::where('id', '!=', $this->user->id)->orderBy('name')->get(),
             'assets' => Asset::where('user_id', $this->user->id)->orderByDesc('assigned_date')->get(),
             'leaveBalanceUsed' => $this->user->leaveRequests()->where('status', 'approved')->whereYear('start_date', now()->year)->sum('days'),

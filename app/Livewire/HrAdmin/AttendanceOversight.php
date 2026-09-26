@@ -4,6 +4,7 @@ namespace App\Livewire\HrAdmin;
 
 use App\Models\Attendance;
 use App\Models\AttendanceStatusRequest;
+use App\Models\LeaveRequest;
 use App\Models\Notification;
 use App\Models\User;
 use Carbon\Carbon;
@@ -60,28 +61,36 @@ class AttendanceOversight extends Component
         $attendance = $attendanceStatusRequest->attendance;
         $employee = $attendanceStatusRequest->user;
         $workDate = $attendance->work_date->toDateString();
+        $autoLeaveRequestId = $attendance->auto_leave_request_id;
 
         if ($attendanceStatusRequest->requested_clock_in) {
-            $attendance->clock_in = Carbon::parse($workDate.' '.$attendanceStatusRequest->requested_clock_in);
+            $attendance->clock_in = Carbon::parse($workDate.' '.$attendanceStatusRequest->requested_clock_in, $employee->tz());
         }
 
         if ($attendanceStatusRequest->requested_clock_out) {
-            $attendance->clock_out = Carbon::parse($workDate.' '.$attendanceStatusRequest->requested_clock_out);
+            $attendance->clock_out = Carbon::parse($workDate.' '.$attendanceStatusRequest->requested_clock_out, $employee->tz());
         }
 
         if ($attendanceStatusRequest->requested_status === 'on_leave') {
             $attendance->status = 'on_leave';
         } elseif ($attendance->clock_in) {
-            // A real clock-in time was supplied — let the schedule decide on-time vs. late,
-            // same as a normal self-service clock-in, rather than trusting the raw dropdown.
-            $scheduledLogin = $attendance->scheduled_login_time ?? $employee->scheduled_login_time;
-            $attendance->status = ($scheduledLogin && $attendance->clock_in->lte(Carbon::parse($workDate.' '.$scheduledLogin)))
-                ? 'present'
-                : 'late';
+            // A real clock-in time was supplied — let the schedule decide on-time vs. late vs.
+            // half-day, same as a normal self-service clock-in, rather than trusting the raw
+            // dropdown.
+            $attendance->status = Attendance::deriveStatusFromClockIn($employee, $workDate, $attendance->clock_in);
         } else {
             $attendance->status = $attendanceStatusRequest->requested_status;
         }
 
+        // Approving a correction means HR is accepting a different account of the day than
+        // whatever got auto-deducted (a full day for never clocking in, a half day for
+        // clocking in very late) — so that deduction is reinstated regardless of what the
+        // corrected status turns out to be.
+        if ($autoLeaveRequestId) {
+            LeaveRequest::where('id', $autoLeaveRequestId)->update(['status' => 'cancelled']);
+        }
+
+        $attendance->auto_leave_request_id = null;
         $attendance->save();
 
         $attendanceStatusRequest->update([

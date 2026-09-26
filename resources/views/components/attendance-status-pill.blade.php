@@ -5,6 +5,7 @@
         'on_time' => 'bg-emerald-400/15 text-emerald-300 border-emerald-400/20',
         'grace' => 'bg-orange-400/15 text-orange-300 border-orange-400/20',
         'severe' => 'bg-rose-400/15 text-rose-300 border-rose-400/20',
+        'half_day' => 'bg-amber-400/15 text-amber-300 border-amber-400/20',
         'absent' => 'bg-rose-500/20 text-rose-200 border-rose-500/30',
         'on_leave' => 'bg-violet-400/15 text-violet-300 border-violet-400/20',
         'pending' => 'bg-white/10 text-white/50 border-white/15',

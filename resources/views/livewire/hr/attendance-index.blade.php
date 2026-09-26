@@ -5,19 +5,17 @@
         <div class="glass-sheen"></div>
         <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-                <p class="text-sm text-white/50">{{ now()->format('l, F j, Y') }}</p>
+                <p class="text-sm text-white/50">{{ now()->setTimezone($tz)->format('l, F j, Y') }}</p>
                 <p class="mt-1 text-2xl font-extrabold text-white">
                     @if ($todayAttendance?->clock_in && $todayAttendance?->clock_out)
                         Completed
                     @elseif ($todayAttendance?->clock_in)
-                        Clocked In &middot; {{ $todayAttendance->clock_in->format('g:i A') }}
+                        Clocked In &middot; {{ $todayAttendance->clock_in->setTimezone($tz)->format('g:i A') }}
                     @else
                         Not Clocked In
                     @endif
                 </p>
-                @if ($todayAttendance)
-                    <div class="mt-2"><x-attendance-status-pill :info="$statusFor($todayAttendance)" /></div>
-                @endif
+                <div class="mt-2"><x-attendance-status-pill :info="$todayStatus" /></div>
             </div>
             <div class="flex gap-3">
                 <button wire:click="clockIn" @disabled($todayAttendance?->clock_in) class="btn-glass-primary disabled:cursor-not-allowed disabled:opacity-40">
@@ -48,20 +46,22 @@
                     @forelse ($history as $record)
                         <tr>
                             <td class="font-medium text-white">{{ $record->work_date->format('M j, Y') }}</td>
-                            <td>{{ $record->clock_in?->format('g:i A') ?? '—' }}</td>
-                            <td>{{ $record->clock_out?->format('g:i A') ?? '—' }}</td>
+                            <td>{{ $record->clock_in?->setTimezone($tz)->format('g:i A') ?? '—' }}</td>
+                            <td>{{ $record->clock_out?->setTimezone($tz)->format('g:i A') ?? '—' }}</td>
                             <td>{{ $record->clock_in && $record->clock_out ? number_format($record->clock_in->diffInMinutes($record->clock_out) / 60, 1).'h' : '—' }}</td>
                             <td><x-attendance-status-pill :info="$statusFor($record)" /></td>
                             <td class="text-right">
-                                @php $existingRequest = $latestRequests->get($record->id); @endphp
-                                @if ($existingRequest && $existingRequest->status === 'pending')
-                                    <span class="badge-glass !border-amber-400/25 !bg-amber-400/10 !text-amber-200">Review Pending</span>
-                                @elseif ($existingRequest && $existingRequest->status === 'approved')
-                                    <span class="badge-glass !border-emerald-400/25 !bg-emerald-400/10 !text-emerald-200">Request Approved</span>
-                                @elseif ($existingRequest && $existingRequest->status === 'rejected')
-                                    <button wire:click="openRequestForm({{ $record->id }})" class="text-xs font-semibold text-white/40 hover:text-white">Request Declined &middot; Resubmit</button>
-                                @else
-                                    <button wire:click="openRequestForm({{ $record->id }})" class="text-xs font-semibold text-gold-300 hover:text-gold-200">Request Change</button>
+                                @if ($record->exists)
+                                    @php $existingRequest = $latestRequests->get($record->id); @endphp
+                                    @if ($existingRequest && $existingRequest->status === 'pending')
+                                        <span class="badge-glass !border-amber-400/25 !bg-amber-400/10 !text-amber-200">Review Pending</span>
+                                    @elseif ($existingRequest && $existingRequest->status === 'approved')
+                                        <span class="badge-glass !border-emerald-400/25 !bg-emerald-400/10 !text-emerald-200">Request Approved</span>
+                                    @elseif ($existingRequest && $existingRequest->status === 'rejected')
+                                        <button wire:click="openRequestForm({{ $record->id }})" class="text-xs font-semibold text-white/40 hover:text-white">Request Declined &middot; Resubmit</button>
+                                    @else
+                                        <button wire:click="openRequestForm({{ $record->id }})" class="text-xs font-semibold text-gold-300 hover:text-gold-200">Request Change</button>
+                                    @endif
                                 @endif
                             </td>
                         </tr>

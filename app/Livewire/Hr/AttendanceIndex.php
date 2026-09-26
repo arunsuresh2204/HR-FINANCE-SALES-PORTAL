@@ -4,6 +4,7 @@ namespace App\Livewire\Hr;
 
 use App\Models\Attendance;
 use App\Models\AttendanceStatusRequest;
+use App\Models\LeaveRequest;
 use App\Models\Notification;
 use App\Models\Project;
 use App\Models\Timesheet;
@@ -52,7 +53,7 @@ class AttendanceIndex extends Component
     public function clockIn(): void
     {
         $user = Auth::user();
-        $today = now()->toDateString();
+        $today = $user->localNow()->toDateString();
 
         $attendance = Attendance::where('user_id', $user->id)->whereDate('work_date', $today)->first()
             ?? new Attendance(['user_id' => $user->id, 'work_date' => $today]);
@@ -64,26 +65,43 @@ class AttendanceIndex extends Component
         }
 
         $now = now();
+        $previousAutoLeaveRequestId = $attendance->auto_leave_request_id;
+
         $attendance->clock_in = $now;
         $attendance->ip_address = request()->ip();
         $attendance->scheduled_login_time = $attendance->scheduled_login_time ?? $user->scheduled_login_time;
+        $attendance->status = Attendance::deriveStatusFromClockIn($user, $today, $now);
 
-        if ($attendance->scheduled_login_time) {
-            $scheduledAt = Carbon::parse($today.' '.$attendance->scheduled_login_time);
-            $attendance->status = $now->lte($scheduledAt) ? 'present' : 'late';
+        if ($attendance->status === 'half_day') {
+            $attendance->auto_leave_request_id = LeaveRequest::create([
+                'user_id' => $user->id,
+                'type' => 'vacation',
+                'start_date' => $today,
+                'end_date' => $today,
+                'days' => 0.5,
+                'reason' => 'Auto-marked: clocked in more than '.Attendance::HALF_DAY_CUTOFF_HOURS.' hours late.',
+                'status' => 'approved',
+                'reviewed_at' => now(),
+            ])->id;
         } else {
-            $attendance->status = $now->hour >= 10 ? 'late' : 'present';
+            $attendance->auto_leave_request_id = null;
         }
 
         $attendance->save();
 
-        $this->dispatch('toast', message: 'Clocked in at '.now()->format('g:i A'), type: 'success');
+        // A full day was already auto-marked as leave (the end-of-day sync ran before they
+        // finally showed up) — they did work part of the day after all, so give it back.
+        if ($previousAutoLeaveRequestId && $previousAutoLeaveRequestId !== $attendance->auto_leave_request_id) {
+            LeaveRequest::where('id', $previousAutoLeaveRequestId)->update(['status' => 'cancelled']);
+        }
+
+        $this->dispatch('toast', message: 'Clocked in at '.$now->copy()->setTimezone($user->tz())->format('g:i A'), type: 'success');
     }
 
     public function clockOut(): void
     {
         $user = Auth::user();
-        $today = now()->toDateString();
+        $today = $user->localNow()->toDateString();
 
         $attendance = Attendance::where('user_id', $user->id)->whereDate('work_date', $today)->first();
 
@@ -102,7 +120,7 @@ class AttendanceIndex extends Component
         $attendance->clock_out = now();
         $attendance->save();
 
-        $this->dispatch('toast', message: 'Clocked out at '.now()->format('g:i A'), type: 'success');
+        $this->dispatch('toast', message: 'Clocked out at '.$attendance->clock_out->copy()->setTimezone($user->tz())->format('g:i A'), type: 'success');
 
         if ($user->can('access_timesheets') && ! Timesheet::where('user_id', $user->id)->whereDate('work_date', $today)->exists()) {
             $minutes = $attendance->clock_in->diffInMinutes($attendance->clock_out);
@@ -218,9 +236,26 @@ class AttendanceIndex extends Component
     public function render()
     {
         $user = Auth::user();
-        $today = now()->toDateString();
+        $today = $user->localNow()->toDateString();
+
+        $todayAttendance = Attendance::where('user_id', $user->id)->whereDate('work_date', $today)->first();
 
         $history = Attendance::where('user_id', $user->id)->orderByDesc('work_date')->paginate(10);
+
+        // Once the employee's scheduled login time has arrived, today should be visible on
+        // the list — blank times, live-computed status — even before any row exists for it,
+        // so they can see the clock running rather than the day silently not appearing.
+        if (! $todayAttendance && $this->getPage() === 1 && $user->scheduled_login_time) {
+            $scheduledAt = Carbon::parse($today.' '.$user->scheduled_login_time, $user->tz());
+
+            if ($user->localNow()->gte($scheduledAt)) {
+                $history->getCollection()->prepend(new Attendance([
+                    'user_id' => $user->id,
+                    'work_date' => $today,
+                    'scheduled_login_time' => $user->scheduled_login_time,
+                ]));
+            }
+        }
 
         $latestRequests = AttendanceStatusRequest::where('user_id', $user->id)
             ->whereIn('attendance_id', $history->pluck('id'))
@@ -230,9 +265,11 @@ class AttendanceIndex extends Component
             ->map(fn ($group) => $group->first());
 
         return view('livewire.hr.attendance-index', [
-            'todayAttendance' => Attendance::where('user_id', $user->id)->whereDate('work_date', $today)->first(),
+            'todayAttendance' => $todayAttendance,
+            'todayStatus' => Attendance::computeStatus($user, $today, $todayAttendance),
             'history' => $history,
             'statusFor' => fn (Attendance $att) => Attendance::computeStatus($user, $att->work_date->toDateString(), $att),
+            'tz' => $user->tz(),
             'latestRequests' => $latestRequests,
             'assignedProjects' => $this->showTimesheetPrompt ? $user->developerProjects()->with('client')->orderBy('name')->get() : collect(),
         ]);
