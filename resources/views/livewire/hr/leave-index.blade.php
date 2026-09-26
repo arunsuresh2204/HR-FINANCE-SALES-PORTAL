@@ -68,7 +68,13 @@
                     @forelse ($requests as $req)
                         <tr>
                             <td class="font-medium text-white">{{ $req->typeLabel() }}</td>
-                            <td>{{ $req->start_date->format('M j') }} – {{ $req->end_date->format('M j, Y') }}</td>
+                            <td>
+                                @if ($req->is_half_day)
+                                    {{ $req->start_date->format('M j, Y') }} <span class="text-white/40">(Half Day)</span>
+                                @else
+                                    {{ $req->start_date->format('M j') }} – {{ $req->end_date->format('M j, Y') }}
+                                @endif
+                            </td>
                             <td>{{ $req->days }}</td>
                             <td class="max-w-xs truncate">{{ $req->reason ?: '—' }}</td>
                             <td>
@@ -127,19 +133,29 @@
                 </select>
                 <x-input-error :messages="$errors->get('type')" class="mt-1" />
             </div>
+            <label class="flex items-center gap-2 text-sm text-white/70">
+                <input type="checkbox" wire:model.live="is_half_day" class="h-4 w-4 rounded border-white/20 bg-white/5 text-gold-400 focus:ring-gold-400/50">
+                Half Day
+            </label>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <x-input-label for="start_date" value="Start Date" />
+                    <x-input-label for="start_date" :value="$is_half_day ? 'Date' : 'Start Date'" />
                     <x-text-input wire:model.live="start_date" id="start_date" type="date" class="mt-0" />
                     <x-input-error :messages="$errors->get('start_date')" class="mt-1" />
                 </div>
-                <div>
-                    <x-input-label for="end_date" value="End Date" />
-                    <x-text-input wire:model.live="end_date" id="end_date" type="date" class="mt-0" />
-                    <x-input-error :messages="$errors->get('end_date')" class="mt-1" />
-                </div>
+                @unless ($is_half_day)
+                    <div>
+                        <x-input-label for="end_date" value="End Date" />
+                        <x-text-input wire:model.live="end_date" id="end_date" type="date" class="mt-0" />
+                        <x-input-error :messages="$errors->get('end_date')" class="mt-1" />
+                    </div>
+                @endunless
             </div>
-            @if ($start_date && $end_date)
+            @if ($is_half_day)
+                @if ($start_date)
+                    <p class="text-xs text-white/40">0.5 days requested.</p>
+                @endif
+            @elseif ($start_date && $end_date)
                 <p class="text-xs text-white/40">{{ $previewDays }} working {{ Str::plural('day', $previewDays) }} requested (weekends excluded).</p>
                 @if ($previewHolidays->isNotEmpty())
                     <p class="text-xs text-amber-300/80">

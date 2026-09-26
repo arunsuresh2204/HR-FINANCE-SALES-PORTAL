@@ -25,6 +25,8 @@ class LeaveIndex extends Component
     #[Validate('required|date|after_or_equal:start_date')]
     public string $end_date = '';
 
+    public bool $is_half_day = false;
+
     #[Validate('nullable|string|max:500')]
     public string $reason = '';
 
@@ -40,9 +42,23 @@ class LeaveIndex extends Component
 
     public function openForm(): void
     {
-        $this->reset(['type', 'start_date', 'end_date', 'reason', 'certificate']);
+        $this->reset(['type', 'start_date', 'end_date', 'is_half_day', 'reason', 'certificate']);
         $this->type = 'vacation';
         $this->showForm = true;
+    }
+
+    public function updatedIsHalfDay(): void
+    {
+        if ($this->is_half_day && $this->start_date) {
+            $this->end_date = $this->start_date;
+        }
+    }
+
+    public function updatedStartDate(): void
+    {
+        if ($this->is_half_day) {
+            $this->end_date = $this->start_date;
+        }
     }
 
     public function submit(): void
@@ -55,13 +71,26 @@ class LeaveIndex extends Component
             'certificate' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf',
         ]);
 
-        $days = LeaveRequest::calculateBusinessDays($this->start_date, $this->end_date);
+        if ($this->is_half_day) {
+            $this->end_date = $this->start_date;
+
+            if (LeaveRequest::calculateBusinessDays($this->start_date, $this->start_date) === 0) {
+                $this->addError('start_date', 'You can\'t request a half-day on a weekend or holiday.');
+
+                return;
+            }
+
+            $days = 0.5;
+        } else {
+            $days = LeaveRequest::calculateBusinessDays($this->start_date, $this->end_date);
+        }
 
         LeaveRequest::create([
             'user_id' => Auth::id(),
             'type' => $this->type,
             'start_date' => $this->start_date,
             'end_date' => $this->end_date,
+            'is_half_day' => $this->is_half_day,
             'days' => $days,
             'reason' => $this->reason,
             'status' => 'pending',
@@ -114,9 +143,9 @@ class LeaveIndex extends Component
     {
         $user = Auth::user();
 
-        $previewDays = ($this->start_date && $this->end_date)
-            ? LeaveRequest::calculateBusinessDays($this->start_date, $this->end_date)
-            : 0;
+        $previewDays = $this->is_half_day
+            ? 0.5
+            : (($this->start_date && $this->end_date) ? LeaveRequest::calculateBusinessDays($this->start_date, $this->end_date) : 0);
 
         $previewHolidays = ($this->start_date && $this->end_date)
             ? Holiday::whereBetween('date', [$this->start_date, $this->end_date])->orderBy('date')->get()

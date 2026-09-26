@@ -20,7 +20,13 @@
                         <tr>
                             <td class="font-medium text-white">{{ $req->user->name }}</td>
                             <td>{{ $req->typeLabel() }}</td>
-                            <td>{{ $req->start_date->format('M j') }} – {{ $req->end_date->format('M j, Y') }}</td>
+                            <td>
+                                @if ($req->is_half_day)
+                                    {{ $req->start_date->format('M j, Y') }} <span class="text-white/40">(Half Day)</span>
+                                @else
+                                    {{ $req->start_date->format('M j') }} – {{ $req->end_date->format('M j, Y') }}
+                                @endif
+                            </td>
                             <td>{{ $req->days }}</td>
                             <td class="max-w-xs truncate">{{ $req->reason ?: '—' }}</td>
                             <td>

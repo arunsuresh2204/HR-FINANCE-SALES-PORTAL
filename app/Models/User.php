@@ -121,11 +121,16 @@ class User extends Authenticatable
 
     public function hasApprovedLeaveOn(string $date): bool
     {
+        return $this->approvedLeaveOn($date) !== null;
+    }
+
+    public function approvedLeaveOn(string $date): ?LeaveRequest
+    {
         return $this->leaveRequests()
             ->where('status', 'approved')
             ->whereDate('start_date', '<=', $date)
             ->whereDate('end_date', '>=', $date)
-            ->exists();
+            ->first();
     }
 
     /**

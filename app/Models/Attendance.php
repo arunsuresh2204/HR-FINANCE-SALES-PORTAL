@@ -79,8 +79,12 @@ class Attendance extends Model
      */
     public static function computeStatus(User $user, string $date, ?self $attendance): array
     {
-        if ($user->hasApprovedLeaveOn($date)) {
-            return ['tier' => 'on_leave', 'label' => 'On Leave', 'warning' => false, 'minutes_late' => null];
+        $approvedLeave = $user->approvedLeaveOn($date);
+
+        if ($approvedLeave) {
+            $label = $approvedLeave->is_half_day ? 'On Leave (Half Day)' : 'On Leave';
+
+            return ['tier' => 'on_leave', 'label' => $label, 'warning' => false, 'minutes_late' => null];
         }
 
         if ($attendance && $attendance->status === 'on_leave') {

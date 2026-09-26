@@ -91,6 +91,29 @@ class AttendanceOversight extends Component
         }
 
         $attendance->auto_leave_request_id = null;
+
+        // The corrected account can itself still amount to a half-day (clock-in more than 4
+        // hours late) or a full day off (no clock-in at all) — deduct exactly as the
+        // automatic sync/clock-in would, rather than leaving it undeducted just because HR
+        // reviewed it manually. Skipped if a genuine approved leave already covers the day.
+        if (in_array($attendance->status, ['half_day', 'on_leave'], true) && ! $employee->hasApprovedLeaveOn($workDate)) {
+            $newAutoLeave = LeaveRequest::create([
+                'user_id' => $employee->id,
+                'type' => 'vacation',
+                'start_date' => $workDate,
+                'end_date' => $workDate,
+                'days' => $attendance->status === 'half_day' ? 0.5 : 1,
+                'reason' => $attendance->status === 'half_day'
+                    ? 'Auto-marked (corrected): clock-in more than 4 hours late.'
+                    : 'Auto-marked (corrected): no clock-in recorded for the day.',
+                'status' => 'approved',
+                'reviewed_by' => Auth::id(),
+                'reviewed_at' => now(),
+            ]);
+
+            $attendance->auto_leave_request_id = $newAutoLeave->id;
+        }
+
         $attendance->save();
 
         $attendanceStatusRequest->update([

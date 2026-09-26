@@ -10,7 +10,7 @@ class LeaveRequest extends Model
     public const CERTIFICATE_MIN_DAYS = 3;
 
     protected $fillable = [
-        'user_id', 'type', 'start_date', 'end_date', 'days', 'reason',
+        'user_id', 'type', 'start_date', 'end_date', 'is_half_day', 'days', 'reason',
         'status', 'reviewed_by', 'reviewed_at', 'review_notes',
         'certificate_path', 'certificate_requested_at',
     ];
@@ -20,6 +20,7 @@ class LeaveRequest extends Model
         return [
             'start_date' => 'date',
             'end_date' => 'date',
+            'is_half_day' => 'boolean',
             'reviewed_at' => 'datetime',
             'certificate_requested_at' => 'datetime',
         ];
