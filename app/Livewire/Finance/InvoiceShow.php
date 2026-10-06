@@ -317,7 +317,7 @@ class InvoiceShow extends Component
         // received and not already refunded.
         $cap = $this->adjustment_type === 'refund'
             ? (float) $this->invoice->amount_paid
-            : (float) $this->invoice->total_amount - $this->invoice->totalCreditedOrWrittenOff();
+            : round((float) $this->invoice->total_amount - $this->invoice->totalCreditedOrWrittenOff(), 2);
 
         $rules = [
             'adjustment_amount' => ['required', 'numeric', 'min:0.01', 'max:'.max(0.01, $cap)],

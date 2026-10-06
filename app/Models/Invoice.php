@@ -101,14 +101,20 @@ class Invoice extends Model
      */
     public function recalculatePaid(): void
     {
-        $paid = (float) $this->payments()->sum('amount');
-        $nativeSettled = (float) $this->payments->sum('native_amount')
-            - (float) $this->adjustments->where('type', 'refund')->sum('native_amount');
+        $paid = round((float) $this->payments()->sum('amount'), 2);
+        $nativeSettled = round(
+            (float) $this->payments->sum('native_amount') - (float) $this->adjustments->where('type', 'refund')->sum('native_amount'),
+            2
+        );
         $status = $this->status;
 
         if (! in_array($status, self::CLOSED_STATUSES, true)) {
             if ($this->currency === 'INR') {
-                $status = $paid >= (float) $this->total_amount ? 'paid' : ($paid > 0 ? 'partially_paid' : $status);
+                // Net against any credit note/write-off already issued, not the
+                // raw original total — otherwise a final payment that settles
+                // exactly what's left owed (post-credit) never flips to 'paid'.
+                $owed = round((float) $this->total_amount - $this->totalCreditedOrWrittenOff(), 2);
+                $status = $paid >= $owed ? 'paid' : ($paid > 0 ? 'partially_paid' : $status);
             } elseif ($paid > 0 && $status !== 'paid') {
                 $status = 'partially_paid';
             }
@@ -168,11 +174,16 @@ class Invoice extends Model
 
         $remaining = (float) $this->total_amount - $this->totalCreditedOrWrittenOff();
 
+        // Rounded to 2dp: chained float subtraction here (and anywhere credits/
+        // write-offs are involved) routinely lands a few ulps off a clean
+        // value (e.g. 1.9099999999999997 instead of 1.91). Left unrounded,
+        // that noise leaks into every validation `max:` rule built from this
+        // value, rejecting a payment for the exact balance shown on screen.
         if ($this->currency !== 'INR') {
-            return max(0.0, $remaining - (float) $this->native_amount_settled);
+            return round(max(0.0, $remaining - (float) $this->native_amount_settled), 2);
         }
 
-        return max(0.0, $remaining - (float) $this->amount_paid);
+        return round(max(0.0, $remaining - (float) $this->amount_paid), 2);
     }
 
     public function isClosed(): bool
