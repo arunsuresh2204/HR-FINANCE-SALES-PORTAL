@@ -40,11 +40,14 @@
                             <th>Scheduled Login</th>
                             <th>Clock In</th>
                             <th>Clock Out</th>
+                            <th>Break</th>
                             <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($rows as $row)
+                            @php($openBreak = $row['attendance']?->openBreak())
+                            @php($breakMinutes = $row['attendance']?->totalBreakMinutes() ?? 0)
                             <tr wire:key="row-{{ $row['user']->id }}">
                                 <td>
                                     <p class="font-medium text-white">{{ $row['user']->name }}</p>
@@ -58,10 +61,22 @@
                                 <td class="text-white/60">{{ $row['user']->scheduled_login_time ? \Carbon\Carbon::parse($row['user']->scheduled_login_time)->format('g:i A') : '—' }}</td>
                                 <td class="text-white/60">{{ $row['attendance']?->clock_in?->setTimezone($row['user']->tz())->format('g:i A') ?? '—' }}</td>
                                 <td class="text-white/60">{{ $row['attendance']?->clock_out?->setTimezone($row['user']->tz())->format('g:i A') ?? '—' }}</td>
+                                <td>
+                                    @if ($openBreak)
+                                        <div class="flex items-center gap-2">
+                                            <span class="badge-glass !border-amber-400/25 !bg-amber-400/10 !text-amber-200">On break since {{ $openBreak->break_start->setTimezone($row['user']->tz())->format('g:i A') }}</span>
+                                            <button wire:click="endBreakFor({{ $row['attendance']->id }})" class="text-[11px] font-semibold text-gold-300 hover:text-gold-200">End</button>
+                                        </div>
+                                    @elseif ($breakMinutes > 0)
+                                        <span class="{{ $breakMinutes > 60 ? 'font-semibold text-rose-300' : 'text-white/60' }}">{{ $breakMinutes }}m</span>
+                                    @else
+                                        <span class="text-white/30">—</span>
+                                    @endif
+                                </td>
                                 <td><x-attendance-status-pill :info="$row['status']" /></td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="py-8 text-center text-white/40">No employees found.</td></tr>
+                            <tr><td colspan="6" class="py-8 text-center text-white/40">No employees found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

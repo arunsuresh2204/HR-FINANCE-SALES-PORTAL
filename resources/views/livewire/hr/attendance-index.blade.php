@@ -15,15 +15,31 @@
                         Not Clocked In
                     @endif
                 </p>
-                <div class="mt-2"><x-attendance-status-pill :info="$todayStatus" /></div>
+                <div class="mt-2 flex flex-wrap items-center gap-2">
+                    <x-attendance-status-pill :info="$todayStatus" />
+                    @if ($todayOpenBreak)
+                        <span class="badge-glass !border-amber-400/25 !bg-amber-400/10 !text-amber-200">On Break since {{ $todayOpenBreak->break_start->setTimezone($tz)->format('g:i A') }}</span>
+                    @elseif ($todayBreakMinutes > 0)
+                        <span class="badge-glass {{ $todayBreakMinutes > 60 ? '!border-rose-400/25 !bg-rose-400/10 !text-rose-200' : '' }}">{{ $todayBreakMinutes }} min break today</span>
+                    @endif
+                </div>
             </div>
-            <div class="flex gap-3">
+            <div class="flex flex-wrap gap-3">
                 <button wire:click="clockIn" @disabled($todayAttendance?->clock_in) class="btn-glass-primary disabled:cursor-not-allowed disabled:opacity-40">
                     <x-icon name="clock" class="h-4 w-4" /> Clock In
                 </button>
                 <button wire:click="clockOut" @disabled(!$todayAttendance?->clock_in || $todayAttendance?->clock_out) class="btn-glass-secondary disabled:cursor-not-allowed disabled:opacity-40">
                     <x-icon name="exit" class="h-4 w-4" /> Clock Out
                 </button>
+                @if ($todayOpenBreak)
+                    <button wire:click="endBreak" class="btn-glass-secondary !border-amber-400/30 !text-amber-200">
+                        <x-icon name="check" class="h-4 w-4" /> End Break
+                    </button>
+                @else
+                    <button wire:click="startBreak" @disabled(!$todayAttendance?->clock_in || $todayAttendance?->clock_out) class="btn-glass-secondary disabled:cursor-not-allowed disabled:opacity-40">
+                        <x-icon name="clock" class="h-4 w-4" /> Start Break
+                    </button>
+                @endif
             </div>
         </div>
     </div>
@@ -38,6 +54,7 @@
                         <th>Clock In</th>
                         <th>Clock Out</th>
                         <th>Hours</th>
+                        <th>Break</th>
                         <th>Status</th>
                         <th></th>
                     </tr>
@@ -49,6 +66,13 @@
                             <td>{{ $record->clock_in?->setTimezone($tz)->format('g:i A') ?? '—' }}</td>
                             <td>{{ $record->clock_out?->setTimezone($tz)->format('g:i A') ?? '—' }}</td>
                             <td>{{ $record->clock_in && $record->clock_out ? number_format($record->clock_in->diffInMinutes($record->clock_out) / 60, 1).'h' : '—' }}</td>
+                            <td>
+                                @if ($record->exists && $record->totalBreakMinutes() > 0)
+                                    <span class="{{ $record->isOverBreakCap() ? 'font-semibold text-rose-300' : 'text-white/60' }}">{{ $record->totalBreakMinutes() }}m</span>
+                                @else
+                                    <span class="text-white/30">—</span>
+                                @endif
+                            </td>
                             <td><x-attendance-status-pill :info="$statusFor($record)" /></td>
                             <td class="text-right">
                                 @if ($record->exists)
@@ -66,7 +90,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="py-8 text-center text-white/40">No attendance records yet.</td></tr>
+                        <tr><td colspan="7" class="py-8 text-center text-white/40">No attendance records yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>

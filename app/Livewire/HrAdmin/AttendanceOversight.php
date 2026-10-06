@@ -144,6 +144,24 @@ class AttendanceOversight extends Component
         $this->dispatch('toast', message: 'Request approved and attendance updated.', type: 'success');
     }
 
+    /**
+     * HR force-closes an employee's break they forgot to end themselves —
+     * compliance-only, no approval workflow needed since it doesn't affect
+     * pay or hours.
+     */
+    public function endBreakFor(int $attendanceId): void
+    {
+        $attendance = Attendance::find($attendanceId);
+        $openBreak = $attendance?->openBreak();
+
+        if (! $openBreak) {
+            return;
+        }
+
+        $openBreak->update(['break_end' => now()]);
+        $this->dispatch('toast', message: "Break ended for {$attendance->user->name}.", type: 'success');
+    }
+
     public function rejectRequest(AttendanceStatusRequest $attendanceStatusRequest): void
     {
         $attendanceStatusRequest->update([
@@ -206,6 +224,7 @@ class AttendanceOversight extends Component
 
         $attendanceByUser = Attendance::whereIn('user_id', $employees->pluck('id'))
             ->whereDate('work_date', $viewDate)
+            ->with('breaks')
             ->get()
             ->keyBy('user_id');
 

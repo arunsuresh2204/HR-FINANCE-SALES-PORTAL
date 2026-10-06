@@ -20,6 +20,13 @@ class Attendance extends Model
      */
     public const DEFAULT_WORKDAY_HOURS = 6;
 
+    /**
+     * Total daily break allowance. A soft cap, not enforced — an employee
+     * can still start another break past this; it's purely a compliance
+     * signal for HR, with no effect on hours worked or pay.
+     */
+    public const BREAK_CAP_MINUTES = 60;
+
     protected $fillable = [
         'user_id', 'work_date', 'scheduled_login_time', 'clock_in', 'clock_out', 'ip_address', 'status',
         'auto_leave_request_id', 'notes',
@@ -47,6 +54,44 @@ class Attendance extends Model
     public function autoLeaveRequest(): BelongsTo
     {
         return $this->belongsTo(LeaveRequest::class, 'auto_leave_request_id');
+    }
+
+    public function breaks(): HasMany
+    {
+        return $this->hasMany(AttendanceBreak::class);
+    }
+
+    public function openBreak(): ?AttendanceBreak
+    {
+        if (! $this->exists) {
+            return null;
+        }
+
+        // Use the already-loaded relation when available (e.g. a list of
+        // employees eager-loaded with 'breaks') to avoid a query per row.
+        if ($this->relationLoaded('breaks')) {
+            return $this->breaks->whereNull('break_end')->sortByDesc('break_start')->first();
+        }
+
+        return $this->breaks()->whereNull('break_end')->latest('break_start')->first();
+    }
+
+    /**
+     * Minutes spent on break so far today, including whatever time has
+     * elapsed on a still-running break.
+     */
+    public function totalBreakMinutes(): int
+    {
+        if (! $this->exists) {
+            return 0;
+        }
+
+        return $this->breaks->sum(fn (AttendanceBreak $b) => $b->minutes());
+    }
+
+    public function isOverBreakCap(): bool
+    {
+        return $this->totalBreakMinutes() > self::BREAK_CAP_MINUTES;
     }
 
     /**
@@ -250,6 +295,52 @@ class Attendance extends Model
                 if ($inserted === 0) {
                     $leaveRequest->delete();
                 }
+            });
+    }
+
+    /**
+     * Close out any break an employee started but never ended — forgetting
+     * to end a break shouldn't leave it running forever. Safe to call
+     * repeatedly: a break still legitimately in progress (clocked in today,
+     * no clock-out yet) is left alone.
+     */
+    public static function closeStaleOpenBreaks(): void
+    {
+        AttendanceBreak::whereNull('break_end')
+            ->with('attendance.user')
+            ->get()
+            ->each(function (AttendanceBreak $break) {
+                $attendance = $break->attendance;
+                $user = $attendance?->user;
+
+                if (! $attendance || ! $user) {
+                    return;
+                }
+
+                // Clocked out but the break never got closed alongside it (shouldn't
+                // normally happen — clockOut() closes it directly — but covers any
+                // legacy/edge-case row) — close it at the moment they left.
+                if ($attendance->clock_out) {
+                    $break->update(['break_end' => $attendance->clock_out]);
+
+                    return;
+                }
+
+                // Still clocked in on a day that's clearly over (the employee's
+                // local calendar has moved past it) — close at a reasonable
+                // end-of-day estimate rather than leave it open indefinitely.
+                $workDate = $attendance->work_date->toDateString();
+
+                if ($workDate >= $user->localNow()->toDateString()) {
+                    return;
+                }
+
+                $scheduledLogin = $attendance->scheduled_login_time ?? $user->scheduled_login_time;
+                $eodAt = $scheduledLogin
+                    ? self::endOfDayFor($user, $workDate, Carbon::parse($workDate.' '.$scheduledLogin, $user->tz()))
+                    : $break->break_start->copy()->addHour();
+
+                $break->update(['break_end' => $eodAt->max($break->break_start)]);
             });
     }
 }

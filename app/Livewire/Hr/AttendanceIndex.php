@@ -98,6 +98,55 @@ class AttendanceIndex extends Component
         $this->dispatch('toast', message: 'Clocked in at '.$now->copy()->setTimezone($user->tz())->format('g:i A'), type: 'success');
     }
 
+    public function startBreak(): void
+    {
+        $user = Auth::user();
+        $today = $user->localNow()->toDateString();
+
+        $attendance = Attendance::where('user_id', $user->id)->whereDate('work_date', $today)->first();
+
+        if (! $attendance || ! $attendance->clock_in || $attendance->clock_out) {
+            $this->dispatch('toast', message: 'You need to be clocked in to start a break.', type: 'error');
+
+            return;
+        }
+
+        if ($attendance->openBreak()) {
+            $this->dispatch('toast', message: 'You\'re already on a break.', type: 'error');
+
+            return;
+        }
+
+        $attendance->breaks()->create(['break_start' => now()]);
+        $this->dispatch('toast', message: 'Break started.', type: 'success');
+    }
+
+    public function endBreak(): void
+    {
+        $user = Auth::user();
+        $today = $user->localNow()->toDateString();
+
+        $attendance = Attendance::where('user_id', $user->id)->whereDate('work_date', $today)->first();
+        $openBreak = $attendance?->openBreak();
+
+        if (! $openBreak) {
+            $this->dispatch('toast', message: 'You\'re not on a break.', type: 'error');
+
+            return;
+        }
+
+        $openBreak->update(['break_end' => now()]);
+
+        $totalMinutes = $attendance->fresh()->totalBreakMinutes();
+        $message = 'Break ended — '.$totalMinutes.' min total today.';
+
+        if ($totalMinutes > Attendance::BREAK_CAP_MINUTES) {
+            $message .= ' That\'s over the 1-hour allowance.';
+        }
+
+        $this->dispatch('toast', message: $message, type: $totalMinutes > Attendance::BREAK_CAP_MINUTES ? 'error' : 'success');
+    }
+
     public function clockOut(): void
     {
         $user = Auth::user();
@@ -119,6 +168,9 @@ class AttendanceIndex extends Component
 
         $attendance->clock_out = now();
         $attendance->save();
+
+        // A break running past clock-out would otherwise sit open forever.
+        $attendance->openBreak()?->update(['break_end' => $attendance->clock_out]);
 
         $this->dispatch('toast', message: 'Clocked out at '.$attendance->clock_out->copy()->setTimezone($user->tz())->format('g:i A'), type: 'success');
 
@@ -238,9 +290,9 @@ class AttendanceIndex extends Component
         $user = Auth::user();
         $today = $user->localNow()->toDateString();
 
-        $todayAttendance = Attendance::where('user_id', $user->id)->whereDate('work_date', $today)->first();
+        $todayAttendance = Attendance::where('user_id', $user->id)->whereDate('work_date', $today)->with('breaks')->first();
 
-        $history = Attendance::where('user_id', $user->id)->orderByDesc('work_date')->paginate(10);
+        $history = Attendance::where('user_id', $user->id)->with('breaks')->orderByDesc('work_date')->paginate(10);
 
         // Once the employee's scheduled login time has arrived, today should be visible on
         // the list — blank times, live-computed status — even before any row exists for it,
@@ -267,6 +319,8 @@ class AttendanceIndex extends Component
         return view('livewire.hr.attendance-index', [
             'todayAttendance' => $todayAttendance,
             'todayStatus' => Attendance::computeStatus($user, $today, $todayAttendance),
+            'todayOpenBreak' => $todayAttendance?->openBreak(),
+            'todayBreakMinutes' => $todayAttendance?->totalBreakMinutes() ?? 0,
             'history' => $history,
             'statusFor' => fn (Attendance $att) => Attendance::computeStatus($user, $att->work_date->toDateString(), $att),
             'tz' => $user->tz(),
