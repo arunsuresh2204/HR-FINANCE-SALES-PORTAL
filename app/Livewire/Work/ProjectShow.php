@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\ProjectCredential;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\Html;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
@@ -42,6 +43,14 @@ class ProjectShow extends Component
 
     public ?int $editingTaskId = null;
 
+    /**
+     * Bumped every time the task modal opens — used as the description
+     * editor's wire:key so the wire:ignore'd Quill instance always remounts
+     * (and re-seeds its content) on a fresh open, whether that's a
+     * different task's "Edit" or a new "New Task" after a cancelled one.
+     */
+    public int $taskModalInstance = 0;
+
     public string $task_title = '';
 
     public string $task_description = '';
@@ -60,36 +69,26 @@ class ProjectShow extends Component
 
     public string $task_urgency = 'medium';
 
-    public string $task_pricing_mode = 'fixed';
-
-    public string $task_amount = '';
-
-    public string $task_hours = '';
-
-    public string $task_rate = '';
-
     // Task detail
     public bool $showTaskDetail = false;
 
     public ?int $viewingTaskId = null;
-
-    public string $approve_mode = 'fixed';
-
-    public string $approve_amount = '';
-
-    public string $approve_hours = '';
-
-    public string $approve_rate = '';
 
     // Cancel
     public bool $showCancelForm = false;
 
     public string $cancel_reason = '';
 
-    // Category
+    // Category (organizational grouping only — no pricing)
     public bool $showCategoryForm = false;
 
     public string $category_name = '';
+
+    // Project cost estimate (the lump-sum total the manager quotes, billed
+    // against in installments rather than per completed/priced task)
+    public bool $showEstimateForm = false;
+
+    public string $estimate_amount = '';
 
     // Edit task amount (post-approval price adjustment, e.g. a client discount)
     public bool $showEditAmountForm = false;
@@ -283,6 +282,7 @@ class ProjectShow extends Component
     {
         $authUser = Auth::user();
         $this->editingTaskId = $taskId;
+        $this->taskModalInstance++;
         $this->convertingRequestId = null;
         $this->resetValidation();
 
@@ -312,10 +312,6 @@ class ProjectShow extends Component
             $this->task_tags = '';
             $this->task_visibility = 'public';
             $this->task_urgency = 'medium';
-            $this->task_pricing_mode = 'fixed';
-            $this->task_amount = '';
-            $this->task_hours = '';
-            $this->task_rate = '';
         }
 
         $this->showTaskModal = true;
@@ -376,7 +372,7 @@ class ProjectShow extends Component
 
         $this->validate([
             'task_title' => 'required|string|max:255',
-            'task_description' => 'nullable|string|max:2000',
+            'task_description' => 'nullable|string|max:20000',
             'task_category_id' => 'nullable|exists:project_categories,id',
             'task_assignee_ids' => 'array',
             'task_assignee_ids.*' => 'integer|exists:users,id',
@@ -398,7 +394,7 @@ class ProjectShow extends Component
 
         $data = [
             'title' => $this->task_title,
-            'description' => $this->task_description ?: null,
+            'description' => Html::sanitize($this->task_description),
             'category_id' => $this->task_category_id ?: null,
             'start_date' => $this->task_start_date ?: null,
             'end_date' => $this->task_end_date ?: null,
@@ -430,47 +426,15 @@ class ProjectShow extends Component
             return;
         }
 
-        $pendingApproval = ! $isManager;
-        $amount = null;
-        $hours = null;
-        $rate = null;
-        $currency = null;
-
-        if ($isManager) {
-            if ($this->task_pricing_mode === 'hourly') {
-                $hours = $this->task_hours !== '' ? (float) $this->task_hours : null;
-                $rate = $this->task_rate !== '' ? (float) $this->task_rate : null;
-
-                if (($hours !== null && $hours <= 0) || ($rate !== null && $rate <= 0)) {
-                    $this->addError('task_hours', 'Hours and rate must be greater than zero.');
-
-                    return;
-                }
-
-                $amount = ($hours && $rate) ? $hours * $rate : null;
-            } else {
-                $amount = $this->task_amount !== '' ? (float) $this->task_amount : null;
-
-                if ($amount !== null && $amount <= 0) {
-                    $this->addError('task_amount', 'Amount must be greater than zero.');
-
-                    return;
-                }
-            }
-
-            if ($amount !== null) {
-                $currency = $this->project->currency;
-            }
-        }
-
+        // Cost is no longer assigned at task-creation time — billing is
+        // tracked against the project's own estimate (see
+        // Project::totalBilled()). A task can still optionally carry its own
+        // amount for internal cost breakdown, set afterward via Edit Amount
+        // on the task detail view, by anyone who wants that granularity.
         $task = $this->project->tasks()->create($data + [
             'status' => 'backlog',
-            'amount' => $amount,
-            'currency' => $currency,
-            'hours' => $hours,
-            'rate' => $rate,
             'created_by' => $authUser->id,
-            'pending_approval' => $pendingApproval,
+            'pending_approval' => ! $isManager,
         ]);
 
         $task->assignees()->sync($this->task_assignee_ids);
@@ -528,10 +492,6 @@ class ProjectShow extends Component
         }
 
         $this->viewingTaskId = $taskId;
-        $this->approve_mode = 'fixed';
-        $this->approve_amount = '';
-        $this->approve_hours = '';
-        $this->approve_rate = '';
         $this->showCancelForm = false;
         $this->cancel_reason = '';
         $this->resetValidation();
@@ -631,38 +591,7 @@ class ProjectShow extends Component
             return;
         }
 
-        $amount = null;
-        $hours = null;
-        $rate = null;
-
-        if ($this->approve_mode === 'hourly') {
-            $hours = $this->approve_hours !== '' ? (float) $this->approve_hours : null;
-            $rate = $this->approve_rate !== '' ? (float) $this->approve_rate : null;
-
-            if (! $hours || $hours <= 0 || ! $rate || $rate <= 0) {
-                $this->addError('approve_amount', 'Enter hours and a rate greater than zero.');
-
-                return;
-            }
-
-            $amount = $hours * $rate;
-        } else {
-            $amount = $this->approve_amount !== '' ? (float) $this->approve_amount : null;
-
-            if (! $amount || $amount <= 0) {
-                $this->addError('approve_amount', 'Enter an amount greater than zero before approving.');
-
-                return;
-            }
-        }
-
-        $task->update([
-            'amount' => $amount,
-            'currency' => $this->project->currency,
-            'hours' => $hours,
-            'rate' => $rate,
-            'pending_approval' => false,
-        ]);
+        $task->update(['pending_approval' => false]);
 
         Notification::send(
             $task->creator,
@@ -673,7 +602,7 @@ class ProjectShow extends Component
         );
 
         $this->showTaskDetail = false;
-        $this->dispatch('toast', message: 'Task approved and priced.', type: 'success');
+        $this->dispatch('toast', message: 'Task approved.', type: 'success');
     }
 
     public function openCancelForm(): void
@@ -753,6 +682,31 @@ class ProjectShow extends Component
         $this->dispatch('toast', message: 'Category added.', type: 'success');
     }
 
+    public function openEstimateForm(): void
+    {
+        if (! $this->canManage()) {
+            return;
+        }
+
+        $this->estimate_amount = $this->project->estimated_amount !== null ? (string) $this->project->estimated_amount : '';
+        $this->resetValidation();
+        $this->showEstimateForm = true;
+    }
+
+    public function saveEstimate(): void
+    {
+        if (! $this->canManage()) {
+            return;
+        }
+
+        $this->validate(['estimate_amount' => 'required|numeric|min:0.01']);
+
+        $this->project->update(['estimated_amount' => $this->estimate_amount]);
+
+        $this->showEstimateForm = false;
+        $this->dispatch('toast', message: 'Cost estimate saved.', type: 'success');
+    }
+
     /**
      * Manager flags a Done, priced task as ready for Sales to pick up and
      * bill — purely a signal to Sales, no billing request is created here.
@@ -821,7 +775,7 @@ class ProjectShow extends Component
 
         $task = $this->project->tasks()->find($taskId);
 
-        if (! $task || ! $task->isPriced() || $task->billingRequests()->where('status', 'invoiced')->exists()) {
+        if (! $task || $task->billingRequests()->where('status', 'invoiced')->exists()) {
             return;
         }
 
@@ -1204,6 +1158,9 @@ class ProjectShow extends Component
             'assignableUsers' => $this->project->assignableUsersFor($authUser),
             'categories' => $categories,
             'categorySubtotals' => $categorySubtotals,
+            'totalBilled' => $this->project->totalBilled(),
+            'remainingEstimate' => $this->project->remainingEstimate(),
+            'activeBillingRequests' => $this->project->billingRequests()->whereIn('status', ['pending', 'invoiced'])->latest()->get(),
             'pricedCount' => $pricedTasks->count(),
             'shownPricedCount' => $shownPricedTasks->count(),
             'costFilterActive' => $costFilterActive,

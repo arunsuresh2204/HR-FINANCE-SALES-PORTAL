@@ -11,7 +11,14 @@ use Illuminate\Support\Collection;
 
 class Project extends Model
 {
-    protected $fillable = ['client_id', 'created_by', 'assigned_to', 'name', 'description', 'status', 'currency'];
+    protected $fillable = ['client_id', 'created_by', 'assigned_to', 'name', 'description', 'status', 'currency', 'estimated_amount'];
+
+    protected function casts(): array
+    {
+        return [
+            'estimated_amount' => 'decimal:2',
+        ];
+    }
 
     public function client(): BelongsTo
     {
@@ -70,7 +77,27 @@ class Project extends Model
 
     public function needsEstimate(): bool
     {
-        return $this->categories()->doesntExist();
+        return $this->estimated_amount === null;
+    }
+
+    /**
+     * How much has already been claimed against this project's estimate —
+     * every billing request not yet rejected, whether it's still pending
+     * review or already invoiced. A rejected one frees that amount back up
+     * to be billed again.
+     */
+    public function totalBilled(): float
+    {
+        return (float) $this->billingRequests()->whereIn('status', ['pending', 'invoiced'])->sum('amount');
+    }
+
+    public function remainingEstimate(): float
+    {
+        if ($this->estimated_amount === null) {
+            return 0.0;
+        }
+
+        return round(max(0.0, (float) $this->estimated_amount - $this->totalBilled()), 2);
     }
 
     /**

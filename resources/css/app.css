@@ -177,3 +177,74 @@
         @apply absolute left-0 right-0 -bottom-px h-0.5 rounded-full bg-gold-400;
     }
 }
+
+/* Quill rich-text editor, restyled to match the glass/dark theme */
+.rich-editor-container {
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.rich-editor-container .ql-toolbar.ql-snow {
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+}
+.rich-editor-container .ql-container.ql-snow {
+    border: none;
+    background: rgba(255, 255, 255, 0.05);
+}
+.rich-editor-container .ql-editor {
+    min-height: 7rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.875rem;
+}
+.rich-editor-container .ql-editor.ql-blank::before {
+    color: rgba(255, 255, 255, 0.3);
+    font-style: normal;
+}
+.rich-editor-container .ql-snow .ql-stroke {
+    stroke: rgba(255, 255, 255, 0.55);
+}
+.rich-editor-container .ql-snow .ql-fill {
+    fill: rgba(255, 255, 255, 0.55);
+}
+.rich-editor-container .ql-snow .ql-picker {
+    color: rgba(255, 255, 255, 0.55);
+}
+.rich-editor-container .ql-snow .ql-picker-options {
+    background: #141417;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.rich-editor-container button:hover .ql-stroke,
+.rich-editor-container button.ql-active .ql-stroke {
+    stroke: #f7c81e;
+}
+.rich-editor-container button:hover .ql-fill,
+.rich-editor-container button.ql-active .ql-fill {
+    fill: #f7c81e;
+}
+.rich-editor-container .ql-picker-label:hover,
+.rich-editor-container .ql-picker-item:hover {
+    color: #f7c81e;
+}
+
+/* Read-only rendering of sanitized task-description HTML */
+.rich-text-content :where(ul, ol) {
+    padding-left: 1.25rem;
+    list-style: revert;
+}
+.rich-text-content a {
+    color: #f7c81e;
+    text-decoration: underline;
+}
+.rich-text-content blockquote {
+    border-left: 2px solid rgba(255, 255, 255, 0.2);
+    padding-left: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+.rich-text-content pre, .rich-text-content code {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 0.375rem;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.8125rem;
+}

@@ -37,9 +37,9 @@
     @if ($project->needsEstimate() && $isManager)
         <div class="glass-card mt-4 border-gold-400/25">
             <p class="text-sm font-semibold text-white">This project is awaiting a cost estimate.</p>
-            <p class="mt-1 text-xs text-white/45">Add at least one category to move it to Active and start creating tasks against it.</p>
+            <p class="mt-1 text-xs text-white/45">Set the overall quoted amount for this project — billing requests are tracked against it, in one or more installments.</p>
             @if ($canManage)
-                <button wire:click="openCategoryForm" class="btn-glass-primary mt-3 text-xs"><x-icon name="plus" class="h-4 w-4" /> Add Category</button>
+                <button wire:click="openEstimateForm" class="btn-glass-primary mt-3 text-xs"><x-icon name="plus" class="h-4 w-4" /> Set Cost Estimate</button>
             @endif
         </div>
     @endif
@@ -312,11 +312,51 @@
     {{-- ================= COST ESTIMATE / CATEGORIES ================= --}}
     @if ($tab === 'categories' && $isManager)
         <div class="mt-4 space-y-5">
-            @if ($canManage)
-                <div class="flex justify-end">
-                    <button wire:click="openCategoryForm" class="btn-glass-secondary text-xs"><x-icon name="plus" class="h-4 w-4" /> Add Category</button>
+            <div class="glass-card">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-white/40">Project Cost Estimate</p>
+                    @if ($canManage)
+                        <button wire:click="openEstimateForm" class="text-xs font-semibold text-gold-300 hover:text-gold-200">{{ $project->needsEstimate() ? 'Set Estimate' : 'Edit Estimate' }}</button>
+                    @endif
                 </div>
-            @endif
+                @if ($project->needsEstimate())
+                    <p class="mt-2 text-sm text-white/50">No estimate set yet.</p>
+                @else
+                    <div class="mt-3 grid grid-cols-3 gap-3 text-center">
+                        <div>
+                            <p class="text-xl font-bold text-white">{{ \App\Support\Currency::format($project->estimated_amount, $project->currency) }}</p>
+                            <p class="text-[11px] text-white/40">Estimate</p>
+                        </div>
+                        <div>
+                            <p class="text-xl font-bold text-gold-300">{{ \App\Support\Currency::format($totalBilled, $project->currency) }}</p>
+                            <p class="text-[11px] text-white/40">Billed</p>
+                        </div>
+                        <div>
+                            <p class="text-xl font-bold text-emerald-400">{{ \App\Support\Currency::format($remainingEstimate, $project->currency) }}</p>
+                            <p class="text-[11px] text-white/40">Remaining</p>
+                        </div>
+                    </div>
+                    @if ($activeBillingRequests->isNotEmpty())
+                        <div class="mt-4 space-y-1.5 border-t border-white/10 pt-3">
+                            <p class="mb-1 text-[11px] font-semibold uppercase tracking-wide text-white/35">Billing requests against this estimate</p>
+                            @foreach ($activeBillingRequests as $br)
+                                <div class="flex items-center justify-between gap-3 text-sm">
+                                    <span class="min-w-0 flex-1 truncate text-white/70">{{ $br->milestone_description ?: $br->summary() }}</span>
+                                    <span class="shrink-0 text-white/50">{{ \App\Support\Currency::format($br->amount, $br->currency) }}</span>
+                                    <x-status-pill :status="$br->status === 'invoiced' ? 'invoiced' : 'billed'" />
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                @endif
+            </div>
+
+            <div class="flex items-center justify-between">
+                <p class="text-xs font-semibold uppercase tracking-wide text-white/40">Internal Task Cost Breakdown <span class="normal-case text-white/30">&middot; optional</span></p>
+                @if ($canManage)
+                    <button wire:click="openCategoryForm" class="btn-glass-secondary text-xs"><x-icon name="plus" class="h-4 w-4" /> Add Category</button>
+                @endif
+            </div>
 
             @if ($isManager)
                 <div class="glass-inset flex flex-wrap items-center gap-3 p-3">
@@ -389,7 +429,7 @@
                     </div>
                 </div>
             @empty
-                <p class="glass-card py-8 text-center text-sm text-white/30">No categories yet{{ $canManage ? ' — click Add Category to start pricing this project.' : '.' }}</p>
+                <p class="glass-card py-8 text-center text-sm text-white/30">No categories yet{{ $canManage ? ' — add one to optionally track per-task cost internally.' : '.' }}</p>
             @endforelse
         </div>
     @endif
@@ -469,9 +509,9 @@
                 <x-text-input wire:model="task_title" id="task_title" type="text" class="mt-0" />
                 <x-input-error :messages="$errors->get('task_title')" class="mt-1" />
             </div>
-            <div>
-                <x-input-label for="task_description" value="Description" />
-                <textarea wire:model="task_description" id="task_description" rows="3" class="input-glass"></textarea>
+            <div wire:key="task-desc-editor-{{ $taskModalInstance }}">
+                <x-input-label value="Description" />
+                <x-rich-editor model="task_description" :value="$task_description" placeholder="Describe the task&hellip;" />
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -530,28 +570,7 @@
                 <p class="mt-1 text-xs text-white/40">Public tasks are visible to every developer on this project. Private tasks are visible only to you.</p>
             </div>
 
-            @if (! $editingTaskId && $isManager)
-                <div>
-                    <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                        <x-input-label value="Pricing (optional)" class="!mb-0" />
-                        <div class="inline-flex rounded-lg border border-white/10 bg-white/5 p-0.5 text-[11px] font-semibold">
-                            <button type="button" wire:click="$set('task_pricing_mode', 'fixed')" class="rounded-md px-2.5 py-1 {{ $task_pricing_mode === 'fixed' ? 'bg-gold-400/[0.16] text-gold-300' : 'text-white/55' }}">Fixed amount</button>
-                            <button type="button" wire:click="$set('task_pricing_mode', 'hourly')" class="rounded-md px-2.5 py-1 {{ $task_pricing_mode === 'hourly' ? 'bg-gold-400/[0.16] text-gold-300' : 'text-white/55' }}">Hourly</button>
-                        </div>
-                    </div>
-                    <div class="flex gap-2">
-                        <span class="input-glass !w-24 shrink-0 !cursor-default text-center text-white/50">{{ $project->currency }}</span>
-                        @if ($task_pricing_mode === 'fixed')
-                            <x-text-input wire:model="task_amount" type="number" min="0" step="0.01" class="mt-0 min-w-0 flex-1" placeholder="e.g. 15000" />
-                        @else
-                            <x-text-input wire:model="task_hours" type="number" min="0" step="0.25" class="mt-0 min-w-0 flex-1" placeholder="Hours" />
-                            <x-text-input wire:model="task_rate" type="number" min="0" step="0.01" class="mt-0 min-w-0 flex-1" placeholder="Rate/hr" />
-                        @endif
-                    </div>
-                    <x-input-error :messages="$errors->get('task_amount')" class="mt-1" />
-                    <x-input-error :messages="$errors->get('task_hours')" class="mt-1" />
-                </div>
-            @elseif (! $editingTaskId)
+            @if (! $editingTaskId && ! $isManager)
                 <p class="text-xs text-violet-300/80">This task will need your manager's review, please contact manager for approval.</p>
             @endif
 
@@ -591,20 +610,28 @@
             @endif
 
             @if ($task->description)
-                <p class="mt-4 text-sm leading-relaxed text-white/70">{{ $task->description }}</p>
+                <div class="rich-text-content mt-4 text-sm leading-relaxed text-white/70">{!! $task->description !!}</div>
             @endif
 
             <div class="mt-4 grid grid-cols-2 gap-4 border-t border-white/10 pt-4 text-sm">
                 <div>
-                    <p class="label-glass !mb-1">Amount</p>
-                    <p class="font-semibold text-gold-300">
+                    <p class="label-glass !mb-1">Internal Cost <span class="normal-case text-white/30">&middot; optional</span></p>
+                    <p class="flex items-center gap-2 font-semibold text-gold-300">
                         @if (! $isManager) &mdash;
-                        @elseif ($task->amount > 0)
-                            {{ \App\Support\Currency::format($task->amount, $task->currency) }}
-                            @if ($task->hours !== null && $task->rate !== null)
-                                ({{ $task->hours }}h &times; {{ \App\Support\Currency::format($task->rate, $task->currency) }}/hr)
+                        @else
+                            @if ($task->amount > 0)
+                                <span>
+                                    {{ \App\Support\Currency::format($task->amount, $task->currency) }}
+                                    @if ($task->hours !== null && $task->rate !== null)
+                                        ({{ $task->hours }}h &times; {{ \App\Support\Currency::format($task->rate, $task->currency) }}/hr)
+                                    @endif
+                                </span>
+                            @else
+                                <span class="text-white/40">&mdash;</span>
                             @endif
-                        @else &mdash;
+                            @unless ($task->billingRequests()->where('status', 'invoiced')->exists())
+                                <button type="button" wire:click="openEditAmountForm({{ $task->id }})" class="text-[11px] font-semibold text-white/50 hover:text-gold-300">{{ $task->amount > 0 ? 'Edit' : 'Set' }}</button>
+                            @endunless
                         @endif
                     </p>
                 </div>
@@ -664,27 +691,9 @@
             </div>
 
             @if ($isManager && $task->pending_approval && ! $task->cancelled)
-                <div class="mt-4 border-t border-white/10 pt-4">
-                    <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                        <label class="label-glass !mb-0">Approve &amp; Set Price</label>
-                        <div class="inline-flex rounded-lg border border-white/10 bg-white/5 p-0.5 text-[11px] font-semibold">
-                            <button type="button" wire:click="$set('approve_mode', 'fixed')" class="rounded-md px-2.5 py-1 {{ $approve_mode === 'fixed' ? 'bg-gold-400/[0.16] text-gold-300' : 'text-white/55' }}">Fixed amount</button>
-                            <button type="button" wire:click="$set('approve_mode', 'hourly')" class="rounded-md px-2.5 py-1 {{ $approve_mode === 'hourly' ? 'bg-gold-400/[0.16] text-gold-300' : 'text-white/55' }}">Hourly</button>
-                        </div>
-                    </div>
-                    <div class="flex gap-2">
-                        <span class="input-glass !w-24 shrink-0 !cursor-default text-center text-white/50">{{ $project->currency }}</span>
-                        @if ($approve_mode === 'fixed')
-                            <x-text-input wire:model="approve_amount" type="number" min="0" step="0.01" class="mt-0 min-w-0 flex-1" placeholder="e.g. 15000" />
-                        @else
-                            <x-text-input wire:model="approve_hours" type="number" min="0" step="0.25" class="mt-0 min-w-0 flex-1" placeholder="Hours" />
-                            <x-text-input wire:model="approve_rate" type="number" min="0" step="0.01" class="mt-0 min-w-0 flex-1" placeholder="Rate/hr" />
-                        @endif
-                    </div>
-                    <x-input-error :messages="$errors->get('approve_amount')" class="mt-1" />
-                    <div class="mt-3 flex justify-end">
-                        <button wire:click="approveTask" class="btn-glass-primary text-xs">Approve Task</button>
-                    </div>
+                <div class="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
+                    <p class="text-xs text-white/40">Awaiting your approval before it can move past Backlog/To Do.</p>
+                    <button wire:click="approveTask" class="btn-glass-primary text-xs">Approve Task</button>
                 </div>
             @endif
 
@@ -728,9 +737,9 @@
 
 
     {{-- ================= EDIT TASK AMOUNT MODAL ================= --}}
-    <x-modal-glass wire-model="showEditAmountForm" title="Edit Task Amount" max-width="sm">
+    <x-modal-glass wire-model="showEditAmountForm" title="Task Internal Cost" max-width="sm">
         <form wire:submit="saveTaskAmount" class="space-y-4">
-            <p class="text-sm text-white/50">Use this to apply a client discount or correct pricing before this task is invoiced.</p>
+            <p class="text-sm text-white/50">Optional — track what this task is worth internally. It doesn't affect billing, which is tracked against the project's own estimate.</p>
             <div class="inline-flex rounded-lg border border-white/10 bg-white/5 p-0.5 text-[11px] font-semibold">
                 <button type="button" wire:click="$set('edit_amount_mode', 'fixed')" class="rounded-md px-2.5 py-1 {{ $edit_amount_mode === 'fixed' ? 'bg-gold-400/[0.16] text-gold-300' : 'text-white/55' }}">Fixed amount</button>
                 <button type="button" wire:click="$set('edit_amount_mode', 'hourly')" class="rounded-md px-2.5 py-1 {{ $edit_amount_mode === 'hourly' ? 'bg-gold-400/[0.16] text-gold-300' : 'text-white/55' }}">Hourly</button>
@@ -759,6 +768,22 @@
                 <x-input-label for="category_name" value="Category name" />
                 <x-text-input wire:model="category_name" id="category_name" type="text" class="mt-0" placeholder="e.g. Loyalty points engine" />
                 <x-input-error :messages="$errors->get('category_name')" class="mt-1" />
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
+                <x-primary-button>Save</x-primary-button>
+            </div>
+        </form>
+    </x-modal-glass>
+
+    {{-- ================= ESTIMATE MODAL ================= --}}
+    <x-modal-glass wire-model="showEstimateForm" title="Project Cost Estimate" max-width="sm">
+        <form wire:submit="saveEstimate" class="space-y-4">
+            <p class="text-sm text-white/50">The overall amount quoted for this project. Billing requests are tracked against it — Sales can raise one or more installments up to the remaining balance.</p>
+            <div>
+                <x-input-label for="estimate_amount" value="Estimate ({{ $project->currency }})" />
+                <x-text-input wire:model="estimate_amount" id="estimate_amount" type="number" min="0" step="0.01" class="mt-0" placeholder="e.g. 50000" />
+                <x-input-error :messages="$errors->get('estimate_amount')" class="mt-1" />
             </div>
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>

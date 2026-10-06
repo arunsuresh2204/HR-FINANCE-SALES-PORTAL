@@ -428,7 +428,7 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <x-input-label for="project_id" value="Project (optional)" />
-                    <select wire:model="project_id" id="project_id" class="input-glass">
+                    <select wire:model.live="project_id" id="project_id" class="input-glass">
                         <option value="">— No specific project —</option>
                         @foreach ($allProjects as $project)
                             <option value="{{ $project->id }}">{{ $project->name }}</option>
@@ -460,9 +460,25 @@
             </div>
 
             @if ($billing_type === 'milestone')
+                @if ($billingProject)
+                    <div class="glass-inset p-3 text-xs">
+                        @if ($billingProject->needsEstimate())
+                            <p class="text-amber-300/80">This project has no cost estimate set yet — ask the engineering manager to set one on the project page.</p>
+                        @else
+                            <div class="flex flex-wrap gap-x-4 gap-y-1 text-white/50">
+                                <span>Estimate: <span class="font-semibold text-white/80">{{ \App\Support\Currency::format($billingProject->estimated_amount, $billingProject->currency) }}</span></span>
+                                <span>Billed so far: <span class="font-semibold text-white/80">{{ \App\Support\Currency::format($billingProject->totalBilled(), $billingProject->currency) }}</span></span>
+                                <span>Remaining: <span class="font-semibold text-emerald-300">{{ \App\Support\Currency::format($billingProject->remainingEstimate(), $billingProject->currency) }}</span></span>
+                            </div>
+                            @if ($amount !== '' && (float) $amount > $billingProject->remainingEstimate())
+                                <p class="mt-1.5 text-amber-300/80">This exceeds the project's remaining estimate — only continue if there's an agreed scope change.</p>
+                            @endif
+                        @endif
+                    </div>
+                @endif
                 <div>
                     <x-input-label for="amount" value="Amount" />
-                    <x-text-input wire:model="amount" id="amount" type="number" step="0.01" class="mt-0" />
+                    <x-text-input wire:model.live.debounce.400ms="amount" id="amount" type="number" step="0.01" class="mt-0" />
                     <x-input-error :messages="$errors->get('amount')" class="mt-1" />
                 </div>
                 <div>

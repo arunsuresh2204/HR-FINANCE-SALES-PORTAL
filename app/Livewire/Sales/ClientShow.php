@@ -897,6 +897,9 @@ class ClientShow extends Component
         return view('livewire.sales.client-show', [
             'projects' => $projects,
             'allProjects' => $this->client->projects()->with('attachments')->orderBy('name')->get(),
+            'billingProject' => $this->project_id
+                ? Project::find($this->project_id)
+                : null,
             'projectRequests' => $projectRequests,
             'viewingRequest' => $this->viewingRequestId ? ProjectRequest::with(['creator', 'comments.author', 'comments.attachments', 'attachments', 'convertedTask'])->find($this->viewingRequestId) : null,
             'billingRequests' => $this->client->billingRequests()->with('tasks', 'billedTasks', 'project')->where('status', '!=', 'invoiced')->latest()->paginate(5, ['*'], 'billingRequestsPage'),
