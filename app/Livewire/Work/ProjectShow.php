@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Work;
 
+use App\Models\Attachment;
 use App\Models\Notification;
 use App\Models\Project;
 use App\Models\ProjectCredential;
@@ -68,6 +69,10 @@ class ProjectShow extends Component
     public string $task_visibility = 'public';
 
     public string $task_urgency = 'medium';
+
+    public array $task_attachment_files = [];
+
+    public array $task_detail_attachment_files = [];
 
     // Task detail
     public bool $showTaskDetail = false;
@@ -284,6 +289,7 @@ class ProjectShow extends Component
         $this->editingTaskId = $taskId;
         $this->taskModalInstance++;
         $this->convertingRequestId = null;
+        $this->task_attachment_files = [];
         $this->resetValidation();
 
         if ($taskId) {
@@ -380,6 +386,8 @@ class ProjectShow extends Component
             'task_end_date' => 'nullable|date|after_or_equal:task_start_date',
             'task_visibility' => 'required|in:public,private',
             'task_urgency' => ['required', 'in:'.implode(',', array_keys(Task::URGENCIES))],
+            'task_attachment_files' => 'array|max:5',
+            'task_attachment_files.*' => 'file|max:10240',
         ]);
 
         $allowedAssigneeIds = $this->project->assignableUsersFor($authUser)->pluck('id');
@@ -409,6 +417,7 @@ class ProjectShow extends Component
             $editing->assignees()->sync($this->task_assignee_ids);
             $this->project->ensureDevelopers($this->task_assignee_ids);
             $this->notifyNewAssignees($editing, $this->task_assignee_ids, $previousAssigneeIds, $authUser);
+            $this->storeTaskAttachments($editing, $this->task_attachment_files);
 
             if ($editing->wasChanged(['title', 'description', 'category_id', 'start_date', 'end_date', 'tags', 'urgency'])) {
                 $this->notifyTaskWatchers(
@@ -439,6 +448,7 @@ class ProjectShow extends Component
 
         $task->assignees()->sync($this->task_assignee_ids);
         $this->project->ensureDevelopers($this->task_assignee_ids);
+        $this->storeTaskAttachments($task, $this->task_attachment_files);
         $this->notifyNewAssignees($task, $this->task_assignee_ids, [], $authUser);
 
         $this->showTaskModal = false;
@@ -469,7 +479,7 @@ class ProjectShow extends Component
             return;
         }
 
-        if ($pendingApproval) {
+        if ($task->pending_approval) {
             Notification::sendToMany(
                 User::role(['manager_engineering', 'super_admin'])->get(),
                 'task_created',
@@ -483,6 +493,66 @@ class ProjectShow extends Component
         }
     }
 
+    protected function storeTaskAttachments(Task $task, array $files): void
+    {
+        foreach ($files as $file) {
+            $task->attachments()->create([
+                'path' => $file->store('task-attachments', 'public'),
+                'original_name' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'uploaded_by' => Auth::id(),
+            ]);
+        }
+    }
+
+    /**
+     * Attach files to an existing task directly from the task detail view —
+     * the New/Edit Task form isn't the only place attachments are needed
+     * (there's no general "Edit Task" entry point in the UI), so anyone who
+     * can see the task can drop a deliverable onto it here.
+     */
+    public function uploadTaskAttachments(int $taskId): void
+    {
+        $task = $this->project->tasks()->find($taskId);
+        $authUser = Auth::user();
+
+        if (! $task || ! $task->canBeSeenBy($authUser)) {
+            return;
+        }
+
+        $this->validate([
+            'task_detail_attachment_files' => 'array|max:5',
+            'task_detail_attachment_files.*' => 'file|max:10240',
+        ]);
+
+        $this->storeTaskAttachments($task, $this->task_detail_attachment_files);
+        $this->task_detail_attachment_files = [];
+        $this->dispatch('toast', message: 'Attachment(s) added.', type: 'success');
+    }
+
+    public function deleteTaskAttachment(int $attachmentId): void
+    {
+        $attachment = Attachment::where('attachable_type', Task::class)->findOrFail($attachmentId);
+        $task = $attachment->attachable;
+        $authUser = Auth::user();
+
+        if (! $task || ! $task->canBeSeenBy($authUser)) {
+            return;
+        }
+
+        $canDelete = $authUser->isManager() || $authUser->isSuperAdmin()
+            || $authUser->id === $task->created_by
+            || $authUser->id === $attachment->uploaded_by;
+
+        if (! $canDelete) {
+            return;
+        }
+
+        Storage::disk('public')->delete($attachment->path);
+        $attachment->delete();
+        $this->dispatch('toast', message: 'Attachment removed.', type: 'success');
+    }
+
     public function openTaskDetail(int $taskId): void
     {
         $task = $this->project->tasks()->find($taskId);
@@ -494,6 +564,7 @@ class ProjectShow extends Component
         $this->viewingTaskId = $taskId;
         $this->showCancelForm = false;
         $this->cancel_reason = '';
+        $this->task_detail_attachment_files = [];
         $this->resetValidation();
         $this->showTaskDetail = true;
     }

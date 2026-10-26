@@ -579,6 +579,25 @@
                 <x-text-input wire:model="task_tags" type="text" class="mt-0" placeholder="frontend, payments" />
             </div>
 
+            <div>
+                <x-input-label for="task_attachment_files" value="Attachments (optional)" />
+                @php($editingTaskModel = $editingTaskId ? $project->tasks()->find($editingTaskId) : null)
+                @if ($editingTaskModel && $editingTaskModel->attachments->isNotEmpty())
+                    <div class="mb-2 space-y-1">
+                        @foreach ($editingTaskModel->attachments as $attachment)
+                            <div class="flex items-center justify-between gap-2 text-xs">
+                                <a href="{{ $attachment->url() }}" target="_blank" class="truncate text-gold-300 hover:text-gold-200">{{ $attachment->original_name }}</a>
+                                <button type="button" wire:click="deleteTaskAttachment({{ $attachment->id }})" wire:confirm="Remove this attachment?" class="shrink-0 text-white/30 hover:text-rose-300"><x-icon name="trash" class="h-3.5 w-3.5" /></button>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+                <input wire:model="task_attachment_files" id="task_attachment_files" type="file" multiple class="input-glass file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white/80">
+                <div wire:loading wire:target="task_attachment_files" class="mt-1 text-xs text-white/40">Uploading&hellip;</div>
+                <x-input-error :messages="$errors->get('task_attachment_files')" class="mt-1" />
+                <x-input-error :messages="$errors->get('task_attachment_files.*')" class="mt-1" />
+            </div>
+
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>
                 <x-primary-button>{{ $editingTaskId ? 'Save' : 'Create Task' }}</x-primary-button>
@@ -677,6 +696,29 @@
                     @endforeach
                 </div>
             @endif
+
+            <div class="mt-4 border-t border-white/10 pt-4">
+                <p class="label-glass !mb-1.5">Attachments</p>
+                @if ($task->attachments->isNotEmpty())
+                    <div class="mb-2 space-y-1">
+                        @foreach ($task->attachments as $attachment)
+                            <div class="flex items-center justify-between gap-2 text-xs">
+                                <a href="{{ $attachment->url() }}" target="_blank" class="truncate text-gold-300 hover:text-gold-200">{{ $attachment->original_name }}</a>
+                                @if ($isManager || auth()->id() === $task->created_by || auth()->id() === $attachment->uploaded_by)
+                                    <button type="button" wire:click="deleteTaskAttachment({{ $attachment->id }})" wire:confirm="Remove this attachment?" class="shrink-0 text-white/30 hover:text-rose-300"><x-icon name="trash" class="h-3.5 w-3.5" /></button>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+                <input wire:model="task_detail_attachment_files" id="task_detail_attachment_files" type="file" multiple class="input-glass file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white/80">
+                <div wire:loading wire:target="task_detail_attachment_files" class="mt-1 text-xs text-white/40">Uploading&hellip;</div>
+                <x-input-error :messages="$errors->get('task_detail_attachment_files')" class="mt-1" />
+                <x-input-error :messages="$errors->get('task_detail_attachment_files.*')" class="mt-1" />
+                @if (! empty($task_detail_attachment_files))
+                    <button type="button" wire:click="uploadTaskAttachments({{ $task->id }})" class="mt-2 text-xs font-semibold text-gold-300 hover:text-gold-200">Upload</button>
+                @endif
+            </div>
 
             <div class="mt-4 border-t border-white/10 pt-4">
                 <label class="label-glass">Status</label>
