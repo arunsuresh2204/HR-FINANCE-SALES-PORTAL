@@ -102,7 +102,7 @@
                                 </div>
                             </div>
                             @if ($project->description)
-                                <p class="mt-0.5 text-xs text-white/45">{{ $project->description }}</p>
+                                <p class="mt-0.5 truncate text-xs text-white/45">{{ Str::limit(strip_tags($project->description), 140) }}</p>
                             @endif
                             <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-white/40">
                                 <span>Assigned to: {{ $project->assignedTo->name ?? '—' }}</span>
@@ -316,8 +316,10 @@
                 <x-input-error :messages="$errors->get('project_name')" class="mt-1" />
             </div>
             <div>
-                <x-input-label for="project_description" value="Description (optional)" />
-                <textarea wire:model="project_description" id="project_description" rows="2" class="input-glass"></textarea>
+                <div wire:key="project-desc-editor-{{ $projectModalInstance }}">
+                    <x-input-label value="Description (optional)" />
+                    <x-rich-editor model="project_description" :value="$project_description" placeholder="Describe the project&hellip;" />
+                </div>
             </div>
             <div>
                 <x-input-label for="project_currency" value="Currency" />

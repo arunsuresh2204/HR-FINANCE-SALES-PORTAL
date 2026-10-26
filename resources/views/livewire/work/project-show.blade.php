@@ -9,7 +9,7 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 @if ($project->description)
-                    <p class="text-sm text-white/50">{{ $project->description }}</p>
+                    <div class="rich-text-content text-sm text-white/50">{!! $project->description !!}</div>
                 @endif
             </div>
             <x-status-pill :status="$project->status" />

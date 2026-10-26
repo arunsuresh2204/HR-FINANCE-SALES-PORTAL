@@ -43,7 +43,7 @@
                     </div>
                 </div>
                 @if ($project->description)
-                    <p class="mt-3 text-sm text-white/45">{{ $project->description }}</p>
+                    <p class="mt-3 truncate text-sm text-white/45">{{ Str::limit(strip_tags($project->description), 140) }}</p>
                 @endif
 
                 @if ($row['pendingTaskCount'] > 0)

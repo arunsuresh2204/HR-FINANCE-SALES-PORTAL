@@ -10,6 +10,7 @@ use App\Models\Notification;
 use App\Models\Project;
 use App\Models\ProjectRequest;
 use App\Models\User;
+use App\Support\Html;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -68,8 +69,12 @@ class ClientShow extends Component
     #[Validate('required|string|max:255')]
     public string $project_name = '';
 
-    #[Validate('nullable|string|max:1000')]
+    #[Validate('nullable|string|max:20000')]
     public string $project_description = '';
+
+    // Bumped on every openProjectForm()/editProject() call so the rich-text
+    // editor's wire:ignore container is forced to remount with fresh content.
+    public int $projectModalInstance = 0;
 
     public string $project_currency = 'INR';
 
@@ -235,6 +240,7 @@ class ClientShow extends Component
 
     public function openProjectForm(): void
     {
+        $this->projectModalInstance++;
         $this->editingProjectId = null;
         $this->reset(['project_name', 'project_description', 'project_requirement_files']);
         $this->reset(['new_credential_label', 'new_credential_username', 'new_credential_secret', 'new_credential_notes']);
@@ -253,6 +259,7 @@ class ClientShow extends Component
             return;
         }
 
+        $this->projectModalInstance++;
         $this->editingProjectId = $project->id;
         $this->project_name = $project->name;
         $this->project_description = $project->description ?? '';
@@ -291,7 +298,7 @@ class ClientShow extends Component
 
         $this->validate([
             'project_name' => 'required|string|max:255',
-            'project_description' => 'nullable|string|max:1000',
+            'project_description' => 'nullable|string|max:20000',
             'project_requirement_files' => 'array|max:5',
             'project_requirement_files.*' => 'file|max:10240',
             'assigned_to' => $canManage ? 'nullable|exists:users,id' : 'required|exists:users,id',
@@ -321,7 +328,7 @@ class ClientShow extends Component
         $data = [
             'assigned_to' => $this->assigned_to ?: ($canManage ? Auth::id() : null),
             'name' => $this->project_name,
-            'description' => $this->project_description,
+            'description' => Html::sanitize($this->project_description),
         ];
 
         if ($currencyEditable) {
