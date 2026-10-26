@@ -318,7 +318,7 @@
             <div>
                 <div wire:key="project-desc-editor-{{ $projectModalInstance }}">
                     <x-input-label value="Description (optional)" />
-                    <x-rich-editor model="project_description" :value="$project_description" placeholder="Describe the project&hellip;" />
+                    <x-rich-editor model="project_description" :value="$project_description" placeholder="Describe the project…" />
                 </div>
             </div>
             <div>

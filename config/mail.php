@@ -113,4 +113,15 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | HR Notification Address
+    |--------------------------------------------------------------------------
+    |
+    | Resignation notices submitted through the HR portal are emailed here.
+    |
+    */
+
+    'hr_notification_address' => env('HR_NOTIFICATION_EMAIL', 'hr@nexstarc.com'),
+
 ];

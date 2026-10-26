@@ -15,7 +15,10 @@
                         <p class="font-semibold text-white">Notice given {{ $r->notice_date->format('M j, Y') }}</p>
                         <p class="text-sm text-white/50">Last working day: {{ $r->last_working_date->format('M j, Y') }}</p>
                         @if ($r->reason)
-                            <p class="mt-2 text-sm text-white/60">{{ $r->reason }}</p>
+                            <div class="rich-text-content mt-2 text-sm text-white/60">{!! $r->reason !!}</div>
+                        @endif
+                        @if ($r->cc_email)
+                            <p class="mt-1 text-xs text-white/35">CC'd to {{ $r->cc_email }}</p>
                         @endif
                     </div>
                     <x-status-pill :status="$r->status" />
@@ -48,8 +51,24 @@
                 <x-input-error :messages="$errors->get('last_working_date')" class="mt-1" />
             </div>
             <div>
-                <x-input-label for="reason" value="Reason (optional)" />
-                <textarea wire:model="reason" id="reason" rows="3" class="input-glass"></textarea>
+                <x-input-label value="Resignation Letter" />
+                <p class="mb-2 text-xs text-white/40">Write a professionally formatted resignation letter to HR — include your reason for leaving, your notice period, and any handover details.</p>
+                <div wire:key="resignation-letter-editor-{{ $formInstance }}">
+                    <x-rich-editor model="reason" :value="$reason" placeholder="Dear HR Team, I am writing to formally resign from my position…" />
+                </div>
+            </div>
+            <div>
+                <label class="flex items-center gap-2 text-sm text-white/70">
+                    <input type="checkbox" wire:model.live="cc_personal_email" class="h-4 w-4 rounded border-white/20 bg-white/5 text-gold-400 focus:ring-gold-400/50">
+                    CC a personal email address
+                </label>
+                @if ($cc_personal_email)
+                    <div class="mt-2">
+                        <x-input-label for="personal_email" value="Personal Email" />
+                        <x-text-input wire:model="personal_email" id="personal_email" type="email" class="mt-0" placeholder="you@example.com" />
+                        <x-input-error :messages="$errors->get('personal_email')" class="mt-1" />
+                    </div>
+                @endif
             </div>
             <div class="flex justify-end gap-3 pt-2">
                 <x-secondary-button type="button" @click="show = false">Cancel</x-secondary-button>

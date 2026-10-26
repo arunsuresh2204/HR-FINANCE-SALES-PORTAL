@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Resignation extends Model
 {
     protected $fillable = [
-        'user_id', 'notice_date', 'last_working_date', 'reason', 'status', 'reviewed_by', 'reviewed_at',
+        'user_id', 'notice_date', 'last_working_date', 'reason', 'cc_email', 'status', 'reviewed_by', 'reviewed_at',
     ];
 
     protected function casts(): array

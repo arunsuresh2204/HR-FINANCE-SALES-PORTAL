@@ -511,7 +511,7 @@
             </div>
             <div wire:key="task-desc-editor-{{ $taskModalInstance }}">
                 <x-input-label value="Description" />
-                <x-rich-editor model="task_description" :value="$task_description" placeholder="Describe the task&hellip;" />
+                <x-rich-editor model="task_description" :value="$task_description" placeholder="Describe the task…" />
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div>

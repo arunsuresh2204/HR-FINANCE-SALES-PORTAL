@@ -9,7 +9,10 @@
                         <p class="font-semibold text-white">{{ $r->user->name }}</p>
                         <p class="text-sm text-white/50">Notice: {{ $r->notice_date->format('M j, Y') }} &middot; Last day: {{ $r->last_working_date->format('M j, Y') }}</p>
                         @if ($r->reason)
-                            <p class="mt-2 text-sm text-white/60">"{{ $r->reason }}"</p>
+                            <div class="rich-text-content mt-2 text-sm text-white/60">{!! $r->reason !!}</div>
+                        @endif
+                        @if ($r->cc_email)
+                            <p class="mt-1 text-xs text-white/35">CC'd to {{ $r->cc_email }}</p>
                         @endif
                     </div>
                     <div class="flex items-center gap-3">
