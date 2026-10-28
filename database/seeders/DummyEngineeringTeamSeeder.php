@@ -29,7 +29,7 @@ class DummyEngineeringTeamSeeder extends Seeder
         $arun = User::firstOrCreate(
             ['email' => 'arun@nexstarc.com'],
             [
-                'employee_code' => 'EMP-0001', 'name' => 'Arun Suresh', 'password' => $password,
+                'employee_code' => 'EMP-0000', 'name' => 'Arun Suresh', 'password' => $password,
                 'email_verified_at' => now(), 'designation' => 'Co-Founder / Super Admin',
                 'department' => 'Engineering', 'date_of_joining' => now()->subYears(2), 'employment_status' => 'active',
                 'monthly_salary' => 4000, 'scheduled_login_time' => '09:00', 'scheduled_logoff_time' => '18:00',
