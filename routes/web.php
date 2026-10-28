@@ -130,6 +130,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::view('users', 'pages.admin.user-management')->name('users');
         Route::view('settings/lead-sources', 'pages.admin.lead-source-management')->name('lead-sources');
         Route::view('settings/roles', 'pages.admin.role-management')->name('roles');
+        Route::view('settings/mail', 'pages.admin.mail-settings')->name('mail-settings');
     });
 });
 

@@ -21,7 +21,11 @@ class GstInvoiceBundle extends Mailable
 
     public function envelope(): Envelope
     {
+        $financeAddress = config('mail.finance_notification_address');
+
         return new Envelope(
+            from: $financeAddress,
+            replyTo: [$financeAddress],
             subject: config('app.name').' — GST Invoices for '.$this->periodLabel,
         );
     }
