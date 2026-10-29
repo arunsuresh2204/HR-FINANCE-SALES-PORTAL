@@ -2,10 +2,12 @@
 
 namespace App\Livewire\HrAdmin;
 
+use App\Mail\ResignationAccepted;
 use App\Models\OffboardingTask;
 use App\Models\Resignation;
 use App\Support\Html;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -60,7 +62,18 @@ class ResignationApprovals extends Component
             OffboardingTask::create(['resignation_id' => $resignation->id, 'task' => $task]);
         }
 
-        $this->dispatch('toast', message: 'Resignation accepted. Offboarding checklist created.', type: 'success');
+        $message = 'Resignation accepted. Offboarding checklist created.';
+
+        if ($resignation->user->personal_email) {
+            try {
+                Mail::to($resignation->user->personal_email)->send(new ResignationAccepted($resignation));
+            } catch (\Throwable $e) {
+                report($e);
+                $message .= ' The confirmation email to their personal address could not be sent.';
+            }
+        }
+
+        $this->dispatch('toast', message: $message, type: 'success');
     }
 
     public function reject(Resignation $resignation): void

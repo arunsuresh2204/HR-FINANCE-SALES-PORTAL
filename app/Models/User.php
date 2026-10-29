@@ -31,6 +31,7 @@ class User extends Authenticatable
         'employee_code',
         'name',
         'email',
+        'personal_email',
         'password',
         'avatar_path',
         'phone',

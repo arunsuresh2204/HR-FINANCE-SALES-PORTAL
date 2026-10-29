@@ -6,6 +6,7 @@ use Livewire\Volt\Component;
 new class extends Component
 {
     public string $phone = '';
+    public string $personal_email = '';
     public string $address = '';
     public string $emergency_contact_name = '';
     public string $emergency_contact_phone = '';
@@ -17,6 +18,7 @@ new class extends Component
     {
         $user = Auth::user();
         $this->phone = $user->phone ?? '';
+        $this->personal_email = $user->personal_email ?? '';
         $this->address = $user->address ?? '';
         $this->emergency_contact_name = $user->emergency_contact_name ?? '';
         $this->emergency_contact_phone = $user->emergency_contact_phone ?? '';
@@ -29,6 +31,7 @@ new class extends Component
     {
         $validated = $this->validate([
             'phone' => ['nullable', 'string', 'max:30'],
+            'personal_email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:1000'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:30'],
@@ -60,6 +63,15 @@ new class extends Component
                 <x-input-label for="address" value="Address" />
                 <x-text-input wire:model="address" id="address" type="text" class="mt-1 w-full" />
                 <x-input-error :messages="$errors->get('address')" class="mt-2" />
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+                <x-input-label for="personal_email" value="Personal Email" />
+                <x-text-input wire:model="personal_email" id="personal_email" type="email" class="mt-1 w-full" />
+                <p class="mt-1 text-xs text-white/35">Used to send you a confirmation if your resignation is accepted, in case you lose access to your work email.</p>
+                <x-input-error :messages="$errors->get('personal_email')" class="mt-2" />
             </div>
         </div>
 
