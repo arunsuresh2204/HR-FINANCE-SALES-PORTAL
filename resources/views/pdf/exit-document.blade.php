@@ -13,6 +13,7 @@
         .wordmark-cell { vertical-align: middle; padding-left: 8px; }
         .wordmark { font-size: 21px; font-weight: bold; letter-spacing: -0.3px; color: #0a0a0b; }
         .wordmark .sub { font-size: 13px; font-weight: 600; color: #0a0a0b; }
+        .wordmark .dot { color: #f7c81e; }
         .wordmark-rule { margin-top: 5px; width: 110px; height: 2px; background: #f7c81e; font-size: 1px; line-height: 1px; }
         .tagline { font-size: 7px; letter-spacing: 1.5px; color: #888; margin-top: 5px; text-transform: uppercase; }
 
@@ -51,7 +52,7 @@
                                 <img src="{{ public_path('images/logo-mark.svg') }}" width="34" height="34">
                             </td>
                             <td class="wordmark-cell">
-                                <span class="wordmark">nexstarc <span class="sub">technologies</span></span>
+                                <span class="wordmark">nexstarc<span class="dot">.</span> <span class="sub">technologies</span></span>
                                 <div class="wordmark-rule"></div>
                             </td>
                         </tr>
