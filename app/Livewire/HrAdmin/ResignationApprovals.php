@@ -2,6 +2,7 @@
 
 namespace App\Livewire\HrAdmin;
 
+use App\Mail\ExitDocumentReady;
 use App\Mail\ResignationAccepted;
 use App\Models\OffboardingTask;
 use App\Models\Resignation;
@@ -23,6 +24,13 @@ class ResignationApprovals extends Component
         'Return ID card',
         'Knowledge transfer completed',
         'Final settlement processed',
+    ];
+
+    public const DOCUMENT_LABELS = [
+        'experience_certificate' => 'Experience Certificate',
+        'relieving_letter' => 'Relieving Letter',
+        'form16' => 'Form 16',
+        'uan_pf' => 'UAN / PF Document',
     ];
 
     // Experience Certificate / Relieving Letter editor modal
@@ -135,7 +143,28 @@ class ResignationApprovals extends Component
         ]);
 
         $this->showDocumentForm = false;
-        $this->dispatch('toast', message: 'Document published to the employee.', type: 'success');
+        $this->dispatch('toast', message: $this->notifyExitDocumentReady($resignation, self::DOCUMENT_LABELS[$this->documentType]), type: 'success');
+    }
+
+    /**
+     * Returns the toast message for the calling action — the base "done"
+     * message, with a note appended if the personal-email confirmation
+     * couldn't be sent, so a mail failure never blocks the document itself.
+     */
+    protected function notifyExitDocumentReady(Resignation $resignation, string $label): string
+    {
+        $message = "{$label} is now available to the employee.";
+
+        if ($resignation->user->personal_email) {
+            try {
+                Mail::to($resignation->user->personal_email)->send(new ExitDocumentReady($resignation, $label));
+            } catch (\Throwable $e) {
+                report($e);
+                $message .= ' The confirmation email to their personal address could not be sent.';
+            }
+        }
+
+        return $message;
     }
 
     public function openFileUploadForm(int $resignationId, string $type): void
@@ -170,7 +199,7 @@ class ResignationApprovals extends Component
 
         $this->showFileUploadForm = false;
         $this->exit_document_file = null;
-        $this->dispatch('toast', message: 'File uploaded.', type: 'success');
+        $this->dispatch('toast', message: $this->notifyExitDocumentReady($resignation, self::DOCUMENT_LABELS[$this->fileUploadType]), type: 'success');
     }
 
     public function deleteExitFile(int $resignationId, string $type): void
