@@ -60,6 +60,9 @@
     "extra": {
         "laravel": {
             "dont-discover": []
+        },
+        "audit": {
+            "ignore[]": "PKSA-m5cs-t1y6-qpcs"
         }
     },
     "config": {
@@ -69,6 +72,14 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "audit": {
+            "abandoned": "report"
+        },
+        "policy": {
+            "advisories": {
+                "block": false
+            }
         }
     },
     "minimum-stability": "stable",
