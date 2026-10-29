@@ -4,7 +4,6 @@ namespace App\Livewire\Hr;
 
 use App\Models\Holiday;
 use App\Models\LeaveRequest;
-use App\Support\Slack;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -97,8 +96,6 @@ class LeaveIndex extends Component
             'status' => 'pending',
             'certificate_path' => $this->certificate?->store('leave-certificates', 'public'),
         ]);
-
-        Slack::notifyGeneral(":calendar: *".Auth::user()->name."* requested {$days} day(s) of {$this->type} leave ({$this->start_date} to {$this->end_date}).");
 
         $this->showForm = false;
 

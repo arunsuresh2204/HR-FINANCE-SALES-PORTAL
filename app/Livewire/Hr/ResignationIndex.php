@@ -5,7 +5,6 @@ namespace App\Livewire\Hr;
 use App\Mail\ResignationSubmitted;
 use App\Models\Resignation;
 use App\Support\Html;
-use App\Support\Slack;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Validate;
@@ -69,8 +68,6 @@ class ResignationIndex extends Component
 
             return;
         }
-
-        Slack::notifyGeneral(":door: *".Auth::user()->name."* submitted their resignation — last working day ".\Carbon\Carbon::parse($this->last_working_date)->format('M j, Y').".");
 
         $this->showForm = false;
         $this->dispatch('toast', message: 'Resignation submitted to HR.', type: 'success');
