@@ -11,12 +11,15 @@ use Illuminate\Support\Collection;
 
 class Project extends Model
 {
-    protected $fillable = ['client_id', 'created_by', 'assigned_to', 'name', 'description', 'status', 'currency', 'estimated_amount'];
+    protected $fillable = ['client_id', 'created_by', 'assigned_to', 'name', 'description', 'slack_webhook_url', 'status', 'currency', 'estimated_amount'];
+
+    protected $hidden = ['slack_webhook_url'];
 
     protected function casts(): array
     {
         return [
             'estimated_amount' => 'decimal:2',
+            'slack_webhook_url' => 'encrypted',
         ];
     }
 

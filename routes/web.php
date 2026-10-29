@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Controllers\CreditNotePdfController;
+use App\Http\Controllers\ExperienceCertificatePdfController;
 use App\Http\Controllers\ExpenseExportController;
 use App\Http\Controllers\InvoiceExportController;
 use App\Http\Controllers\InvoicePdfController;
 use App\Http\Controllers\PayrollExportController;
 use App\Http\Controllers\PayslipPdfController;
 use App\Http\Controllers\RefundVoucherPdfController;
+use App\Http\Controllers\RelievingLetterPdfController;
 use App\Models\Client;
 use App\Models\Invoice;
 use App\Models\Lead;
@@ -39,6 +41,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('documents', 'pages.hr.document-index')->name('hr.documents');
     Route::view('announcements', 'pages.hr.announcement-index')->name('hr.announcements');
     Route::view('resignation', 'pages.hr.resignation-index')->name('hr.resignation');
+    Route::view('exit-documents', 'pages.hr.exit-documents')->name('hr.exit-documents');
+    Route::get('resignations/{resignation}/experience-certificate', ExperienceCertificatePdfController::class)->name('resignations.experience-certificate');
+    Route::get('resignations/{resignation}/relieving-letter', RelievingLetterPdfController::class)->name('resignations.relieving-letter');
 
     Route::middleware(['permission:access_org_chart'])->group(function () {
         Route::view('org-chart', 'pages.company.org-chart')->name('org-chart');
@@ -130,6 +135,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::view('users', 'pages.admin.user-management')->name('users');
         Route::view('settings/lead-sources', 'pages.admin.lead-source-management')->name('lead-sources');
         Route::view('settings/roles', 'pages.admin.role-management')->name('roles');
+        Route::view('settings/mail', 'pages.admin.mail-settings')->name('mail-settings');
+        Route::view('settings/slack', 'pages.admin.slack-settings')->name('slack-settings');
     });
 });
 

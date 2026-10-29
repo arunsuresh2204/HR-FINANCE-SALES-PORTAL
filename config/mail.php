@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'default' => env('MAIL_MAILER', 'log'),
+    'default' => env('MAIL_MAILER', 'phpmail'),
 
     /*
     |--------------------------------------------------------------------------
@@ -75,6 +75,10 @@ return [
             'channel' => env('MAIL_LOG_CHANNEL'),
         ],
 
+        'phpmail' => [
+            'transport' => 'phpmail',
+        ],
+
         'array' => [
             'transport' => 'array',
         ],
@@ -123,5 +127,17 @@ return [
     */
 
     'hr_notification_address' => env('HR_NOTIFICATION_EMAIL', 'hr@nexstarc.com'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Finance Notification Address
+    |--------------------------------------------------------------------------
+    |
+    | GST filing, invoicing, and other finance-originated mail is sent (and
+    | replied to) from this address, regardless of the global "from" above.
+    |
+    */
+
+    'finance_notification_address' => env('FINANCE_NOTIFICATION_EMAIL', 'finance@nexstarc.com'),
 
 ];
