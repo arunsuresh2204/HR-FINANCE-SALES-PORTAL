@@ -353,6 +353,12 @@
                 <x-input-error :messages="$errors->get('project_requirement_files')" class="mt-1" />
                 <x-input-error :messages="$errors->get('project_requirement_files.*')" class="mt-1" />
             </div>
+            <div>
+                <x-input-label for="project_slack_webhook_url" value="Slack Channel Webhook (optional)" />
+                <x-text-input wire:model="project_slack_webhook_url" id="project_slack_webhook_url" type="text" class="mt-0" placeholder="https://hooks.slack.com/services/..." />
+                <p class="mt-1 text-xs text-white/35">Task updates for this project will be posted here. Create an Incoming Webhook for this project's Slack channel and paste its URL.</p>
+                <x-input-error :messages="$errors->get('project_slack_webhook_url')" class="mt-1" />
+            </div>
             @unless ($editingProjectId)
                 <div class="rounded-xl border border-white/10 bg-white/5 p-3">
                     <x-input-label value="Credential (optional)" />

@@ -133,6 +133,7 @@
                             <a href="{{ route('admin.lead-sources') }}" wire:navigate data-nav-link data-match="prefix" class="nav-link-glass {{ request()->routeIs('admin.lead-sources*') ? 'active' : '' }}"><x-icon name="filter" class="h-4 w-4 shrink-0" />Lead Sources</a>
                             <a href="{{ route('admin.roles') }}" wire:navigate data-nav-link data-match="prefix" class="nav-link-glass {{ request()->routeIs('admin.roles*') ? 'active' : '' }}"><x-icon name="users" class="h-4 w-4 shrink-0" />Functional Roles</a>
                             <a href="{{ route('admin.mail-settings') }}" wire:navigate data-nav-link data-match="prefix" class="nav-link-glass {{ request()->routeIs('admin.mail-settings*') ? 'active' : '' }}"><x-icon name="inbox" class="h-4 w-4 shrink-0" />Mail Settings</a>
+                            <a href="{{ route('admin.slack-settings') }}" wire:navigate data-nav-link data-match="prefix" class="nav-link-glass {{ request()->routeIs('admin.slack-settings*') ? 'active' : '' }}"><x-icon name="megaphone" class="h-4 w-4 shrink-0" />Slack Settings</a>
                         </div>
                     </div>
                 @endif

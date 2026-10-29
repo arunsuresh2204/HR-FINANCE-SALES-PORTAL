@@ -9,6 +9,7 @@ use App\Models\ProjectCredential;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\Html;
+use App\Support\Slack;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
@@ -451,6 +452,8 @@ class ProjectShow extends Component
         $this->storeTaskAttachments($task, $this->task_attachment_files);
         $this->notifyNewAssignees($task, $this->task_assignee_ids, [], $authUser);
 
+        Slack::notifyProject($this->project, ":new: *{$task->title}* created by {$authUser->name}.");
+
         $this->showTaskModal = false;
 
         if ($this->convertingRequestId) {
@@ -593,6 +596,8 @@ class ProjectShow extends Component
             "\"{$task->title}\" moved to ".self::STATUSES[$status]." — {$this->project->name}",
             $authUser
         );
+
+        Slack::notifyProject($this->project, ":arrows_counterclockwise: *{$task->title}* moved to *".self::STATUSES[$status]."* by {$authUser->name}.");
     }
 
     public function toggleTaskAssignee(int $taskId, int $userId): void
