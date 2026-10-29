@@ -11,7 +11,6 @@ use App\Models\Project;
 use App\Models\ProjectRequest;
 use App\Models\User;
 use App\Support\Html;
-use App\Support\Slack;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -82,8 +81,6 @@ class ClientShow extends Component
     public bool $projectCurrencyLocked = false;
 
     public array $project_requirement_files = [];
-
-    public string $project_slack_webhook_url = '';
 
     public ?int $assigned_to = null;
 
@@ -249,7 +246,7 @@ class ClientShow extends Component
     {
         $this->projectModalInstance++;
         $this->editingProjectId = null;
-        $this->reset(['project_name', 'project_description', 'project_requirement_files', 'project_slack_webhook_url']);
+        $this->reset(['project_name', 'project_description', 'project_requirement_files']);
         $this->reset(['new_credential_label', 'new_credential_username', 'new_credential_secret', 'new_credential_notes']);
         $this->project_currency = 'INR';
         $this->projectCurrencyLocked = false;
@@ -270,7 +267,6 @@ class ClientShow extends Component
         $this->editingProjectId = $project->id;
         $this->project_name = $project->name;
         $this->project_description = $project->description ?? '';
-        $this->project_slack_webhook_url = $project->slack_webhook_url ?? '';
         $this->project_requirement_files = [];
         $this->project_currency = $project->currency;
         $this->projectCurrencyLocked = $project->tasks()->whereNotNull('amount')->exists();
@@ -309,7 +305,6 @@ class ClientShow extends Component
             'project_description' => 'nullable|string|max:20000',
             'project_requirement_files' => 'array|max:5',
             'project_requirement_files.*' => 'file|max:10240',
-            'project_slack_webhook_url' => 'nullable|url|starts_with:https://hooks.slack.com/',
             'assigned_to' => $canManage ? 'nullable|exists:users,id' : 'required|exists:users,id',
             'project_currency' => $currencyEditable ? ['required', 'in:'.implode(',', \App\Support\Currency::codes())] : 'nullable',
             'new_credential_label' => 'nullable|string|max:255|required_with:new_credential_secret',
@@ -338,7 +333,6 @@ class ClientShow extends Component
             'assigned_to' => $this->assigned_to ?: ($canManage ? Auth::id() : null),
             'name' => $this->project_name,
             'description' => Html::sanitize($this->project_description),
-            'slack_webhook_url' => $this->project_slack_webhook_url ?: null,
         ];
 
         if ($currencyEditable) {
@@ -354,8 +348,6 @@ class ClientShow extends Component
                 'created_by' => Auth::id(),
                 'status' => 'active',
             ]);
-
-            Slack::notifyGeneral(":tada: New project *{$project->name}* created for {$this->client->business_name}. Set up its Slack channel webhook from the project page if needed.");
         }
 
         foreach ($this->project_requirement_files as $file) {
