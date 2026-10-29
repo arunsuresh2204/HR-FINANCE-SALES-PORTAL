@@ -21,6 +21,14 @@
             <div class="relative mt-6 flex-1 overflow-hidden">
             @persist('sidebar-nav')
             <nav class="absolute inset-0 space-y-6 overflow-y-auto px-3 pb-4">
+                @if (auth()->user()->employment_status === 'offboarded')
+                <div class="space-y-1">
+                    <a href="{{ route('hr.exit-documents') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('hr.exit-documents') ? 'active' : '' }}">
+                        <x-icon name="exit" class="h-4 w-4 shrink-0" />
+                        Exit Documents
+                    </a>
+                </div>
+                @else
                 <div class="space-y-1">
                     <a href="{{ route('dashboard') }}" wire:navigate data-nav-link class="nav-link-glass {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                         <x-icon name="home" class="h-4 w-4 shrink-0" />
@@ -127,6 +135,7 @@
                             <a href="{{ route('admin.mail-settings') }}" wire:navigate data-nav-link data-match="prefix" class="nav-link-glass {{ request()->routeIs('admin.mail-settings*') ? 'active' : '' }}"><x-icon name="inbox" class="h-4 w-4 shrink-0" />Mail Settings</a>
                         </div>
                     </div>
+                @endif
                 @endif
             </nav>
             <script>
